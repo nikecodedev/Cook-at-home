@@ -1,0 +1,428 @@
+import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../core/theme/app_colors.dart';
+import '../models/recipe_model.dart';
+
+/// Modern, responsive recipe card widget
+class ModernRecipeCard extends StatelessWidget {
+  final Recipe recipe;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+  final double? aspectRatio;
+  final bool showSource;
+  final String? matchPercentage; // For suggested recipes
+  final Color? matchColor; // For suggested recipes
+
+  const ModernRecipeCard({
+    super.key,
+    required this.recipe,
+    this.onTap,
+    this.trailing,
+    this.aspectRatio,
+    this.showSource = true,
+    this.matchPercentage,
+    this.matchColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final cardPadding = isTablet ? 24.0 : 20.0;
+    final imageHeight = isTablet ? 280.0 : 240.0;
+
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: isTablet ? 12 : 0,
+        vertical: isTablet ? 8 : 0,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Image Section with Modern Design
+              _buildImageSection(context, imageHeight, isTablet),
+              
+              // Content Section
+              Padding(
+                padding: EdgeInsets.all(cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title Row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            recipe.title,
+                            style: TextStyle(
+                              fontSize: isTablet ? 22 : 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              height: 1.3,
+                              letterSpacing: -0.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (trailing != null) ...[
+                          const SizedBox(width: 12),
+                          trailing!,
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Stats Row - Modern Pills
+                    _buildStatsRow(context, isTablet),
+                    
+                    // Match Badge (for suggested recipes)
+                    if (matchPercentage != null) ...[
+                      const SizedBox(height: 12),
+                      _buildMatchBadge(context, matchPercentage!, matchColor),
+                    ],
+
+                    // Source (if available)
+                    if (showSource && recipe.source != null) ...[
+                      const SizedBox(height: 16),
+                      _buildSourceChip(context, recipe.source!),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageSection(BuildContext context, double height, bool isTablet) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Stack(
+        children: [
+          // Image or Placeholder
+          if (recipe.imageUrl != null)
+            CachedNetworkImage(
+              imageUrl: recipe.imageUrl!,
+              height: height,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => _buildImagePlaceholder(height),
+              errorWidget: (context, url, error) => _buildImagePlaceholder(height),
+            )
+          else
+            _buildImagePlaceholder(height),
+
+          // Gradient Overlay
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.3),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Match Badge Overlay (for suggested recipes)
+          if (matchPercentage != null)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: _buildFloatingMatchBadge(matchPercentage!, matchColor),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder(double height) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withOpacity(0.9),
+            AppColors.secondary.withOpacity(0.7),
+            AppColors.primary.withOpacity(0.5),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.restaurant_menu_rounded,
+                size: 48,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              recipe.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(BuildContext context, bool isTablet) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _buildModernChip(
+          icon: Icons.timer_outlined,
+          label: recipe.formattedCookTime,
+          color: AppColors.primary,
+          isTablet: isTablet,
+        ),
+        _buildModernChip(
+          icon: Icons.shopping_basket_outlined,
+          label: '${recipe.ingredients.length} ${recipe.ingredients.length == 1 ? 'ingrediente' : 'ingredientes'}',
+          color: AppColors.secondary,
+          isTablet: isTablet,
+        ),
+        if (recipe.instructions.isNotEmpty)
+          _buildModernChip(
+            icon: Icons.list_alt_outlined,
+            label: '${recipe.instructions.length} ${recipe.instructions.length == 1 ? 'paso' : 'pasos'}',
+            color: AppColors.success,
+            isTablet: isTablet,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildModernChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isTablet,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 14 : 12,
+        vertical: isTablet ? 10 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: isTablet ? 18 : 16,
+            color: color,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isTablet ? 13 : 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchBadge(BuildContext context, String percentage, Color? color) {
+    final badgeColor = color ?? _getMatchColor(int.tryParse(percentage) ?? 0);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            badgeColor,
+            badgeColor.withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: badgeColor.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _getMatchIcon(int.tryParse(percentage) ?? 0),
+            color: Colors.white,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$percentage% Coincidencia',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingMatchBadge(String percentage, Color? color) {
+    final badgeColor = color ?? _getMatchColor(int.tryParse(percentage) ?? 0);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            badgeColor,
+            badgeColor.withOpacity(0.9),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _getMatchIcon(int.tryParse(percentage) ?? 0),
+            color: Colors.white,
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$percentage%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSourceChip(BuildContext context, String source) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.gray50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.gray200,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.link_rounded,
+            size: 14,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              source,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getMatchColor(int percentage) {
+    if (percentage >= 80) return AppColors.success;
+    if (percentage >= 50) return AppColors.warning;
+    return AppColors.error;
+  }
+
+  IconData _getMatchIcon(int percentage) {
+    if (percentage >= 80) return Icons.check_circle_rounded;
+    if (percentage >= 50) return Icons.info_rounded;
+    return Icons.warning_rounded;
+  }
+}
+
+
