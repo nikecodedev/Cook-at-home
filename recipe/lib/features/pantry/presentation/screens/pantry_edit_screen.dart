@@ -267,6 +267,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                       ),
                       child: DropdownButtonFormField<String>(
                         value: _unitController.text,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Unidad',
                           prefixIcon: Icon(Icons.straighten),
@@ -277,7 +278,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                           final translatedUnit = Translations.translateUnit(unit);
                           return DropdownMenuItem(
                             value: unit, // Store English value
-                            child: Text(translatedUnit), // Display Spanish translation
+                            child: Text(
+                              translatedUnit,
+                              overflow: TextOverflow.ellipsis,
+                            ), // Display Spanish translation
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -304,6 +308,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                 ),
                 child: DropdownButtonFormField<String>(
                   value: _categoryController.text.isEmpty ? null : _categoryController.text,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Categoría',
                     prefixIcon: Icon(Icons.category_outlined),
@@ -314,7 +319,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                     final translatedCategory = Translations.translatePantryCategory(category);
                     return DropdownMenuItem(
                       value: category, // Store English value
-                      child: Text(translatedCategory), // Display Spanish translation
+                      child: Text(
+                        translatedCategory,
+                        overflow: TextOverflow.ellipsis,
+                      ), // Display Spanish translation
                     );
                   }).toList(),
                   onChanged: (value) {

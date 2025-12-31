@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../models/recipe_model.dart';
 import '../../../../core/utils/translations.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/smart_purchase_button.dart';
 
 /// Elegant ingredient item with animations
 class IngredientItem extends StatefulWidget {
@@ -9,11 +9,15 @@ class IngredientItem extends StatefulWidget {
   final int index;
   final bool isTablet;
 
+  /// Callback when purchase links are updated
+  final void Function(String? amazonUrl, String? walmartUrl)? onLinksUpdated;
+
   const IngredientItem({
     super.key,
     required this.ingredient,
     required this.index,
     required this.isTablet,
+    this.onLinksUpdated,
   });
 
   @override
@@ -100,45 +104,61 @@ class _IngredientItemState extends State<IngredientItem>
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ingredient Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.ingredient.name,
-                          style: TextStyle(
-                            fontSize: widget.isTablet ? 18 : 16,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF212121),
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF7F7F7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${widget.ingredient.quantity} ${Translations.translateUnit(widget.ingredient.unit)}',
-                            style: TextStyle(
-                              fontSize: widget.isTablet ? 13 : 12,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF757575),
-                              letterSpacing: -0.2,
+                  Row(
+                    children: [
+                      // Ingredient Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.ingredient.name,
+                              style: TextStyle(
+                                fontSize: widget.isTablet ? 18 : 16,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF212121),
+                                letterSpacing: -0.3,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF7F7F7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${widget.ingredient.quantity} ${Translations.translateUnit(widget.ingredient.unit)}',
+                                style: TextStyle(
+                                  fontSize: widget.isTablet ? 13 : 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF757575),
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  // Purchase Buttons - Smart flow with options
+                  if (widget.ingredient.name.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    SmartPurchaseButton(
+                      itemName: widget.ingredient.name,
+                      amazonLink: widget.ingredient.amazonLink,
+                      walmartLink: widget.ingredient.walmartLink,
+                      size: SmartPurchaseButtonSize.small,
+                      onLinksUpdated: widget.onLinksUpdated,
+                    ),
+                  ],
                 ],
               ),
             ),

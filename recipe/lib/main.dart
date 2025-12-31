@@ -112,65 +112,6 @@ class _MyAppState extends ConsumerState<MyApp> {
         } catch (e) {
           Logger.error('Error initializing notification notifier', e, null, 'Main');
         }
-        
-        // Also listen for token updates when user logs in
-        try {
-        ref.listen(currentUserIdProvider, (previous, next) {
-          if (next != null) {
-              Logger.info('User logged in, saving FCM token for user: $next', 'Main');
-              // User logged in, ensure token is saved (non-blocking)
-              Future.microtask(() async {
-                try {
-            final fcmService = ref.read(fcmServiceProvider);
-            if (fcmService.fcmToken != null) {
-              final firestoreService = ref.read(firestoreServiceProvider);
-                    await firestoreService
-                        .updateUserFCMToken(next, fcmService.fcmToken!)
-                        .timeout(const Duration(seconds: 5));
-                    Logger.success('FCM token saved successfully for user: $next', 'Main');
-                  } else {
-                    Logger.warning('FCM token is null, cannot save', 'Main');
-                  }
-                } catch (e) {
-                  Logger.error('Failed to save FCM token after login', e, null, 'Main');
-                }
-              });
-            }
-              });
-        } catch (e) {
-          Logger.error('Error setting up user ID listener', e, null, 'Main');
-            }
-
-        // Listen for auth state changes to detect email verification
-        try {
-        ref.listen(authStateProvider, (previous, next) async {
-          if (next.value != null) {
-            // User is logged in, check if email was just verified
-            try {
-              final authRepository = ref.read(authRepositoryProvider);
-                await authRepository
-                    .reloadUser()
-                    .timeout(const Duration(seconds: 3));
-              final isVerified = authRepository.isEmailVerified;
-              
-              // Check if email was just verified (was not verified before)
-              final previousUser = previous?.value;
-              final wasVerifiedBefore = previousUser?.emailVerified ?? false;
-              
-              if (isVerified && !wasVerifiedBefore) {
-                // Email was just verified, navigate to home
-                Logger.success('Email verified, navigating to home', 'Main');
-                final router = ref.read(routerProvider);
-                router.go(Routes.home);
-              }
-            } catch (e) {
-              Logger.error('Error checking email verification', e, null, 'Main');
-            }
-          }
-        });
-      } catch (e) {
-          Logger.error('Error setting up auth state listener', e, null, 'Main');
-      }
       });
     });
   }
@@ -255,6 +196,57 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+
+    // Listen for user ID changes to save FCM token (must be in build method)
+    ref.listen(currentUserIdProvider, (previous, next) {
+      if (next != null) {
+        Logger.info('User logged in, saving FCM token for user: $next', 'Main');
+        // User logged in, ensure token is saved (non-blocking)
+        Future.microtask(() async {
+          try {
+            final fcmService = ref.read(fcmServiceProvider);
+            if (fcmService.fcmToken != null) {
+              final firestoreService = ref.read(firestoreServiceProvider);
+              await firestoreService
+                  .updateUserFCMToken(next, fcmService.fcmToken!)
+                  .timeout(const Duration(seconds: 5));
+              Logger.success('FCM token saved successfully for user: $next', 'Main');
+            } else {
+              Logger.warning('FCM token is null, cannot save', 'Main');
+            }
+          } catch (e) {
+            Logger.error('Failed to save FCM token after login', e, null, 'Main');
+          }
+        });
+      }
+    });
+
+    // Listen for auth state changes to detect email verification (must be in build method)
+    ref.listen(authStateProvider, (previous, next) async {
+      if (next.value != null) {
+        // User is logged in, check if email was just verified
+        try {
+          final authRepository = ref.read(authRepositoryProvider);
+          await authRepository
+              .reloadUser()
+              .timeout(const Duration(seconds: 3));
+          final isVerified = authRepository.isEmailVerified;
+          
+          // Check if email was just verified (was not verified before)
+          final previousUser = previous?.value;
+          final wasVerifiedBefore = previousUser?.emailVerified ?? false;
+          
+          if (isVerified && !wasVerifiedBefore) {
+            // Email was just verified, navigate to home
+            Logger.success('Email verified, navigating to home', 'Main');
+            final router = ref.read(routerProvider);
+            router.go(Routes.home);
+          }
+        } catch (e) {
+          Logger.error('Error checking email verification', e, null, 'Main');
+        }
+      }
+    });
 
     return MaterialApp.router(
       title: 'Cocina en tu Casa',

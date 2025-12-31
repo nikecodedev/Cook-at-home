@@ -80,8 +80,28 @@ class AuthRepository {
       Logger.success('User registered successfully: $email', 'AuthRepository');
 
       return userModel!;
-    } catch (e) {
-      Logger.error('Registration failed', e, null, 'AuthRepository');
+    } catch (e, stackTrace) {
+      Logger.error('Registration failed', e, stackTrace, 'AuthRepository');
+      // Log detailed error information
+      if (e is FirebaseAuthException) {
+        Logger.error('Firebase Auth Error - Code: ${e.code}, Message: ${e.message}', null, null, 'AuthRepository');
+      } else if (e is Exception) {
+        // Extract error code and message from Exception
+        final errorString = e.toString();
+        Logger.error('Registration Error - Type: ${e.runtimeType}, Full Error: $errorString', null, null, 'AuthRepository');
+        // If error message contains Firebase error code (format: "code: message"), log it separately
+        if (errorString.contains(':')) {
+          final parts = errorString.split(':');
+          if (parts.length >= 2) {
+            final code = parts[0].replaceAll('Exception: ', '').trim();
+            final message = parts.sublist(1).join(':').trim();
+            Logger.error('Firebase Error Code: $code', null, null, 'AuthRepository');
+            Logger.error('User Message: $message', null, null, 'AuthRepository');
+          }
+        }
+      } else {
+        Logger.error('Registration Error - Type: ${e.runtimeType}, Message: $e', null, null, 'AuthRepository');
+      }
       rethrow;
     }
   }

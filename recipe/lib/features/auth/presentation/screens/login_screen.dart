@@ -43,19 +43,95 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (mounted) {
         Logger.success('Login successful', 'LoginScreen');
-        
+
         // Get verification status immediately from auth service
         final authRepository = AuthRepository();
         final isEmailVerified = authRepository.isEmailVerified;
-        
-        if (isEmailVerified) {
-          // Email is verified, go directly to home immediately
-          Logger.info('Email verified, navigating to home immediately', 'LoginScreen');
-          context.go(Routes.home);
-        } else {
-          // Email not verified, redirect to verification screen
-          Logger.info('Email not verified, navigating to verification screen', 'LoginScreen');
-          context.go('${Routes.emailVerification}?email=${Uri.encodeComponent(_emailController.text.trim())}');
+
+        // Show success dialog that user must acknowledge
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: AppColors.success,
+                      size: 64,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    '¡Inicio de sesión exitoso!',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Bienvenido de vuelta',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Continuar',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (mounted) {
+          if (isEmailVerified) {
+            // Email is verified, go directly to home
+            Logger.info('Email verified, navigating to home', 'LoginScreen');
+            context.go(Routes.home);
+          } else {
+            // Email not verified, redirect to verification screen
+            Logger.info('Email not verified, navigating to verification screen', 'LoginScreen');
+            context.go('${Routes.emailVerification}?email=${Uri.encodeComponent(_emailController.text.trim())}');
+          }
         }
       }
     } catch (e) {

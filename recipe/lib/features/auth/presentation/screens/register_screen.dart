@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
@@ -62,51 +63,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         // Show success dialog with clear messaging
         final email = _emailController.text.trim();
         
-        // Show snackbar notification that verification email was sent
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.mark_email_read_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        '¡Correo de Verificación Enviado!',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Revisa tu bandeja de entrada en $email',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+        // Show snackbar notification that verification email was sent (after dialog)
+        // This will be shown after the dialog is dismissed
         
         // Show success modal dialog
         showDialog(
@@ -378,6 +336,53 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: () {
                         Navigator.of(context).pop();
                         Logger.info('Navigating to email verification screen for: $email', 'RegisterScreen');
+                        
+                        // Show snackbar notification that verification email was sent
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(
+                                  Icons.mark_email_read_outlined,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        '¡Correo de Verificación Enviado!',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Revisa tu bandeja de entrada en $email',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: AppColors.success,
+                            duration: const Duration(seconds: 5),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.all(16),
+                          ),
+                        );
+                        
                         context.go('${Routes.emailVerification}?email=${Uri.encodeComponent(email)}');
                       },
                       isLoading: false,
@@ -395,10 +400,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       Logger.error('Registration error', e, null, 'RegisterScreen');
       if (mounted) {
         // Extract user-friendly error message
-        String errorMessage = e.toString();
-        if (errorMessage.contains('Exception: ')) {
-          errorMessage = errorMessage.replaceFirst('Exception: ', '');
-        }
+        String errorMessage = _getErrorMessage(e);
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -413,6 +415,75 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// Get user-friendly error message from exception
+  String _getErrorMessage(dynamic e) {
+    if (e is FirebaseAuthException) {
+      switch (e.code) {
+        case 'weak-password':
+          return 'La contraseña es demasiado débil. Por favor usa una contraseña más fuerte (mínimo 6 caracteres).';
+        case 'email-already-in-use':
+          return 'Ya existe una cuenta con esta dirección de correo electrónico.';
+        case 'invalid-email':
+          return 'La dirección de correo electrónico no es válida.';
+        case 'user-disabled':
+          return 'Esta cuenta ha sido deshabilitada. Por favor contacta al soporte.';
+        case 'operation-not-allowed':
+          return 'El registro con email y contraseña no está habilitado. Por favor contacta al soporte.';
+        case 'invalid-credential':
+          return 'Credenciales inválidas. Por favor verifica tu correo electrónico y contraseña.';
+        case 'unauthorized-domain':
+          return 'Este dominio de correo electrónico no está permitido.';
+        case 'invalid-continue-uri':
+        case 'unauthorized-continue-uri':
+          return 'Error de configuración. Por favor contacta al soporte.';
+        case 'network-request-failed':
+          return 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.';
+        default:
+          return e.message ?? 'Ocurrió un error durante el registro. Por favor intenta de nuevo.';
+      }
+    }
+    
+    // Handle Exception with Firebase error code format: "code: message"
+    String errorMessage = e.toString();
+    if (errorMessage.contains('Exception: ')) {
+      errorMessage = errorMessage.replaceFirst('Exception: ', '');
+    }
+    
+    // Extract Firebase error code if present (format: "code: message")
+    if (errorMessage.contains(':') && errorMessage.length > 0) {
+      final parts = errorMessage.split(':');
+      if (parts.length >= 2) {
+        final code = parts[0].trim();
+        final message = parts.sublist(1).join(':').trim();
+        
+        // Handle specific Firebase error codes
+        switch (code) {
+          case 'operation-not-allowed':
+            return 'El registro con email y contraseña no está habilitado. Ve a Firebase Console → Authentication → Sign-in method y habilita Email/Password.';
+          case 'weak-password':
+            return 'La contraseña es demasiado débil. Por favor usa una contraseña más fuerte (mínimo 6 caracteres).';
+          case 'email-already-in-use':
+            return 'Ya existe una cuenta con esta dirección de correo electrónico.';
+          case 'invalid-email':
+            return 'La dirección de correo electrónico no es válida.';
+          case 'network-request-failed':
+            return 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.';
+          default:
+            // Return the user-friendly message part
+            return message.isNotEmpty ? message : 'Ocurrió un error durante el registro. Por favor intenta de nuevo.';
+        }
+      }
+    }
+    
+    if (errorMessage.contains('FirebaseException')) {
+      return 'Error de conexión con Firebase. Por favor verifica tu conexión e intenta de nuevo.';
+    }
+    
+    return errorMessage.isNotEmpty 
+        ? errorMessage 
+        : 'Ocurrió un error durante el registro. Por favor intenta de nuevo.';
   }
 
   @override

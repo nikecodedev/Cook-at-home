@@ -36,10 +36,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -53,37 +50,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDoDphE5gO8Xb9ZFYel68WJNW22HdL8FYk',
-    appId: '1:125244724223:web:bd9573bf610b4ee1170dca',
-    messagingSenderId: '125244724223',
-    projectId: 'smart-recipe-fb',
-    authDomain: 'smart-recipe-fb.firebaseapp.com',
-    storageBucket: 'smart-recipe-fb.firebasestorage.app',
+    apiKey: 'AIzaSyCtlxcc7CkT0pjS1-o8q0KLo8UYP7N8efo',
+    appId: '1:27412997936:web:2841eca3529993c762caf5',
+    messagingSenderId: '27412997936',
+    projectId: 'cocina-en-tu-casa',
+    authDomain: 'cocina-en-tu-casa.firebaseapp.com',
+    storageBucket: 'cocina-en-tu-casa.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDoDphE5gO8Xb9ZFYel68WJNW22HdL8FYk',
-    appId: '1:125244724223:android:bd9573bf610b4ee1170dca',
-    messagingSenderId: '125244724223',
-    projectId: 'smart-recipe-fb',
-    storageBucket: 'smart-recipe-fb.firebasestorage.app',
+    apiKey: 'AIzaSyCeqJ5tAUzsbLs6cJ2VDb3f82H8hfUDuDY',
+    appId: '1:27412997936:android:e4b1fd9085175a3962caf5',
+    messagingSenderId: '27412997936',
+    projectId: 'cocina-en-tu-casa',
+    storageBucket: 'cocina-en-tu-casa.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDoDphE5gO8Xb9ZFYel68WJNW22HdL8FYk',
-    appId: '1:125244724223:ios:bd9573bf610b4ee1170dca',
-    messagingSenderId: '125244724223',
-    projectId: 'smart-recipe-fb',
-    storageBucket: 'smart-recipe-fb.firebasestorage.app',
-    iosBundleId: 'com.example.recipeApp',
+    apiKey: 'AIzaSyAT2EIzbXwPKc7SqegtxDtWQXG2JfXQIck',
+    appId: '1:27412997936:ios:82aba1ebb76011e762caf5',
+    messagingSenderId: '27412997936',
+    projectId: 'cocina-en-tu-casa',
+    storageBucket: 'cocina-en-tu-casa.firebasestorage.app',
+    iosBundleId: 'com.example.myFirst',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDoDphE5gO8Xb9ZFYel68WJNW22HdL8FYk',
-    appId: '1:125244724223:ios:bd9573bf610b4ee1170dca',
-    messagingSenderId: '125244724223',
-    projectId: 'smart-recipe-fb',
-    storageBucket: 'smart-recipe-fb.firebasestorage.app',
-    iosBundleId: 'com.example.recipeApp',
+    apiKey: 'AIzaSyAT2EIzbXwPKc7SqegtxDtWQXG2JfXQIck',
+    appId: '1:27412997936:ios:82aba1ebb76011e762caf5',
+    messagingSenderId: '27412997936',
+    projectId: 'cocina-en-tu-casa',
+    storageBucket: 'cocina-en-tu-casa.firebasestorage.app',
+    iosBundleId: 'com.example.myFirst',
   );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyCtlxcc7CkT0pjS1-o8q0KLo8UYP7N8efo',
+    appId: '1:27412997936:web:49ff004dae86180d62caf5',
+    messagingSenderId: '27412997936',
+    projectId: 'cocina-en-tu-casa',
+    authDomain: 'cocina-en-tu-casa.firebaseapp.com',
+    storageBucket: 'cocina-en-tu-casa.firebasestorage.app',
+  );
+
 }

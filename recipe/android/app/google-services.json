@@ -1,51 +1,26 @@
 {
   "project_info": {
-    "project_number": "125244724223",
-    "project_id": "smart-recipe-fb",
-    "storage_bucket": "smart-recipe-fb.firebasestorage.app"
+    "project_number": "27412997936",
+    "project_id": "cocina-en-tu-casa",
+    "storage_bucket": "cocina-en-tu-casa.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:125244724223:android:bd9573bf610b4ee1170dca",
+        "mobilesdk_app_id": "1:27412997936:android:e4b1fd9085175a3962caf5",
         "android_client_info": {
           "package_name": "com.example.recipe_app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "125244724223-ul3nl9n6vjru482ba54jc74i7db0jp0r.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.recipe_app",
-            "certificate_hash": "4f64ecb31cda038557cc36611527a7120a83eebf"
-          }
-        },
-        {
-          "client_id": "125244724223-on3lv1t0kpuu7au38rktut1ns9uabtmg.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDoDphE5gO8Xb9ZFYel68WJNW22HdL8FYk"
+          "current_key": "AIzaSyCeqJ5tAUzsbLs6cJ2VDb3f82H8hfUDuDY"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "125244724223-on3lv1t0kpuu7au38rktut1ns9uabtmg.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "125244724223-tu7gpg3j4crpmqfh5mrcopjtu4oqku90.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.myFirst"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

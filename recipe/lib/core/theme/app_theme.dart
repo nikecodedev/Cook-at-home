@@ -3,10 +3,41 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// Application theme configuration
+/// Brand: Cocina en tu Casa
+/// Style: Clean, uncluttered, rounded cards, soft shadows, warm colors
 class AppTheme {
+  // Primary font: Poppins (UI + Logo) - clean, friendly, modern
+  static TextStyle _poppins({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+  }) {
+    return GoogleFonts.poppins(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+    );
+  }
+
+  // Secondary font: Nunito (Recipes, content) - rounded, clean, friendly
+  static TextStyle _nunito({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+  }) {
+    return GoogleFonts.nunito(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+    );
+  }
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      // Set default font family to prevent Material from loading Roboto
+      // Using Poppins as the default, which is preloaded in index.html
+      fontFamily: 'Poppins',
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,
@@ -15,46 +46,49 @@ class AppTheme {
         error: AppColors.error,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      textTheme: GoogleFonts.interTextTheme().copyWith(
-        displayLarge: const TextStyle(
+      // Primary font: Poppins for UI elements
+      textTheme: TextTheme(
+        // Display styles (Poppins - bold, modern)
+        displayLarge: _poppins(
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        displayMedium: const TextStyle(
+        displayMedium: _poppins(
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        displaySmall: const TextStyle(
+        displaySmall: _poppins(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        headlineMedium: const TextStyle(
+        headlineMedium: _poppins(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleLarge: const TextStyle(
+        titleLarge: _poppins(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleMedium: const TextStyle(
+        titleMedium: _poppins(
           fontSize: 16,
           fontWeight: FontWeight.w500,
           color: AppColors.textPrimary,
         ),
-        bodyLarge: const TextStyle(
+        // Body styles (Nunito - friendly, readable)
+        bodyLarge: _nunito(
           fontSize: 16,
           color: AppColors.textPrimary,
         ),
-        bodyMedium: const TextStyle(
+        bodyMedium: _nunito(
           fontSize: 14,
           color: AppColors.textPrimary,
         ),
-        bodySmall: const TextStyle(
+        bodySmall: _nunito(
           fontSize: 12,
           color: AppColors.textSecondary,
         ),
@@ -65,10 +99,10 @@ class AppTheme {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12), // Rounded buttons (8-12px radius)
           ),
-          elevation: 0,
-          textStyle: const TextStyle(
+          elevation: 0, // Flat design with soft shadows
+          textStyle: _poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -82,7 +116,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           side: const BorderSide(color: AppColors.primary, width: 2),
-          textStyle: const TextStyle(
+          textStyle: _poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -92,7 +126,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          textStyle: const TextStyle(
+          textStyle: _poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -138,19 +172,20 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 0,
+        elevation: 2, // Soft shadows for depth
+        shadowColor: AppColors.shadow,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.gray200),
+          borderRadius: BorderRadius.circular(16), // Rounded cards
+          side: BorderSide.none, // No border, use shadow instead
         ),
         margin: const EdgeInsets.all(8),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
-        elevation: 0,
+        elevation: 0, // Flat design
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: _poppins(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
@@ -162,10 +197,13 @@ class AppTheme {
         space: 1,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.gray800,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        backgroundColor: AppColors.charcoal,
+        contentTextStyle: _nunito(
+          color: Colors.white,
+          fontSize: 14,
+        ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12), // Rounded corners
         ),
         behavior: SnackBarBehavior.floating,
       ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../../core/config/firebase_config.dart';
@@ -8,6 +7,7 @@ import '../../core/constants/firebase_constants.dart';
 import '../../models/profile_model.dart';
 import '../../models/pantry_item_model.dart';
 import '../../models/recipe_model.dart';
+import '../storage/firebase_storage_service.dart';
 import '../../models/shopping_list_model.dart';
 import '../../models/feedback_model.dart';
 import '../../models/user_model.dart';
@@ -471,241 +471,16 @@ class FirestoreService {
     String recipeId,
     dynamic imageData, // File or Uint8List
   ) async {
-    try {
-      // Validate recipe ID
-      if (recipeId.isEmpty) {
-        throw Exception('El ID de la receta no puede estar vacío');
-      }
-
-      // Validate image data
-      if (imageData == null) {
-        throw Exception('Los datos de la imagen no pueden ser nulos');
-      }
-
-      // Check if Firebase Storage is available
-      final storage = FirebaseConfig.storage;
-      
-      // Validate storage instance
-      if (storage == null) {
-        Logger.warning('Firebase Storage is not initialized - recipe will be saved without image', 'FirestoreService');
-        return null; // Return null instead of throwing - recipe can be saved without image
-      }
-      
-      // Test storage availability by checking bucket with timeout
-      try {
-        final bucket = await Future.value(storage.app.options.storageBucket)
-            .timeout(const Duration(seconds: 2));
-        if (bucket == null || bucket.isEmpty) {
-          Logger.warning('Storage bucket not configured - recipe will be saved without image', 'FirestoreService');
-          return null;
-        }
-        Logger.info('Storage bucket verified: $bucket', 'FirestoreService');
-      } catch (e) {
-        Logger.warning('Cannot access storage bucket - recipe will be saved without image: $e', 'FirestoreService');
-        return null;
-      }
-      
-      // Verify storage is accessible by checking if we can create a reference
-      try {
-        final testRef = storage.ref('test');
-        if (testRef == null) {
-          Logger.warning('Cannot create storage reference - recipe will be saved without image', 'FirestoreService');
-          return null;
-        }
-      } catch (e) {
-        Logger.warning('Storage reference creation failed - recipe will be saved without image: $e', 'FirestoreService');
-        return null;
-      }
-
-      // Generate unique filename - ensure recipeId is valid
-      final cleanRecipeId = recipeId.trim().replaceAll(RegExp(r'[^\w-]'), '_');
-      if (cleanRecipeId.isEmpty) {
-        throw Exception('El ID de la receta no es válido después de la limpieza');
-      }
-      
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final randomSuffix = timestamp.toString().substring(timestamp.toString().length - 6);
-      final fileName = 'recipe_${cleanRecipeId}_$randomSuffix.jpg';
-      
-      // Build file path - ensure it's properly formatted
-      final filePath = FirebaseStoragePaths.recipeImage(cleanRecipeId, fileName);
-
-      // Validate path doesn't contain invalid characters
-      if (filePath.contains('//') || filePath.startsWith('/') || filePath.endsWith('/')) {
-        Logger.warning('Invalid storage path format detected: $filePath - recipe will be saved without image', 'FirestoreService');
-        return null;
-      }
-      
-      // Additional validation: ensure path is not too long (Firebase Storage limit)
-      if (filePath.length > 768) {
-        Logger.warning('Storage path too long: $filePath - recipe will be saved without image', 'FirestoreService');
-        return null;
-      }
-
-      Logger.info('Starting image upload to Firebase Storage', 'FirestoreService');
-      Logger.info('  Recipe ID: $recipeId', 'FirestoreService');
-      Logger.info('  File path: $filePath', 'FirestoreService');
-      Logger.info('  Storage bucket: ${storage.app.options.storageBucket}', 'FirestoreService');
-
-      // Create storage reference with validation
-      Reference storageRef;
-      try {
-        storageRef = storage.ref(filePath);
-        
-        // Validate reference was created successfully
-        if (storageRef == null) {
-          throw Exception('Error al crear la referencia de almacenamiento para la ruta: $filePath');
-        }
-        
-        // Verify the reference is valid by checking its path
-        final refPath = storageRef.fullPath;
-        if (refPath.isEmpty) {
-          throw Exception('La ruta de referencia de almacenamiento está vacía');
-        }
-        Logger.info('Storage reference created successfully: $refPath', 'FirestoreService');
-      } catch (e) {
-        Logger.error('Failed to create storage reference', e, null, 'FirestoreService');
-        // If reference creation fails, return null instead of throwing
-        return null;
-      }
-      
-      UploadTask uploadTask;
-      if (imageData is File) {
-        // Mobile platform - use File directly
-        Logger.info('Uploading image file (mobile): ${imageData.path}', 'FirestoreService');
-        if (!await imageData.exists()) {
-          throw Exception('El archivo de imagen no existe: ${imageData.path}');
-        }
-        final fileSize = await imageData.length();
-        if (fileSize == 0) {
-          throw Exception('El archivo de imagen está vacío: ${imageData.path}');
-        }
-        Logger.info('File size: $fileSize bytes', 'FirestoreService');
-        
-        uploadTask = storageRef.putFile(
-          imageData,
-          SettableMetadata(
-            contentType: 'image/jpeg',
-            cacheControl: 'public, max-age=3600',
-          ),
-        );
-      } else if (imageData is Uint8List) {
-        // Web or mobile - use Uint8List directly
-        Logger.info('Uploading image bytes: ${imageData.length} bytes', 'FirestoreService');
-        if (imageData.isEmpty) {
-          throw Exception('Los datos de la imagen están vacíos');
-        }
-        uploadTask = storageRef.putData(
-          imageData,
-          SettableMetadata(
-            contentType: 'image/jpeg',
-            cacheControl: 'public, max-age=3600',
-          ),
-        );
-      } else {
-        throw Exception('Tipo de datos de imagen no soportado: ${imageData.runtimeType}');
-      }
-
-      // Wait for upload to complete with timeout
-      Logger.info('Waiting for upload to complete...', 'FirestoreService');
-      TaskSnapshot snapshot;
-      try {
-        snapshot = await uploadTask.timeout(
-          const Duration(seconds: 60),
-          onTimeout: () {
-            Logger.warning('Image upload timed out after 60 seconds - recipe will be saved without image', 'FirestoreService');
-            throw TimeoutException('La carga de la imagen expiró');
-          },
-        );
-      } catch (e) {
-        if (e is TimeoutException) {
-          return null; // Return null on timeout instead of throwing
-        }
-        rethrow; // Re-throw other exceptions to be caught by outer catch
-      }
-      
-      Logger.info('Upload completed, getting download URL...', 'FirestoreService');
-
-      // Get download URL with timeout
-      String imageUrl;
-      try {
-        imageUrl = await snapshot.ref.getDownloadURL().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            Logger.warning('Failed to get download URL: timeout - recipe will be saved without image', 'FirestoreService');
-            throw TimeoutException('Error al obtener la URL de descarga');
-          },
-        );
-      } catch (e) {
-        if (e is TimeoutException) {
-          return null; // Return null on timeout instead of throwing
-        }
-        rethrow; // Re-throw other exceptions
-      }
-
-      Logger.success('Recipe image uploaded successfully: $imageUrl', 'FirestoreService');
-      return imageUrl;
-    } catch (e, stackTrace) {
-      Logger.error('Failed to upload recipe image to Firebase Storage', e, stackTrace, 'FirestoreService');
-      
-      // Don't throw - return null so recipe can still be saved without image
-      // This ensures recipe saving never fails due to image upload issues
-      final errorMessage = e.toString().toLowerCase();
-      
-      if (errorMessage.contains('object-not-found') || 
-          errorMessage.contains('not found') ||
-          errorMessage.contains('404')) {
-        Logger.warning(
-          'Storage bucket not found - recipe will be saved without image. '
-          'Please check Firebase Storage is enabled and bucket is configured.',
-          'FirestoreService',
-        );
-        return null; // Return null instead of throwing
-      }
-      
-      if (errorMessage.contains('permission') || 
-          errorMessage.contains('unauthorized') || 
-          errorMessage.contains('403')) {
-        Logger.warning(
-          'Storage permission denied - recipe will be saved without image. '
-          'Please check Firebase Storage security rules.',
-          'FirestoreService',
-        );
-        return null; // Return null instead of throwing
-      }
-      
-      if (errorMessage.contains('network') || errorMessage.contains('timeout')) {
-        Logger.warning(
-          'Network error during image upload - recipe will be saved without image.',
-          'FirestoreService',
-        );
-        return null; // Return null instead of throwing
-      }
-      
-      // For any other error, log but don't fail recipe saving
-      Logger.warning(
-        'Image upload failed but recipe will be saved without image: $e',
-        'FirestoreService',
-      );
-      return null; // Always return null instead of throwing
-    }
+    // Delegate to FirebaseStorageService
+    return await FirebaseStorageService().uploadRecipeImage(recipeId, imageData);
   }
 
   /// Delete recipe image from Firebase Storage
   Future<void> deleteRecipeImage(String imageUrl) async {
-    try {
-      final storage = FirebaseConfig.storage;
-      
-      // Firebase Storage provides a convenient method to get a reference from a download URL
-      final ref = storage.refFromURL(imageUrl);
-      await ref.delete();
-
-      Logger.success('Recipe image deleted from Firebase Storage: $imageUrl', 'FirestoreService');
-    } catch (e, stackTrace) {
-      Logger.error('Failed to delete recipe image from Firebase Storage', e, stackTrace, 'FirestoreService');
-      // Don't throw - image deletion failure shouldn't break the recipe deletion
-      Logger.warning('Continuing despite image deletion failure', 'FirestoreService');
-    }
+    // Delegate to FirebaseStorageService
+    await FirebaseStorageService().deleteRecipeImage(imageUrl);
+    // Note: deleteRecipeImage returns bool, but we don't throw here
+    // to ensure recipe deletion doesn't fail if image deletion fails
   }
 
   // ==================== SHOPPING LIST METHODS ====================
@@ -727,28 +502,66 @@ class FirestoreService {
           .id;
 
       // Normalize pantry item names for comparison
-      final pantryNames = pantryItems
-          .map((item) => _normalizeIngredientName(item.name))
-          .toSet();
+      // Store both normalized name and original item for better matching
+      final pantryMap = <String, PantryItem>{};
+      for (final item in pantryItems) {
+        final normalized = _normalizeIngredientName(item.name);
+        pantryMap[normalized] = item;
+      }
 
       // Find missing ingredients
       final missingIngredients = <RecipeIngredient>[];
+      Logger.info(
+        'Generating shopping list for recipe "${recipe.title}" with ${recipe.ingredients.length} ingredients',
+        'FirestoreService',
+      );
+      Logger.info(
+        'Pantry has ${pantryItems.length} items: ${pantryItems.map((p) => p.name).join(", ")}',
+        'FirestoreService',
+      );
+
       for (final ingredient in recipe.ingredients) {
         final normalizedName = _normalizeIngredientName(ingredient.name);
         bool found = false;
+        String? matchedPantryItem;
 
-        // Check if ingredient exists in pantry
-        for (final pantryName in pantryNames) {
-          if (_ingredientNamesMatch(normalizedName, pantryName)) {
-            found = true;
-            break;
+        // First try exact match
+        if (pantryMap.containsKey(normalizedName)) {
+          found = true;
+          matchedPantryItem = pantryMap[normalizedName]!.name;
+          Logger.info(
+            'Exact match: "${ingredient.name}" ↔ "${matchedPantryItem}"',
+            'FirestoreService',
+          );
+        } else {
+          // Try fuzzy matching against all pantry items
+          for (final pantryItem in pantryItems) {
+            final pantryNormalized = _normalizeIngredientName(pantryItem.name);
+            if (_ingredientNamesMatch(normalizedName, pantryNormalized)) {
+              found = true;
+              matchedPantryItem = pantryItem.name;
+              Logger.info(
+                'Fuzzy match: "${ingredient.name}" ↔ "${matchedPantryItem}"',
+                'FirestoreService',
+              );
+              break;
+            }
           }
         }
 
         if (!found) {
           missingIngredients.add(ingredient);
+          Logger.info(
+            'Missing ingredient: "${ingredient.name}" (${ingredient.quantity} ${ingredient.unit})',
+            'FirestoreService',
+          );
         }
       }
+
+      Logger.info(
+        'Found ${missingIngredients.length} missing ingredients out of ${recipe.ingredients.length} total',
+        'FirestoreService',
+      );
 
       if (missingIngredients.isEmpty) {
         throw Exception('¡Todos los ingredientes ya están en tu despensa!');
@@ -771,41 +584,71 @@ class FirestoreService {
           .set(shoppingList);
 
       // Add items to subcollection
-      final batch = _firestore.batch();
-      for (final ingredient in missingIngredients) {
-        final itemId = _firestore
-            .collection(FirebaseCollections.users)
-            .doc(userId)
-            .collection(FirebaseCollections.shoppingLists)
-            .doc(listId)
-            .collection(FirebaseCollections.shoppingListItems)
-            .doc()
-            .id;
+      // Log detailed info about what's being added
+      Logger.info(
+        'Adding ${missingIngredients.length} items to shopping list (${recipe.ingredients.length - missingIngredients.length} already in pantry)',
+        'FirestoreService',
+      );
 
-        // Generate search links for Amazon and Walmart
-        final amazonLink = _generateAmazonLink(ingredient.name);
-        final walmartLink = _generateWalmartLink(ingredient.name);
-
-        final itemRef = _firestore
-            .collection(FirebaseCollections.users)
-            .doc(userId)
-            .collection(FirebaseCollections.shoppingLists)
-            .doc(listId)
-            .collection(FirebaseCollections.shoppingListItems)
-            .doc(itemId);
-
-        batch.set(itemRef, {
-          'name': ingredient.name,
-          'quantity': ingredient.quantity,
-          'unit': ingredient.unit,
-          'isChecked': false,
-          'amazonLink': amazonLink,
-          'walmartLink': walmartLink,
-          'addedAt': Timestamp.fromDate(now),
-        });
+      // Log each ingredient being added
+      for (int i = 0; i < missingIngredients.length; i++) {
+        Logger.info(
+          'Item ${i + 1}/${missingIngredients.length}: "${missingIngredients[i].name}" (${missingIngredients[i].quantity} ${missingIngredients[i].unit})',
+          'FirestoreService',
+        );
       }
 
-      await batch.commit();
+      // Use individual writes instead of batch to avoid any potential batch issues
+      // This is more reliable for ensuring all items are added
+      final itemsRef = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems);
+
+      int addedCount = 0;
+      for (final ingredient in missingIngredients) {
+        try {
+          final itemId = itemsRef.doc().id;
+
+          // Use purchase links from recipe ingredient if available, otherwise generate search links
+          final amazonLink = ingredient.amazonLink?.isNotEmpty == true
+              ? ingredient.amazonLink
+              : _generateAmazonLink(ingredient.name);
+          final walmartLink = ingredient.walmartLink?.isNotEmpty == true
+              ? ingredient.walmartLink
+              : _generateWalmartLink(ingredient.name);
+
+          await itemsRef.doc(itemId).set({
+            'name': ingredient.name,
+            'quantity': ingredient.quantity,
+            'unit': ingredient.unit,
+            'isChecked': false,
+            'amazonLink': amazonLink,
+            'walmartLink': walmartLink,
+            'addedAt': Timestamp.fromDate(now),
+          });
+          addedCount++;
+          Logger.info(
+            'Successfully added item: "${ingredient.name}"',
+            'FirestoreService',
+          );
+        } catch (itemError) {
+          Logger.error(
+            'Failed to add item "${ingredient.name}"',
+            itemError,
+            null,
+            'FirestoreService',
+          );
+          // Continue with other items even if one fails
+        }
+      }
+
+      Logger.info(
+        'Finished adding items: $addedCount/${missingIngredients.length} successful',
+        'FirestoreService',
+      );
 
       Logger.success(
         'Shopping list generated: $listId with ${missingIngredients.length} items',
@@ -1132,23 +975,42 @@ class FirestoreService {
   }
 
   /// Helper: Check if two ingredient names match
+  /// Uses VERY strict matching to avoid false positives
+  /// Only matches: exact match, or simple singular/plural variations
   bool _ingredientNamesMatch(String name1, String name2) {
     final normalized1 = _normalizeIngredientName(name1);
     final normalized2 = _normalizeIngredientName(name2);
 
+    // Exact match
     if (normalized1 == normalized2) return true;
 
-    if (normalized1.contains(normalized2) || normalized2.contains(normalized1)) {
-      final shorter = normalized1.length < normalized2.length ? normalized1 : normalized2;
-      final longer = normalized1.length >= normalized2.length ? normalized1 : normalized2;
-      if (shorter.length >= (longer.length * 0.7)) {
-        return true;
+    // Singular/plural matching only
+    // Remove trailing 's', 'es', 'ies' for comparison
+    String toSingular(String word) {
+      if (word.endsWith('ies') && word.length > 4) {
+        return '${word.substring(0, word.length - 3)}y';
       }
+      if (word.endsWith('es') && word.length > 3) {
+        return word.substring(0, word.length - 2);
+      }
+      if (word.endsWith('s') && word.length > 2) {
+        return word.substring(0, word.length - 1);
+      }
+      return word;
     }
 
-    final singular1 = normalized1.replaceAll(RegExp(r's$'), '');
-    final singular2 = normalized2.replaceAll(RegExp(r's$'), '');
-    if (singular1 == singular2 && singular1.length > 2) return true;
+    final singular1 = toSingular(normalized1);
+    final singular2 = toSingular(normalized2);
+
+    // Only match if singularized versions are exactly equal
+    // and the original words are reasonably similar in length
+    if (singular1 == singular2 && singular1.length >= 3) {
+      return true;
+    }
+
+    // NO substring matching - this causes too many false positives
+    // e.g., "tuna" should NOT match "atun" or "tuna pasta"
+    // e.g., "pasta" should NOT match "tuna pasta"
 
     return false;
   }
@@ -1385,7 +1247,7 @@ class FirestoreService {
         final pantrySnapshot = await userDoc.reference
             .collection(FirebaseCollections.pantryItems)
             .get();
-        totalPantryItems += pantrySnapshot.docs.length;
+        totalPantryItems += pantrySnapshot.docs.length.toInt();
       }
 
       // Count shopping lists
@@ -1394,7 +1256,7 @@ class FirestoreService {
         final shoppingListsSnapshot = await userDoc.reference
             .collection(FirebaseCollections.shoppingLists)
             .get();
-        totalShoppingLists += shoppingListsSnapshot.docs.length;
+        totalShoppingLists += shoppingListsSnapshot.docs.length.toInt();
       }
 
       final stats = {

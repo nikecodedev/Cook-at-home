@@ -85,25 +85,51 @@ class RecipeDifficulty {
 
 /// Common Units
 class Units {
+  // Weight units
   static const String grams = 'grams';
   static const String kilograms = 'kilograms';
+  static const String ounces = 'ounces';
+  static const String pounds = 'pounds';
+
+  // Volume units
   static const String liters = 'liters';
   static const String milliliters = 'milliliters';
-  static const String pieces = 'pieces';
   static const String cups = 'cups';
   static const String tablespoons = 'tablespoons';
   static const String teaspoons = 'teaspoons';
-  
+  static const String fluidOunces = 'fluid_ounces';
+  static const String pints = 'pints';
+  static const String quarts = 'quarts';
+  static const String gallons = 'gallons';
+
+  // Count units
+  static const String pieces = 'pieces';
+
   static List<String> get all => [
+    // Weight
     grams,
     kilograms,
+    ounces,
+    pounds,
+    // Volume
     liters,
     milliliters,
-    pieces,
     cups,
     tablespoons,
     teaspoons,
+    fluidOunces,
+    pints,
+    quarts,
+    gallons,
+    // Count
+    pieces,
   ];
+
+  /// Weight units only
+  static List<String> get weight => [grams, kilograms, ounces, pounds];
+
+  /// Volume units only
+  static List<String> get volume => [liters, milliliters, cups, tablespoons, teaspoons, fluidOunces, pints, quarts, gallons];
 }
 
 /// Pantry Categories

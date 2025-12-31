@@ -29,6 +29,7 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       elevation: 0,
       backgroundColor: AppColors.primary,
+      titleSpacing: 0,
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -106,35 +107,38 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
                   },
                 )
               : null,
-      title: subtitle != null
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+      title: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: subtitle != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                Text(
-                  subtitle!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.9),
+                  Text(
+                    subtitle!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
                   ),
+                ],
+              )
+            : Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-              ],
-            )
-          : Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
               ),
-            ),
+      ),
       actions: actions != null
           ? actions!.map((action) {
               // Wrap IconButton in styled container

@@ -139,6 +139,14 @@ class Validators {
     return null;
   }
 
+  /// Validate optional URL (returns null if empty, validates if provided)
+  static String? validateOptionalUrl(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // Empty is valid for optional URLs
+    }
+    return validateUrl(value);
+  }
+
   /// Validate date (not in past)
   static String? validateFutureDate(DateTime? value, [String fieldName = 'Fecha']) {
     if (value == null) {

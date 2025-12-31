@@ -32,6 +32,7 @@ import '../../features/admin/presentation/screens/admin_users_screen.dart';
 import '../../features/admin/presentation/screens/admin_categories_screen.dart';
 import '../../features/admin/presentation/screens/admin_feedback_screen.dart';
 import '../../features/landing/presentation/screens/landing_page.dart';
+import '../../features/tools/presentation/screens/measurement_converter_screen.dart';
 import 'admin_guard.dart';
 
 /// Route names
@@ -47,12 +48,14 @@ class Routes {
   static const String pantry = '/pantry';
   static const String pantryEdit = '/pantry/edit';
   static const String recipes = '/recipes';
+  static const String suggestedRecipes = '/recipes/suggested';
   static const String recipeDetail = '/recipes/detail';
   static const String recipeAdd = '/recipes/add';
   static const String recipeEdit = '/recipes/edit';
   static const String shoppingList = '/shopping-list';
   static const String shoppingLists = '/shopping-lists';
   static const String feedback = '/feedback';
+  static const String measurementConverter = '/tools/measurement-converter';
   static const String adminDashboard = '/admin';
   static const String adminRecipes = '/admin/recipes';
   static const String adminUsers = '/admin/users';
@@ -397,7 +400,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'recipes',
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
-          child: const RecipeListScreen(),
+          child: const RecipeListScreen(initialTabIndex: 0),
+        ),
+      ),
+      GoRoute(
+        path: Routes.suggestedRecipes,
+        name: 'suggested-recipes',
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const RecipeListScreen(initialTabIndex: 1),
         ),
       ),
       GoRoute(
@@ -455,6 +466,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
           child: const FeedbackScreen(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.measurementConverter,
+        name: 'measurement-converter',
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const MeasurementConverterScreen(),
         ),
       ),
       // Admin Routes (with access control)

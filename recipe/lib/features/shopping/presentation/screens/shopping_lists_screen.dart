@@ -42,7 +42,7 @@ class ShoppingListsScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => _buildEmptyState(context),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

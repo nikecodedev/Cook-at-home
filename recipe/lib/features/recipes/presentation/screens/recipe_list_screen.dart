@@ -15,7 +15,12 @@ import 'recipe_detail_screen.dart';
 import 'suggested_recipes_screen.dart';
 
 class RecipeListScreen extends ConsumerStatefulWidget {
-  const RecipeListScreen({super.key});
+  final int initialTabIndex;
+  
+  const RecipeListScreen({
+    super.key,
+    this.initialTabIndex = 0,
+  });
 
   @override
   ConsumerState<RecipeListScreen> createState() => _RecipeListScreenState();
@@ -31,7 +36,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
   }
 
   @override
@@ -209,7 +218,7 @@ class _AllRecipesTab extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => _buildEmptyState(context),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -125,13 +125,13 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.15),
+                        color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.feedback_rounded,
+                        Icons.feedback_outlined,
                         size: 40,
-                        color: AppColors.primary,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -186,13 +186,10 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                 ),
                 child: DropdownButtonFormField<FeedbackCategory>(
                   value: _selectedCategory,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.category_rounded,
-                      color: AppColors.primary,
-                    ),
+                  isExpanded: true,
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
                     ),
@@ -219,6 +216,27 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                       ),
                     );
                   }).toList(),
+                  selectedItemBuilder: (context) {
+                    return FeedbackCategory.values.map((category) {
+                      return Row(
+                        children: [
+                          Icon(
+                            _getCategoryIcon(category),
+                            size: 20,
+                            color: _getCategoryColor(category),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            category.displayName,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList();
+                  },
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
@@ -241,9 +259,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               ),
               const SizedBox(height: 12),
               CustomTextField(
-                label: 'Cuéntanos qué piensas...',
+                label: '',
                 controller: _messageController,
-                prefixIcon: Icons.message_rounded,
                 maxLines: 8,
                 keyboardType: TextInputType.multiline,
                 validator: (value) {
@@ -256,7 +273,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                   return null;
                 },
                 textInputAction: TextInputAction.newline,
-                hint: 'Comparte tus pensamientos, sugerencias o reporta cualquier problema que hayas encontrado...',
+                hint: 'Cuéntanos qué piensas...',
               ),
               const SizedBox(height: 32),
 
@@ -314,7 +331,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       case FeedbackCategory.suggestion:
         return Icons.lightbulb_rounded;
       case FeedbackCategory.other:
-        return Icons.chat_bubble_outline_rounded;
+        return Icons.people_outline_rounded;
     }
   }
 

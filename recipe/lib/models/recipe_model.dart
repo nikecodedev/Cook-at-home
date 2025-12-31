@@ -5,11 +5,15 @@ class RecipeIngredient {
   final String name;
   final double quantity;
   final String unit;
+  final String? amazonLink;
+  final String? walmartLink;
 
   RecipeIngredient({
     required this.name,
     required this.quantity,
     required this.unit,
+    this.amazonLink,
+    this.walmartLink,
   });
 
   factory RecipeIngredient.fromMap(Map<String, dynamic> data) {
@@ -17,6 +21,8 @@ class RecipeIngredient {
       name: data['name'] ?? '',
       quantity: (data['quantity'] ?? 0).toDouble(),
       unit: data['unit'] ?? '',
+      amazonLink: data['amazonLink'],
+      walmartLink: data['walmartLink'],
     );
   }
 
@@ -25,6 +31,9 @@ class RecipeIngredient {
       'name': name,
       'quantity': quantity,
       'unit': unit,
+      // Only save links if they are non-null and non-empty
+      if (amazonLink != null && amazonLink!.isNotEmpty) 'amazonLink': amazonLink,
+      if (walmartLink != null && walmartLink!.isNotEmpty) 'walmartLink': walmartLink,
     };
   }
 
@@ -32,11 +41,15 @@ class RecipeIngredient {
     String? name,
     double? quantity,
     String? unit,
+    String? amazonLink,
+    String? walmartLink,
   }) {
     return RecipeIngredient(
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
+      amazonLink: amazonLink ?? this.amazonLink,
+      walmartLink: walmartLink ?? this.walmartLink,
     );
   }
 
@@ -75,6 +88,12 @@ class Recipe {
   /// Create Recipe from Firestore document
   factory Recipe.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    // Handle imageUrl: treat empty strings as null
+    final imageUrlValue = data['imageUrl'];
+    final imageUrl = (imageUrlValue is String && imageUrlValue.isNotEmpty) 
+        ? imageUrlValue 
+        : null;
+    
     return Recipe(
       id: doc.id,
       title: data['title'] ?? '',
@@ -89,7 +108,7 @@ class Recipe {
       cookTime: data['cookTime'] ?? 0,
       source: data['source'],
       authorId: data['authorId'] ?? '',
-      imageUrl: data['imageUrl'],
+      imageUrl: imageUrl,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -97,6 +116,12 @@ class Recipe {
 
   /// Create Recipe from Map
   factory Recipe.fromMap(Map<String, dynamic> data, String id) {
+    // Handle imageUrl: treat empty strings as null
+    final imageUrlValue = data['imageUrl'];
+    final imageUrl = (imageUrlValue is String && imageUrlValue.isNotEmpty) 
+        ? imageUrlValue 
+        : null;
+    
     return Recipe(
       id: id,
       title: data['title'] ?? '',
@@ -111,7 +136,7 @@ class Recipe {
       cookTime: data['cookTime'] ?? 0,
       source: data['source'],
       authorId: data['authorId'] ?? '',
-      imageUrl: data['imageUrl'],
+      imageUrl: imageUrl,
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),

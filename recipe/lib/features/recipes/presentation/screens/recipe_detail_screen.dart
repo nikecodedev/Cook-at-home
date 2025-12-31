@@ -23,6 +23,14 @@ class RecipeDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
+  late Recipe _currentRecipe;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRecipe = widget.recipe;
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(currentUserIdProvider);
@@ -100,7 +108,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     0,
                   ),
                   child: RecipeHeader(
-                    recipe: widget.recipe,
+                    recipe: _currentRecipe,
                     isTablet: isTablet,
                   ),
                 ),
@@ -141,11 +149,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     0,
                   ),
                   child: Column(
-                    children: widget.recipe.ingredients.asMap().entries.map((entry) {
+                    children: _currentRecipe.ingredients.asMap().entries.map((entry) {
                       return IngredientItem(
                         ingredient: entry.value,
                         index: entry.key,
                         isTablet: isTablet,
+                        onLinksUpdated: (amazonUrl, walmartUrl) {
+                          _handleIngredientLinkUpdate(
+                            context,
+                            ref,
+                            entry.key,
+                            amazonUrl,
+                            walmartUrl,
+                          );
+                        },
                       );
                     }).toList(),
                   ),
@@ -306,7 +323,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     try {
       final listId = await ref
           .read(shoppingListControllerProvider.notifier)
-          .generateShoppingList(widget.recipe);
+          .generateShoppingList(_currentRecipe);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -329,91 +346,143 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     }
   }
 
+  /// Handle ingredient purchase link updates
+  Future<void> _handleIngredientLinkUpdate(
+    BuildContext context,
+    WidgetRef ref,
+    int ingredientIndex,
+    String? amazonUrl,
+    String? walmartUrl,
+  ) async {
+    try {
+      // Create updated ingredients list
+      final updatedIngredients = List<RecipeIngredient>.from(_currentRecipe.ingredients);
+      final currentIngredient = updatedIngredients[ingredientIndex];
+
+      // Handle link updates:
+      // - null means "don't change this link"
+      // - empty string means "delete this link"
+      // - non-empty string means "set this as the new link"
+      String? newAmazonLink = currentIngredient.amazonLink;
+      String? newWalmartLink = currentIngredient.walmartLink;
+
+      if (amazonUrl != null) {
+        newAmazonLink = amazonUrl.isEmpty ? null : amazonUrl;
+      }
+      if (walmartUrl != null) {
+        newWalmartLink = walmartUrl.isEmpty ? null : walmartUrl;
+      }
+
+      updatedIngredients[ingredientIndex] = RecipeIngredient(
+        name: currentIngredient.name,
+        quantity: currentIngredient.quantity,
+        unit: currentIngredient.unit,
+        amazonLink: newAmazonLink,
+        walmartLink: newWalmartLink,
+      );
+
+      // Create updated recipe
+      final updatedRecipe = _currentRecipe.copyWith(
+        ingredients: updatedIngredients,
+      );
+
+      // Update in Firestore
+      await ref.read(recipeControllerProvider.notifier).updateRecipe(updatedRecipe);
+
+      // Update local state
+      setState(() {
+        _currentRecipe = updatedRecipe;
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Enlace guardado exitosamente'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar enlace: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _showDeleteDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text(
-          'Eliminar Receta',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF212121),
-          ),
-        ),
+        title: const Text('Eliminar Receta'),
         content: Text(
-          '¿Estás seguro de que quieres eliminar "${widget.recipe.title}"?',
-          style: const TextStyle(
-            fontSize: 16,
-            color: Color(0xFF757575),
-          ),
+          '¿Estás seguro de que deseas eliminar "${widget.recipe.title}"?\n\nEsta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Color(0xFF757575)),
-            ),
+            child: const Text('Cancelar'),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                try {
-                  await ref.read(recipeControllerProvider.notifier).deleteRecipe(
-                        widget.recipe.id,
-                        imageUrl: widget.recipe.imageUrl,
-                      );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Receta eliminada exitosamente'),
-                        backgroundColor: AppColors.success,
-                      ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await ref.read(recipeControllerProvider.notifier).deleteRecipe(
+                      widget.recipe.id,
+                      imageUrl: widget.recipe.imageUrl,
                     );
-                    context.pop();
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    String errorMessage = e.toString();
-                    if (errorMessage.contains('Exception: ')) {
-                      errorMessage = errorMessage.replaceFirst('Exception: ', '');
-                    }
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
-                        backgroundColor: AppColors.error,
-                        duration: const Duration(seconds: 4),
-                        action: SnackBarAction(
-                          label: 'Descartar',
-                          textColor: Colors.white,
-                          onPressed: () {},
-                        ),
-                      ),
-                    );
-                  }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Receta eliminada exitosamente'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                  context.pop();
                 }
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text(
-                'Eliminar',
-                style: TextStyle(color: Colors.white),
-              ),
+              } catch (e) {
+                if (context.mounted) {
+                  String errorMessage = e.toString();
+                  if (errorMessage.contains('Exception: ')) {
+                    errorMessage = errorMessage.replaceFirst('Exception: ', '');
+                  }
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
+                      backgroundColor: AppColors.error,
+                      duration: const Duration(seconds: 4),
+                      action: SnackBarAction(
+                        label: 'Descartar',
+                        textColor: Colors.white,
+                        onPressed: () {},
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -421,3 +490,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     );
   }
 }
+
+
+

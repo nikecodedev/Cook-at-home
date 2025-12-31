@@ -37,6 +37,12 @@ class PurchaseButton extends StatelessWidget {
   /// Whether to show the store name text
   final bool showLabel;
 
+  /// Whether to show "Add purchase link" instead of store name when no URL exists
+  final bool showAddLinkWhenEmpty;
+  
+  /// Callback when "Add purchase link" is tapped (only used when showAddLinkWhenEmpty is true)
+  final VoidCallback? onAddLink;
+
   const PurchaseButton({
     super.key,
     required this.storeName,
@@ -48,9 +54,11 @@ class PurchaseButton extends StatelessWidget {
     this.color,
     this.size = PurchaseButtonSize.medium,
     this.showLabel = true,
+    this.showAddLinkWhenEmpty = false,
+    this.onAddLink,
   }) : assert(
-          url != null || itemName != null,
-          'Either url or itemName must be provided',
+          url != null || itemName != null || showAddLinkWhenEmpty,
+          'Either url, itemName, or showAddLinkWhenEmpty must be provided',
         );
 
   /// Create an Amazon purchase button
@@ -59,6 +67,8 @@ class PurchaseButton extends StatelessWidget {
     String? itemName,
     PurchaseButtonSize size = PurchaseButtonSize.medium,
     bool showLabel = true,
+    bool showAddLinkWhenEmpty = false,
+    VoidCallback? onAddLink,
   }) {
     return PurchaseButton(
       storeName: 'Amazon',
@@ -69,6 +79,8 @@ class PurchaseButton extends StatelessWidget {
       color: const Color(0xFFFF9900), // Amazon orange
       size: size,
       showLabel: showLabel,
+      showAddLinkWhenEmpty: showAddLinkWhenEmpty,
+      onAddLink: onAddLink,
     );
   }
 
@@ -78,6 +90,8 @@ class PurchaseButton extends StatelessWidget {
     String? itemName,
     PurchaseButtonSize size = PurchaseButtonSize.medium,
     bool showLabel = true,
+    bool showAddLinkWhenEmpty = false,
+    VoidCallback? onAddLink,
   }) {
     return PurchaseButton(
       storeName: 'Walmart',
@@ -88,6 +102,8 @@ class PurchaseButton extends StatelessWidget {
       color: const Color(0xFF0071CE), // Walmart blue
       size: size,
       showLabel: showLabel,
+      showAddLinkWhenEmpty: showAddLinkWhenEmpty,
+      onAddLink: onAddLink,
     );
   }
 
@@ -96,11 +112,15 @@ class PurchaseButton extends StatelessWidget {
     final effectiveColor = color ?? AppColors.primary;
     final effectiveIcon = icon ?? Icons.shopping_cart_outlined;
     final effectiveSize = _getSizeValues(size);
+    
+    // Check if we should show "Add purchase link" mode
+    final hasUrl = url != null && url!.trim().isNotEmpty;
+    final showAddLink = showAddLinkWhenEmpty && !hasUrl && onAddLink != null;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _launchUrl(context),
+        onTap: showAddLink ? onAddLink : () => _launchUrl(context),
         borderRadius: BorderRadius.circular(effectiveSize.borderRadius),
         child: Container(
           padding: EdgeInsets.symmetric(
@@ -108,11 +128,16 @@ class PurchaseButton extends StatelessWidget {
             horizontal: effectiveSize.horizontalPadding,
           ),
           decoration: BoxDecoration(
-            color: effectiveColor.withOpacity(0.1),
+            color: showAddLink 
+                ? effectiveColor.withOpacity(0.05)
+                : effectiveColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(effectiveSize.borderRadius),
             border: Border.all(
-              color: effectiveColor.withOpacity(0.3),
-              width: 1,
+              color: showAddLink
+                  ? effectiveColor.withOpacity(0.2)
+                  : effectiveColor.withOpacity(0.3),
+              width: showAddLink ? 1.5 : 1,
+              style: showAddLink ? BorderStyle.solid : BorderStyle.solid,
             ),
           ),
           child: Row(
@@ -120,14 +145,16 @@ class PurchaseButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                effectiveIcon,
+                showAddLink ? Icons.add_link : effectiveIcon,
                 size: effectiveSize.iconSize,
                 color: effectiveColor,
               ),
               if (showLabel) ...[
                 SizedBox(width: effectiveSize.spacing),
                 Text(
-                  storeName,
+                  showAddLink 
+                      ? 'Add purchase link' 
+                      : (hasUrl ? 'Buy now' : storeName),
                   style: TextStyle(
                     fontSize: effectiveSize.fontSize,
                     fontWeight: FontWeight.w600,

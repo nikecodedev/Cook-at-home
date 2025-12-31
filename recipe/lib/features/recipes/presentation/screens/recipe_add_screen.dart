@@ -75,12 +75,29 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
         source: ImageSource.gallery,
         maxWidth: 1920,
         maxHeight: 1080,
-        imageQuality: 85,
+        // On web, don't compress too much as it can corrupt the image
+        imageQuality: kIsWeb ? 100 : 85, // Use 100% quality on web to prevent corruption
       );
       if (image != null) {
         if (kIsWeb) {
           // On web, we need to read bytes instead of using File
           final bytes = await image.readAsBytes();
+          
+          // Validate that we got valid image bytes
+          if (bytes.isEmpty) {
+            throw Exception('Los datos de la imagen están vacíos');
+          }
+          
+          // Check minimum size (at least 100 bytes for a valid image)
+          if (bytes.length < 100) {
+            throw Exception('El archivo de imagen es demasiado pequeño o está corrupto');
+          }
+          
+          // Validate image format by checking magic bytes
+          if (!_isValidImageFormat(bytes)) {
+            throw Exception('El formato de la imagen no es válido. Por favor selecciona una imagen JPEG, PNG, GIF o WebP válida.');
+          }
+          
           if (mounted) {
             setState(() {
               _imageBytes = bytes;
@@ -116,6 +133,35 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
       _imageBytes = null;
       _existingImageUrl = null;
     });
+  }
+
+  /// Validate image format by checking magic bytes (file signature)
+  bool _isValidImageFormat(Uint8List bytes) {
+    if (bytes.length < 4) return false;
+    
+    // Check for JPEG: FF D8 FF
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+      return true;
+    }
+    
+    // Check for PNG: 89 50 4E 47
+    if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+      return true;
+    }
+    
+    // Check for GIF: 47 49 46 38
+    if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) {
+      return true;
+    }
+    
+    // Check for WebP: RIFF...WEBP
+    if (bytes.length >= 12 &&
+        bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+        bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) {
+      return true;
+    }
+    
+    return false;
   }
 
   void _addIngredient() {
@@ -629,64 +675,14 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               ),
               const SizedBox(height: 16),
               if (_ingredients.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: AppColors.gray50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.gray200,
-                      width: 2,
-                      style: BorderStyle.solid,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Sin ingredientes todavía.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.shopping_basket_outlined,
-                          size: 40,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aún no hay ingredientes',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Agrega ingredientes a tu receta',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _addIngredient,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Agregar Primer Ingrediente'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 )
               else
@@ -882,64 +878,14 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               ),
               const SizedBox(height: 16),
               if (_instructions.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: AppColors.gray50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.gray200,
-                      width: 2,
-                      style: BorderStyle.solid,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Sin instrucciones todavía.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.list_alt_rounded,
-                          size: 40,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aún no hay instrucciones',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Agrega instrucciones paso a paso para cocinar',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _addInstruction,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Agregar Primer Paso'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 )
               else
@@ -1144,15 +1090,6 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
   Widget _buildSectionTitle(String title) {
     return Row(
       children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 12),
         Text(
           title,
           style: const TextStyle(
@@ -1360,7 +1297,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                       ],
                     ),
                   ),
-                SizedBox(height: hasImage ? 16 : 0),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -1407,6 +1344,8 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
   late TextEditingController _unitController;
+  late TextEditingController _amazonLinkController;
+  late TextEditingController _walmartLinkController;
 
   @override
   void initState() {
@@ -1420,6 +1359,12 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
     _unitController = TextEditingController(
       text: widget.initialIngredient?.unit ?? 'pieces',
     );
+    _amazonLinkController = TextEditingController(
+      text: widget.initialIngredient?.amazonLink ?? '',
+    );
+    _walmartLinkController = TextEditingController(
+      text: widget.initialIngredient?.walmartLink ?? '',
+    );
   }
 
   @override
@@ -1427,6 +1372,8 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
     _nameController.dispose();
     _quantityController.dispose();
     _unitController.dispose();
+    _amazonLinkController.dispose();
+    _walmartLinkController.dispose();
     super.dispose();
   }
 
@@ -1439,6 +1386,12 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
       name: _nameController.text.trim(),
       quantity: double.tryParse(_quantityController.text) ?? 1.0,
       unit: _unitController.text.trim(),
+      amazonLink: _amazonLinkController.text.trim().isEmpty
+          ? null
+          : _amazonLinkController.text.trim(),
+      walmartLink: _walmartLinkController.text.trim().isEmpty
+          ? null
+          : _walmartLinkController.text.trim(),
     );
 
     widget.onSave(ingredient);
@@ -1518,6 +1471,126 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              // Purchase Links Section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.link_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Enlaces de Compra (Opcional)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Agrega enlaces directos para comprar este ingrediente',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Amazon Link
+              TextFormField(
+                controller: _amazonLinkController,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  labelText: 'Enlace de Amazon',
+                  hintText: 'https://amazon.com/...',
+                  helperText: 'Opcional - Deja vacío para generar automáticamente',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  prefixIcon: Icon(
+                    Icons.shopping_bag_outlined,
+                    color: const Color(0xFFFF9900),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: const Color(0xFFFF9900), width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
+                ),
+                validator: Validators.validateOptionalUrl,
+              ),
+              const SizedBox(height: 16),
+              // Walmart Link
+              TextFormField(
+                controller: _walmartLinkController,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  labelText: 'Enlace de Walmart',
+                  hintText: 'https://walmart.com/...',
+                  helperText: 'Opcional - Deja vacío para generar automáticamente',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  prefixIcon: Icon(
+                    Icons.store_outlined,
+                    color: const Color(0xFF0071CE),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: const Color(0xFF0071CE), width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
+                ),
+                validator: Validators.validateOptionalUrl,
               ),
             ],
           ),

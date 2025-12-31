@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../core/theme/app_colors.dart';
 import '../models/recipe_model.dart';
 
@@ -122,19 +123,19 @@ class ModernRecipeCard extends StatelessWidget {
   }
 
   Widget _buildImageSection(BuildContext context, double height, bool isTablet) {
+    // Check if imageUrl exists and is not empty
+    final hasImage = recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty;
+    
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: Stack(
         children: [
           // Image or Placeholder
-          if (recipe.imageUrl != null)
-            CachedNetworkImage(
+          if (hasImage)
+            _ImageWithRetry(
               imageUrl: recipe.imageUrl!,
               height: height,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => _buildImagePlaceholder(height),
-              errorWidget: (context, url, error) => _buildImagePlaceholder(height),
+              placeholder: _buildImagePlaceholder(height),
             )
           else
             _buildImagePlaceholder(height),
@@ -221,29 +222,36 @@ class ModernRecipeCard extends StatelessWidget {
   }
 
   Widget _buildStatsRow(BuildContext context, bool isTablet) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Row(
       children: [
-        _buildModernChip(
-          icon: Icons.timer_outlined,
-          label: recipe.formattedCookTime,
-          color: AppColors.primary,
-          isTablet: isTablet,
-        ),
-        _buildModernChip(
-          icon: Icons.shopping_basket_outlined,
-          label: '${recipe.ingredients.length} ${recipe.ingredients.length == 1 ? 'ingrediente' : 'ingredientes'}',
-          color: AppColors.secondary,
-          isTablet: isTablet,
-        ),
-        if (recipe.instructions.isNotEmpty)
-          _buildModernChip(
-            icon: Icons.list_alt_outlined,
-            label: '${recipe.instructions.length} ${recipe.instructions.length == 1 ? 'paso' : 'pasos'}',
-            color: AppColors.success,
+        Flexible(
+          child: _buildModernChip(
+            icon: Icons.timer_outlined,
+            label: recipe.formattedCookTime,
+            color: AppColors.primary,
             isTablet: isTablet,
           ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: _buildModernChip(
+            icon: Icons.shopping_basket_outlined,
+            label: '${recipe.ingredients.length} ${recipe.ingredients.length == 1 ? 'ingrediente' : 'ingredientes'}',
+            color: AppColors.secondary,
+            isTablet: isTablet,
+          ),
+        ),
+        if (recipe.instructions.isNotEmpty) ...[
+          const SizedBox(width: 8),
+          Flexible(
+            child: _buildModernChip(
+              icon: Icons.list_alt_outlined,
+              label: '${recipe.instructions.length} ${recipe.instructions.length == 1 ? 'paso' : 'pasos'}',
+              color: AppColors.success,
+              isTablet: isTablet,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -276,12 +284,16 @@ class ModernRecipeCard extends StatelessWidget {
             color: color,
           ),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTablet ? 13 : 12,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: isTablet ? 13 : 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],
@@ -422,6 +434,112 @@ class ModernRecipeCard extends StatelessWidget {
     if (percentage >= 80) return Icons.check_circle_rounded;
     if (percentage >= 50) return Icons.info_rounded;
     return Icons.warning_rounded;
+  }
+}
+
+/// Image widget with retry logic for better error handling
+class _ImageWithRetry extends StatefulWidget {
+  final String imageUrl;
+  final double height;
+  final Widget placeholder;
+
+  const _ImageWithRetry({
+    required this.imageUrl,
+    required this.height,
+    required this.placeholder,
+  });
+
+  @override
+  State<_ImageWithRetry> createState() => _ImageWithRetryState();
+}
+
+class _ImageWithRetryState extends State<_ImageWithRetry> {
+  int _retryCount = 0;
+  static const int _maxRetries = 2;
+
+  Future<void> _clearCacheAndRetry() async {
+    if (_retryCount < _maxRetries) {
+      setState(() {
+        _retryCount++;
+      });
+      // Clear cache for this specific image
+      try {
+        await DefaultCacheManager().removeFile(widget.imageUrl);
+      } catch (e) {
+        debugPrint('Failed to clear cache: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CachedNetworkImage(
+      key: ValueKey('${widget.imageUrl}_retry_$_retryCount'),
+      imageUrl: widget.imageUrl,
+      height: widget.height,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        height: widget.height,
+        width: double.infinity,
+        color: AppColors.gray100,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) {
+        // Log error for debugging
+        debugPrint('Failed to load recipe image (attempt $_retryCount/$_maxRetries): $url, Error: $error');
+        
+        // Try to retry if we haven't exceeded max retries
+        if (_retryCount < _maxRetries) {
+          // Retry after a short delay
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              _clearCacheAndRetry();
+            }
+          });
+          // Show loading indicator while retrying
+          return Container(
+            height: widget.height,
+            width: double.infinity,
+            color: AppColors.gray100,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Cargando imagen...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        // After max retries, show placeholder
+        return widget.placeholder;
+      },
+      // Add fade in animation
+      fadeInDuration: const Duration(milliseconds: 300),
+      fadeOutDuration: const Duration(milliseconds: 100),
+      // Use memCacheWidth/Height to help with decoding
+      memCacheWidth: 1920,
+      memCacheHeight: 1080,
+      // Add max width/height to prevent memory issues
+      maxWidthDiskCache: 1920,
+      maxHeightDiskCache: 1080,
+    );
   }
 }
 

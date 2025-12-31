@@ -78,7 +78,23 @@ class AdminRecipesScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.restaurant_menu_outlined, size: 64, color: AppColors.textSecondary),
+              const SizedBox(height: 16),
+              const Text(
+                'No Recipes Found',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -212,14 +228,19 @@ class AdminRecipesScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Recipe'),
-        content: Text('Are you sure you want to delete "${recipe.title}"?\n\nThis action cannot be undone.'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Eliminar Receta'),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar "${recipe.title}"?\n\nEsta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
               try {
@@ -227,7 +248,7 @@ class AdminRecipesScreen extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Recipe deleted successfully'),
+                      content: Text('Receta eliminada exitosamente'),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -241,11 +262,11 @@ class AdminRecipesScreen extends ConsumerWidget {
                   
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to delete recipe: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
+                      content: Text('Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
                       backgroundColor: AppColors.error,
                       duration: const Duration(seconds: 4),
                       action: SnackBarAction(
-                        label: 'Dismiss',
+                        label: 'Descartar',
                         textColor: Colors.white,
                         onPressed: () {},
                       ),
@@ -254,11 +275,10 @@ class AdminRecipesScreen extends ConsumerWidget {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppColors.error),
             ),
-            child: const Text('Delete'),
           ),
         ],
       ),

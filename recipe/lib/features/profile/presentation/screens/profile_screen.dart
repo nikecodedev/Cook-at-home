@@ -4,12 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/widgets/location_autocomplete_field.dart';
 import '../../../../core/widgets/standard_app_bar.dart';
+import '../../../../core/data/countries_list.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/profile_model.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../services/location/location_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -27,6 +31,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _unitPreference = 'metric';
   List<HouseholdMember> _householdMembers = [];
   bool _isEditing = false;
+  bool _isGettingLocation = false;
+  final LocationService _locationService = LocationService();
 
   @override
   void initState() {
@@ -78,13 +84,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       final servingSize = int.tryParse(_servingSizeController.text) ?? 4;
 
+      // Auto-correct location before saving
+      String? location = _locationController.text.trim();
+      if (location.isNotEmpty) {
+        location = CountriesList.autocorrect(location);
+        // Update controller with corrected value
+        if (location != _locationController.text.trim()) {
+          _locationController.text = location;
+        }
+        // If autocorrect cleared it (e.g., "Ubicación detectada"), treat as null
+        if (location.isEmpty) {
+          location = null;
+        }
+      } else {
+        location = null;
+      }
+
       await ref.read(profileControllerProvider.notifier).updateProfile(
             userId: userId,
             name: _nameController.text.trim(),
             email: _emailController.text.trim(),
-            location: _locationController.text.trim().isEmpty
-                ? null
-                : _locationController.text.trim(),
+            location: location,
             unitPreference: _unitPreference,
             servingSize: servingSize,
             householdMembers: _householdMembers,
@@ -156,6 +176,122 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() {
       _householdMembers.removeAt(index);
     });
+  }
+
+  Future<void> _detectLocation() async {
+    if (!_isEditing) return;
+
+    setState(() {
+      _isGettingLocation = true;
+    });
+
+    try {
+      // Get current location address
+      String address = await _locationService.getCurrentLocationAddress();
+
+      // Apply autocorrection to the detected address
+      address = CountriesList.autocorrect(address);
+
+      // If autocorrect returned empty (e.g., "Ubicación detectada"), try to provide a better fallback
+      if (address.isEmpty) {
+        address = '';  // Clear it so user can enter manually
+      }
+
+      if (mounted) {
+        setState(() {
+          _locationController.text = address;
+          _isGettingLocation = false;
+        });
+
+        if (address.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Ubicación detectada: $address'),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('No se pudo determinar tu ubicación exacta. Por favor ingrésala manualmente.'),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.warning,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isGettingLocation = false;
+        });
+
+        String errorMessage = e.toString();
+        if (errorMessage.contains('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
+
+        // Show error dialog with option to open settings if permission denied forever
+        bool shouldOpenSettings = errorMessage.contains('permanentemente') ||
+            errorMessage.contains('denegado permanentemente');
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.location_off,
+                  color: AppColors.error,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                const Text('Error de Ubicación'),
+              ],
+            ),
+            content: Text(errorMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              if (shouldOpenSettings)
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await openAppSettings();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Abrir Configuración'),
+                ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   String _translateRelationship(String? relationship) {
@@ -299,7 +435,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _createProfileIfNeeded();
             });
-            return const Center(child: CircularProgressIndicator());
+            return _buildEmptyProfileState();
           }
 
           if (profile != null && !_isEditing) {
@@ -374,13 +510,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Location Field
-                  CustomTextField(
+                  // Location Field with Autocomplete
+                  LocationAutocompleteField(
                     label: 'Ubicación (Opcional)',
                     controller: _locationController,
                     enabled: _isEditing,
                     prefixIcon: Icons.location_on_outlined,
-                    hint: 'Ingresa tu ubicación',
+                    hint: 'Ingresa tu ubicación o usa la detección automática',
+                    suffixIcon: _isEditing
+                        ? _isGettingLocation
+                            ? const Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : IconButton(
+                                icon: const Icon(Icons.my_location),
+                                onPressed: _detectLocation,
+                                tooltip: 'Detectar ubicación automáticamente',
+                              )
+                        : null,
+                    onChanged: (value) {
+                      // Auto-correct on change
+                      final corrected = CountriesList.autocorrect(value);
+                      if (corrected != value && _locationController.text == value) {
+                        _locationController.text = corrected;
+                      }
+                    },
                   ),
 
                   const SizedBox(height: 16),
@@ -545,7 +706,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => _buildEmptyProfileState(),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -570,6 +731,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyProfileState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person_outline,
+                size: 64,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Cargando Perfil',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Preparando tu información de perfil...',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -54,12 +54,17 @@ class FirebaseAuthService {
         // No delay needed as Firebase Auth processes user creation instantly
         
         // Send email verification with actionCodeSettings for email template customization
-        // IMPORTANT: To prevent emails from going to spam, configure in Firebase Console:
-        // 1. Go to Authentication > Templates > Email address verification
-        // 2. Customize the email template with proper sender name and branding
-        // 3. Set up a custom domain (recommended) or use Firebase's default domain
-        // 4. Configure SPF/DKIM records if using custom domain
-        // 5. Use a professional sender name (e.g., "Cocina en tu Casa" instead of "noreply")
+        // 
+        // ⚠️ CRITICAL: Email templates MUST be configured in Firebase Console!
+        // 
+        // Quick Setup:
+        // 1. Firebase Console > Authentication > Templates > Email address verification
+        // 2. Subject: "Verifica tu correo electrónico - Cocina en tu Casa"
+        // 3. Sender name: "Cocina en tu Casa"
+        // 4. Copy HTML from: docs/email_templates/verification_email.html
+        // 5. Paste and Save
+        // 
+        // See docs/EMAIL_SETUP_STEP_BY_STEP.md for detailed instructions.
         try {
           ActionCodeSettings? actionCodeSettings;
           
@@ -86,7 +91,7 @@ class FirebaseAuthService {
               } catch (defaultError) {
                 Logger.warning('Default email send failed for localhost, trying with Firebase auth domain: $defaultError', 'FirebaseAuthService');
                 // Fallback: use Firebase auth domain instead of localhost
-                final authDomain = _auth.app.options.authDomain ?? 'smart-recipe-fb.firebaseapp.com';
+                final authDomain = _auth.app.options.authDomain ?? 'cocina-en-tu-casa.firebaseapp.com';
                 actionCodeSettings = ActionCodeSettings(
                   url: 'https://$authDomain', // Use Firebase auth domain instead of localhost
                   handleCodeInApp: false,
@@ -198,7 +203,14 @@ class FirebaseAuthService {
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+      // Log the Firebase error details before converting to user-friendly message
+      Logger.error('Firebase Auth Exception - Code: ${e.code}, Message: ${e.message}', null, null, 'FirebaseAuthService');
+      // Throw Exception with user-friendly message, preserving error code in the message
+      throw Exception('${e.code}: ${_handleAuthException(e)}');
+    } catch (e) {
+      // Catch any other exceptions
+      Logger.error('Unexpected error during registration', e, null, 'FirebaseAuthService');
+      rethrow;
     }
   }
 
@@ -271,9 +283,21 @@ class FirebaseAuthService {
   }
 
   /// Send password reset email
+  /// 
+  /// ⚠️ CRITICAL: Email templates MUST be configured in Firebase Console!
+  /// 
+  /// Quick Setup:
+  /// 1. Firebase Console > Authentication > Templates > Password reset
+  /// 2. Subject: "Restablece tu contraseña - Cocina en tu Casa"
+  /// 3. Sender name: "Cocina en tu Casa"
+  /// 4. Copy HTML from: docs/email_templates/password_reset_email.html
+  /// 5. Paste and Save
+  /// 
+  /// See docs/EMAIL_SETUP_STEP_BY_STEP.md for detailed instructions.
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       Logger.info('Sending password reset email to: $email', 'FirebaseAuthService');
+      Logger.info('⚠️ IMPORTANT: If email not received, check Firebase Console > Authentication > Templates are configured!', 'FirebaseAuthService');
       
       // For web/localhost, send without actionCodeSettings first (Firebase defaults)
       // This avoids authorization issues and improves deliverability
@@ -344,13 +368,29 @@ class FirebaseAuthService {
     } on FirebaseAuthException catch (e) {
       Logger.error('Failed to send password reset email', e, null, 'FirebaseAuthService');
       
-      // Handle specific error codes with fallback
-      if (e.code == 'unauthorized-continue-uri' || e.code == 'invalid-continue-uri') {
+      // Handle specific error codes with user-friendly messages
+      String userMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          // Don't reveal that user doesn't exist (security best practice)
+          userMessage = 'Si existe una cuenta con este correo, recibirás un enlace para restablecer tu contraseña. Por favor revisa tu bandeja de entrada y carpeta de spam.';
+          Logger.info('User not found for password reset, but showing generic message for security', 'FirebaseAuthService');
+          // Still return success to user (security best practice)
+          return;
+        case 'invalid-email':
+          userMessage = 'El correo electrónico ingresado no es válido. Por favor verifica e intenta nuevamente.';
+          break;
+        case 'too-many-requests':
+          userMessage = 'Demasiados intentos. Por favor espera unos minutos antes de intentar nuevamente.';
+          break;
+        case 'unauthorized-continue-uri':
+        case 'invalid-continue-uri':
         // Try sending without actionCodeSettings as fallback
         try {
           Logger.info('Retrying password reset email send without actionCodeSettings (fallback)', 'FirebaseAuthService');
           await _auth.sendPasswordResetEmail(email: email);
           Logger.success('Password reset email sent successfully (fallback method) to $email', 'FirebaseAuthService');
+            return;
         } catch (fallbackError) {
           Logger.error('Fallback password reset email send also failed', fallbackError, null, 'FirebaseAuthService');
           // Last resort: try with Firebase auth domain
@@ -364,17 +404,26 @@ class FirebaseAuthService {
               ),
             );
             Logger.success('Password reset email sent successfully (using Firebase auth domain) to $email', 'FirebaseAuthService');
+              return;
           } catch (finalError) {
             Logger.error('All password reset email send methods failed', finalError, null, 'FirebaseAuthService');
-            throw _handleAuthException(e);
+              userMessage = 'No se pudo enviar el correo de restablecimiento. Por favor verifica tu conexión e intenta nuevamente.';
+              throw Exception(userMessage);
           }
         }
-      } else {
-        throw _handleAuthException(e);
+        default:
+          userMessage = 'Error al enviar el correo de restablecimiento. Por favor intenta nuevamente más tarde.';
+          break;
       }
+      throw Exception(userMessage);
     } catch (e) {
       Logger.error('Failed to send password reset email', e, null, 'FirebaseAuthService');
+      // If it's already a user-friendly Exception, rethrow it
+      if (e is Exception && e.toString().contains('Por favor')) {
       rethrow;
+      }
+      // Otherwise, wrap in user-friendly message
+      throw Exception('Error al enviar el correo de restablecimiento. Por favor verifica tu conexión e intenta nuevamente.');
     }
   }
 
@@ -466,12 +515,17 @@ class FirebaseAuthService {
         Logger.info('Sending verification email to: ${user.email}', 'FirebaseAuthService');
         
         // Send email verification with actionCodeSettings for email template customization
-        // IMPORTANT: To prevent emails from going to spam, configure in Firebase Console:
-        // 1. Go to Authentication > Templates > Email address verification
-        // 2. Customize the email template with proper sender name and branding
-        // 3. Set up a custom domain (recommended) or use Firebase's default domain
-        // 4. Configure SPF/DKIM records if using custom domain
-        // 5. Use a professional sender name (e.g., "Cocina en tu Casa" instead of "noreply")
+        // 
+        // ⚠️ CRITICAL: Email templates MUST be configured in Firebase Console!
+        // 
+        // Quick Setup:
+        // 1. Firebase Console > Authentication > Templates > Email address verification
+        // 2. Subject: "Verifica tu correo electrónico - Cocina en tu Casa"
+        // 3. Sender name: "Cocina en tu Casa"
+        // 4. Copy HTML from: docs/email_templates/verification_email.html
+        // 5. Paste and Save
+        // 
+        // See docs/EMAIL_SETUP_STEP_BY_STEP.md for detailed instructions.
         try {
           ActionCodeSettings? actionCodeSettings;
           
@@ -498,7 +552,7 @@ class FirebaseAuthService {
               } catch (defaultError) {
                 Logger.warning('Default email send failed for localhost, trying with Firebase auth domain: $defaultError', 'FirebaseAuthService');
                 // Fallback: use Firebase auth domain instead of localhost
-                final authDomain = _auth.app.options.authDomain ?? 'smart-recipe-fb.firebaseapp.com';
+                final authDomain = _auth.app.options.authDomain ?? 'cocina-en-tu-casa.firebaseapp.com';
                 actionCodeSettings = ActionCodeSettings(
                   url: 'https://$authDomain', // Use Firebase auth domain instead of localhost
                   handleCodeInApp: false,
@@ -586,7 +640,7 @@ class FirebaseAuthService {
                 Logger.error('Fallback email send also failed', fallbackError, null, 'FirebaseAuthService');
                 // Last resort: try with Firebase auth domain
                 try {
-                  final authDomain = _auth.app.options.authDomain ?? 'smart-recipe-fb.firebaseapp.com';
+                  final authDomain = _auth.app.options.authDomain ?? 'cocina-en-tu-casa.firebaseapp.com';
                   await user.sendEmailVerification(
                     ActionCodeSettings(
                       url: 'https://$authDomain',

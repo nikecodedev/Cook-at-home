@@ -5,7 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../providers/recipe_provider.dart';
+import '../../../../models/recipe_model.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/standard_app_bar.dart';
+import '../../../../widgets/modern_recipe_card.dart';
 
 /// Modern, clean, user-friendly home page
 class HomeScreen extends ConsumerStatefulWidget {
@@ -15,12 +19,20 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -33,166 +45,78 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final user = authState.value;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.warmWhite,
       drawer: _buildDrawer(context, isMobile),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Modern Header
-            _buildModernHeader(context, isMobile, isTablet, user?.displayName),
-            
-            // Main Content
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    // Welcome Section
-                    _buildWelcomeSection(context, isMobile, isTablet, user?.displayName),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Quick Actions Grid
-                    _buildQuickActionsGrid(context, isMobile, isTablet),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Footer
-                    _buildFooter(context, isMobile, isTablet),
-                    
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ),
+      appBar: StandardAppBar(
+        title: 'Cocina en tu Casa',
+        showBackButton: false,
+        showMenuButton: true,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white.withOpacity(0.7),
+          indicatorColor: Colors.transparent,
+          indicatorWeight: 0,
+          indicator: BoxDecoration(
+            color: Colors.white.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+          tabs: const [
+            Tab(text: 'Inicio'),
+            Tab(text: 'Explorar'),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildModernHeader(BuildContext context, bool isMobile, bool isTablet, String? userName) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
-        vertical: 20,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE63946), Color(0xFFFF4757)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFE63946).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_rounded, color: Colors.white),
+            onPressed: () => context.push(Routes.profile),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // Logo
-          Row(
-            children: [
-              Container(
-                width: isMobile ? 44 : 52,
-                height: isMobile ? 44 : 52,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.restaurant_menu_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
+          // Home Tab Content
+          SafeArea(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 32),
+                  // Welcome Section
+                  _buildWelcomeSection(context, isMobile, isTablet, user?.displayName),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Quick Actions Grid
+                  _buildQuickActionsGrid(context, isMobile, isTablet),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Footer
+                  _buildFooter(context, isMobile, isTablet),
+                  
+                  const SizedBox(height: 32),
+                ],
               ),
-              const SizedBox(width: 14),
-              Text(
-                'Cocina en tu Casa',
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: -0.8,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.1),
-                      offset: const Offset(0, 1),
-                      blurRadius: 2,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-          
-          // Action Buttons
-          Row(
-            children: [
-              Builder(
-                builder: (context) => Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => Scaffold.of(context).openDrawer(),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.menu_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => context.push(Routes.profile),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person_outline_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          // Explore Tab Content
+          SafeArea(
+            child: _buildExploreTab(context, isMobile, isTablet),
           ),
         ],
       ),
@@ -207,78 +131,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       margin: EdgeInsets.symmetric(
         horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 24 : 28),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            const Color(0xFFE63946).withOpacity(0.02),
+            AppColors.primary.withOpacity(0.03),
+            AppColors.primary.withOpacity(0.01),
           ],
+          stops: const [0.0, 0.5, 1.0],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.08),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE63946), Color(0xFFFF4757)],
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.primary, AppColors.primaryLight],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.waving_hand_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$greeting, $displayName',
+                  style: TextStyle(
+                    fontSize: isMobile ? 26 : 30,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.charcoal,
+                    letterSpacing: -0.8,
+                    height: 1.2,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFE63946).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: const Icon(
-                  Icons.waving_hand_rounded,
-                  color: Colors.white,
-                  size: 28,
+                const SizedBox(height: 6),
+                Text(
+                  '¿Qué vamos a cocinar hoy?',
+                  style: TextStyle(
+                    fontSize: isMobile ? 15 : 17,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$greeting, $displayName',
-                      style: TextStyle(
-                        fontSize: isMobile ? 24 : 28,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF212121),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '¿Qué vamos a cocinar hoy?',
-                      style: TextStyle(
-                        fontSize: isMobile ? 14 : 16,
-                        color: const Color(0xFF757575),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -305,12 +242,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // Drawer Header
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFDC143C), Color(0xFFFF6B6B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
               ),
               child: Row(
                 children: [
@@ -345,9 +278,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             
             // Menu Items
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
+              child: Container(
+                color: AppColors.primary,
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
                   _buildDrawerItem(
                     context,
                     Icons.home_rounded,
@@ -390,10 +325,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     'Sugerencias',
                     () {
                       Navigator.pop(context);
-                      context.push(Routes.recipes);
+                      context.push(Routes.suggestedRecipes);
                     },
                   ),
-                  const Divider(height: 32),
+                  _buildDrawerItem(
+                    context,
+                    Icons.straighten_rounded,
+                    'Convertidor de Medidas',
+                    () {
+                      Navigator.pop(context);
+                      context.push(Routes.measurementConverter);
+                    },
+                  ),
+                  Divider(
+                    height: 32,
+                    color: Colors.white.withOpacity(0.2),
+                    thickness: 1,
+                  ),
                   _buildDrawerItem(
                     context,
                     Icons.person_outline_rounded,
@@ -412,7 +360,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       context.push(Routes.feedback);
                     },
                   ),
-                  const Divider(height: 32),
+                  Divider(
+                    height: 32,
+                    color: Colors.white.withOpacity(0.2),
+                    thickness: 1,
+                  ),
                   // Logout Button - Last item at bottom
                   _buildDrawerItem(
                     context,
@@ -421,27 +373,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     () => _handleLogout(context),
                   ),
                 ],
-              ),
-            ),
-            
-            // Footer
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
                 ),
-              ),
-              child:               const Text(
-                'Versión 1.0.0',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF9E9E9E),
-                ),
-                textAlign: TextAlign.center,
               ),
             ),
           ],
@@ -460,12 +392,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           icon,
-          color: const Color(0xFF212121),
+          color: Colors.white,
           size: 20,
         ),
       ),
@@ -474,7 +406,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Color(0xFF212121),
+          color: Colors.white,
         ),
       ),
       onTap: onTap,
@@ -537,18 +469,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       {
         'icon': Icons.kitchen_rounded,
         'title': 'Mi Despensa',
-        'subtitle': 'Gestionar ingredientes',
+        'subtitle': 'Gestionar',
         'route': Routes.pantry,
-        'color': const Color(0xFFE63946),
-        'gradient': [const Color(0xFFE63946), const Color(0xFFFF4757)],
+        'color': AppColors.primary,
+        'gradient': [AppColors.primary, AppColors.primaryLight],
+        'bgGradient': [AppColors.primary.withOpacity(0.08), AppColors.primary.withOpacity(0.03)],
       },
       {
         'icon': Icons.restaurant_menu_rounded,
         'title': 'Recetas',
         'subtitle': 'Ver todas las recetas',
         'route': Routes.recipes,
-        'color': const Color(0xFF4CAF50),
-        'gradient': [const Color(0xFF4CAF50), const Color(0xFF66BB6A)],
+        'color': AppColors.oliveGreen,
+        'gradient': [AppColors.oliveGreen, const Color(0xFF8FA83A)],
+        'bgGradient': [AppColors.oliveGreen.withOpacity(0.08), AppColors.oliveGreen.withOpacity(0.03)],
       },
       {
         'icon': Icons.shopping_cart_rounded,
@@ -557,14 +491,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'route': Routes.shoppingLists,
         'color': const Color(0xFF2196F3),
         'gradient': [const Color(0xFF2196F3), const Color(0xFF42A5F5)],
+        'bgGradient': [const Color(0xFF2196F3).withOpacity(0.08), const Color(0xFF2196F3).withOpacity(0.03)],
       },
       {
         'icon': Icons.auto_awesome_rounded,
         'title': 'Sugerencias',
         'subtitle': 'Ideas de recetas',
-        'route': Routes.recipes,
-        'color': const Color(0xFFFF9800),
-        'gradient': [const Color(0xFFFF9800), const Color(0xFFFFB74D)],
+        'route': Routes.suggestedRecipes,
+        'color': AppColors.cornYellow,
+        'gradient': [AppColors.cornYellow, const Color(0xFFFFD966)],
+        'bgGradient': [AppColors.cornYellow.withOpacity(0.08), AppColors.cornYellow.withOpacity(0.03)],
       },
     ];
 
@@ -575,19 +511,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Acciones Rápidas',
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 26,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF212121),
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
+          Text(
+            'Acciones Rápidas',
+            style: TextStyle(
+              fontSize: isMobile ? 22 : 26,
+              fontWeight: FontWeight.bold,
+              color: AppColors.charcoal,
+              letterSpacing: -0.5,
+            ),
           ),
           const SizedBox(height: 20),
           GridView.builder(
@@ -597,7 +528,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               crossAxisCount: isMobile ? 2 : (isTablet ? 2 : 4),
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.95,
+              childAspectRatio: isMobile ? 0.95 : 1.0,
             ),
             itemCount: actions.length,
             itemBuilder: (context, index) {
@@ -609,6 +540,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 action['subtitle'] as String,
                 action['route'] as String,
                 action['gradient'] as List<Color>,
+                action['bgGradient'] as List<Color>,
                 isMobile,
               );
             },
@@ -625,6 +557,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String subtitle,
     String route,
     List<Color> gradient,
+    List<Color> bgGradient,
     bool isMobile,
   ) {
     return Material(
@@ -639,19 +572,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Container(
           padding: EdgeInsets.all(isMobile ? 22 : 26),
           decoration: BoxDecoration(
-            color: Colors.white,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: bgGradient,
+            ),
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: gradient[0].withOpacity(0.12),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: gradient[0].withOpacity(0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: gradient[0].withOpacity(0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
                 spreadRadius: 0,
               ),
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+                spreadRadius: 0,
               ),
             ],
           ),
@@ -659,7 +601,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                width: isMobile ? 64 : 72,
+                height: isMobile ? 64 : 72,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: gradient,
@@ -669,16 +612,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: gradient[0].withOpacity(0.4),
+                      color: gradient[0].withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
                 child: Icon(
                   icon,
                   color: Colors.white,
-                  size: isMobile ? 28 : 32,
+                  size: isMobile ? 32 : 36,
                 ),
               ),
               const SizedBox(height: 18),
@@ -687,25 +631,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 style: TextStyle(
                   fontSize: isMobile ? 16 : 18,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF212121),
+                  color: AppColors.charcoal,
                   letterSpacing: -0.3,
+                  height: 1.2,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: isMobile ? 12 : 13,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF757575),
-                  height: 1.3,
+              Flexible(
+                child: Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                    letterSpacing: 0.1,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -766,7 +714,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   //                 height: 80,
   //                 decoration: BoxDecoration(
   //                   gradient: const LinearGradient(
-  //                     colors: [Color(0xFFE63946), Color(0xFFFF4757)],
+  //                     colors: [AppColors.primary, AppColors.primaryLight],
   //                   ),
   //                   borderRadius: BorderRadius.circular(20),
   //                 ),
@@ -933,64 +881,481 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       margin: EdgeInsets.symmetric(
         horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
       ),
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(isMobile ? 24 : 28),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFE63946).withOpacity(0.05),
-            const Color(0xFFFF4757).withOpacity(0.02),
+            Colors.white,
+            AppColors.primary.withOpacity(0.04),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: const Color(0xFFE63946).withOpacity(0.1),
-          width: 1,
+          color: AppColors.primary.withOpacity(0.1),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE63946), Color(0xFFFF4757)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+          Container(
+            width: isMobile ? 56 : 64,
+            height: isMobile ? 56 : 64,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryLight],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 0,
                 ),
-                child: const Icon(
-                  Icons.restaurant_menu_rounded,
-                  color: Colors.white,
-                  size: 20,
+              ],
+            ),
+            child: const Icon(
+              Icons.restaurant_menu_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cocina en tu Casa',
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.charcoal,
+                    letterSpacing: -0.3,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Cocina de manera inteligente con lo que tienes',
+                  style: TextStyle(
+                    fontSize: isMobile ? 13 : 14,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExploreTab(BuildContext context, bool isMobile, bool isTablet) {
+    final recipesAsync = ref.watch(allRecipesStreamProvider);
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 32),
+          // Header
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Explorar',
+                  style: TextStyle(
+                    fontSize: isMobile ? 28 : 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.charcoal,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Descubre nuevas recetas y funcionalidades',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 36),
+          // Quick Links Section
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Acciones Rápidas',
+                  style: TextStyle(
+                    fontSize: isMobile ? 22 : 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.charcoal,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildExploreCard(
+                        context,
+                        Icons.restaurant_menu_rounded,
+                        'Todas las Recetas',
+                        AppColors.primary,
+                        () => context.push(Routes.recipes),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildExploreCard(
+                        context,
+                        Icons.auto_awesome_rounded,
+                        'Sugerencias',
+                        AppColors.cornYellow,
+                        () => context.push(Routes.suggestedRecipes),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildExploreCard(
+                        context,
+                        Icons.straighten_rounded,
+                        'Convertidor',
+                        const Color(0xFF2196F3),
+                        () => context.push(Routes.measurementConverter),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildExploreCard(
+                        context,
+                        Icons.feedback_outlined,
+                        'Comentarios',
+                        AppColors.oliveGreen,
+                        () => context.push(Routes.feedback),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          // Featured Recipes Section
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Recetas Destacadas',
+                  style: TextStyle(
+                    fontSize: isMobile ? 22 : 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.charcoal,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Recipes List
+          recipesAsync.when(
+            data: (recipes) {
+              if (recipes.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.gray200),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.restaurant_menu_outlined,
+                          size: 64,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No hay recetas disponibles',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Agrega tu primera receta para comenzar',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => context.push(Routes.recipeAdd),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Agregar Receta'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Show up to 6 featured recipes (most recent)
+              final featuredRecipes = recipes.take(6).toList();
+
+              return Column(
+                children: [
+                  ...featuredRecipes.map((recipe) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        left: isMobile ? 20 : (isTablet ? 32 : 48),
+                        right: isMobile ? 20 : (isTablet ? 32 : 48),
+                        bottom: 16,
+                      ),
+                      child: ModernRecipeCard(
+                        recipe: recipe,
+                        onTap: () {
+                          context.push(Routes.recipeDetail, extra: recipe);
+                        },
+                      ),
+                    );
+                  }),
+                  if (recipes.length > 6)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+                      ),
+                      child: OutlinedButton(
+                        onPressed: () => context.push(Routes.recipes),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: AppColors.primary),
+                        ),
+                        child: Text(
+                          'Ver Todas las Recetas (${recipes.length})',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                ],
+              );
+            },
+            loading: () => Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+              ),
+              child: const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Cocina en tu Casa',
-                style: TextStyle(
-                  fontSize: isMobile ? 18 : 20,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF212121),
-                  letterSpacing: -0.3,
+            ),
+            error: (error, stack) => Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 20 : (isTablet ? 32 : 48),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.error),
                 ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error al cargar recetas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExploreCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    final gradient = [
+      color,
+      color.withOpacity(0.8),
+    ];
+    final bgGradient = [
+      color.withOpacity(0.08),
+      color.withOpacity(0.03),
+    ];
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: bgGradient,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: color.withOpacity(0.15),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+                spreadRadius: 0,
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Cocina de manera inteligente con lo que tienes',
-            style: TextStyle(
-              fontSize: isMobile ? 13 : 14,
-              color: const Color(0xFF757575),
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.charcoal,
+                  letterSpacing: -0.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

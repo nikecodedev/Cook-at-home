@@ -22,100 +22,259 @@ class RecipeRecommendation {
 
 /// Service for recommending recipes based on pantry items
 class RecipeRecommendationService {
-  /// Common ingredient synonyms and variations
+  /// Common ingredient synonyms and variations (English and Spanish)
   /// Expanded with more variations for better matching
   static final Map<String, List<String>> _ingredientSynonyms = {
+    // POULTRY - English & Spanish
     'chicken': [
-      'chicken breast', 'chicken breasts', 'chicken thigh', 'chicken thighs', 
+      'chicken breast', 'chicken breasts', 'chicken thigh', 'chicken thighs',
       'chicken wing', 'chicken wings', 'chicken drumstick', 'chicken drumsticks',
       'whole chicken', 'chicken pieces', 'chicken meat', 'boneless chicken',
-      'skinless chicken', 'chicken fillet', 'chicken fillets'
+      'skinless chicken', 'chicken fillet', 'chicken fillets',
+      // Spanish
+      'pollo', 'pechuga de pollo', 'pechugas de pollo', 'muslo de pollo', 'muslos de pollo',
+      'ala de pollo', 'alas de pollo', 'pollo entero', 'pierna de pollo', 'piernas de pollo',
     ],
+    'pollo': [
+      'chicken', 'chicken breast', 'chicken breasts', 'chicken thigh', 'chicken thighs',
+      'pechuga de pollo', 'pechugas de pollo', 'muslo de pollo', 'muslos de pollo',
+      'ala de pollo', 'alas de pollo', 'pollo entero', 'pierna de pollo',
+    ],
+
+    // VEGETABLES - English & Spanish
     'tomato': [
       'tomatoes', 'cherry tomato', 'cherry tomatoes', 'roma tomato', 'roma tomatoes',
-      'plum tomato', 'plum tomatoes', 'beefsteak tomato', 'grape tomato'
+      'plum tomato', 'plum tomatoes', 'beefsteak tomato', 'grape tomato',
+      // Spanish
+      'tomate', 'tomates', 'tomate cherry', 'tomates cherry', 'jitomate', 'jitomates',
+    ],
+    'tomate': [
+      'tomato', 'tomatoes', 'tomates', 'jitomate', 'jitomates', 'tomate cherry',
     ],
     'onion': [
       'onions', 'yellow onion', 'yellow onions', 'white onion', 'white onions',
       'red onion', 'red onions', 'sweet onion', 'sweet onions', 'green onion',
-      'green onions', 'scallion', 'scallions'
+      'green onions', 'scallion', 'scallions',
+      // Spanish
+      'cebolla', 'cebollas', 'cebolla blanca', 'cebolla morada', 'cebolla roja',
+      'cebolleta', 'cebolletas', 'cebollín', 'cebollines',
+    ],
+    'cebolla': [
+      'onion', 'onions', 'cebollas', 'cebolla blanca', 'cebolla morada', 'cebolla roja',
+      'cebolleta', 'cebollín',
     ],
     'garlic': [
       'garlic clove', 'garlic cloves', 'garlic bulb', 'garlic bulbs',
-      'minced garlic', 'garlic powder', 'garlic salt'
+      'minced garlic', 'garlic powder', 'garlic salt',
+      // Spanish
+      'ajo', 'ajos', 'diente de ajo', 'dientes de ajo', 'ajo picado', 'ajo en polvo',
+    ],
+    'ajo': [
+      'garlic', 'garlic clove', 'garlic cloves', 'ajos', 'diente de ajo', 'dientes de ajo',
     ],
     'potato': [
       'potatoes', 'russet potato', 'russet potatoes', 'yukon potato', 'yukon potatoes',
-      'red potato', 'red potatoes', 'sweet potato', 'sweet potatoes', 'baking potato'
+      'red potato', 'red potatoes', 'sweet potato', 'sweet potatoes', 'baking potato',
+      // Spanish
+      'papa', 'papas', 'patata', 'patatas', 'papa dulce', 'camote', 'batata',
+    ],
+    'papa': [
+      'potato', 'potatoes', 'papas', 'patata', 'patatas', 'papa dulce', 'camote',
     ],
     'pepper': [
       'bell pepper', 'bell peppers', 'red pepper', 'red peppers', 'green pepper',
       'green peppers', 'yellow pepper', 'yellow peppers', 'orange pepper',
-      'sweet pepper', 'sweet peppers'
+      'sweet pepper', 'sweet peppers',
+      // Spanish
+      'pimiento', 'pimientos', 'pimentón', 'chile', 'chiles', 'ají', 'ajíes',
+      'pimiento rojo', 'pimiento verde', 'pimiento amarillo',
     ],
+    'pimiento': [
+      'pepper', 'bell pepper', 'pimientos', 'pimentón', 'chile', 'ají',
+    ],
+    'carrot': [
+      'carrots', 'baby carrot', 'baby carrots',
+      // Spanish
+      'zanahoria', 'zanahorias',
+    ],
+    'zanahoria': ['carrot', 'carrots', 'zanahorias'],
+    'lettuce': [
+      'lettuce leaf', 'lettuce leaves', 'romaine lettuce', 'iceberg lettuce',
+      // Spanish
+      'lechuga', 'lechugas', 'lechuga romana',
+    ],
+    'lechuga': ['lettuce', 'lechugas', 'lechuga romana'],
+    'spinach': [
+      'fresh spinach', 'baby spinach', 'spinach leaves',
+      // Spanish
+      'espinaca', 'espinacas',
+    ],
+    'espinaca': ['spinach', 'espinacas', 'fresh spinach', 'baby spinach'],
+    'mushroom': [
+      'mushrooms', 'button mushroom', 'cremini mushroom', 'portobello mushroom',
+      // Spanish
+      'champiñón', 'champiñones', 'hongo', 'hongos', 'seta', 'setas',
+    ],
+    'champiñon': ['mushroom', 'mushrooms', 'champiñones', 'hongo', 'hongos'],
+    'broccoli': [
+      'broccoli florets', 'broccoli crown', 'broccoli crowns',
+      // Spanish
+      'brócoli', 'brocoli',
+    ],
+    'brocoli': ['broccoli', 'brócoli', 'broccoli florets'],
+    'corn': [
+      'corn kernel', 'corn kernels', 'sweet corn', 'corn on the cob',
+      // Spanish
+      'maíz', 'elote', 'choclo', 'mazorca',
+    ],
+    'maiz': ['corn', 'maíz', 'elote', 'choclo', 'sweet corn'],
+
+    // DAIRY - English & Spanish
     'milk': [
       'whole milk', 'skim milk', '2% milk', 'almond milk', 'soy milk',
-      'coconut milk', 'oat milk', 'dairy milk'
+      'coconut milk', 'oat milk', 'dairy milk',
+      // Spanish
+      'leche', 'leche entera', 'leche descremada', 'leche de almendra',
+      'leche de coco', 'leche de avena',
+    ],
+    'leche': [
+      'milk', 'whole milk', 'leche entera', 'leche descremada', 'leche de almendra',
     ],
     'cheese': [
       'cheddar cheese', 'mozzarella cheese', 'parmesan cheese', 'swiss cheese',
-      'american cheese', 'provolone cheese', 'gouda cheese', 'brie cheese'
+      'american cheese', 'provolone cheese', 'gouda cheese', 'brie cheese',
+      // Spanish
+      'queso', 'quesos', 'queso cheddar', 'queso mozzarella', 'queso parmesano',
+      'queso fresco', 'queso oaxaca', 'queso manchego',
+    ],
+    'queso': [
+      'cheese', 'quesos', 'queso cheddar', 'queso mozzarella', 'queso parmesano',
+      'queso fresco', 'cheddar cheese', 'mozzarella cheese',
     ],
     'butter': [
       'unsalted butter', 'salted butter', 'clarified butter', 'margarine',
-      'butter stick', 'butter sticks'
+      'butter stick', 'butter sticks',
+      // Spanish
+      'mantequilla', 'manteca', 'margarina',
     ],
-    'flour': [
-      'all purpose flour', 'all-purpose flour', 'plain flour', 'wheat flour',
-      'white flour', 'bread flour', 'cake flour', 'self rising flour'
-    ],
-    'sugar': [
-      'white sugar', 'granulated sugar', 'brown sugar', 'cane sugar',
-      'powdered sugar', 'confectioners sugar', 'raw sugar'
-    ],
-    'oil': [
-      'olive oil', 'vegetable oil', 'canola oil', 'cooking oil',
-      'coconut oil', 'avocado oil', 'sunflower oil', 'peanut oil'
-    ],
-    'salt': [
-      'table salt', 'sea salt', 'kosher salt', 'iodized salt',
-      'rock salt', 'himalayan salt'
-    ],
+    'mantequilla': ['butter', 'unsalted butter', 'salted butter', 'manteca', 'margarina'],
     'egg': [
       'eggs', 'large egg', 'large eggs', 'chicken egg', 'chicken eggs',
-      'whole egg', 'whole eggs'
+      'whole egg', 'whole eggs',
+      // Spanish
+      'huevo', 'huevos', 'huevo de gallina',
     ],
+    'huevo': ['egg', 'eggs', 'huevos', 'large egg', 'large eggs'],
+
+    // MEAT - English & Spanish
     'beef': [
       'ground beef', 'beef steak', 'beef steaks', 'beef roast', 'beef roasts',
-      'beef chuck', 'beef sirloin', 'beef tenderloin', 'beef brisket'
+      'beef chuck', 'beef sirloin', 'beef tenderloin', 'beef brisket',
+      // Spanish
+      'carne de res', 'res', 'carne molida', 'bistec', 'bisteck', 'filete',
+      'carne para asar', 'carne de vaca',
+    ],
+    'carne': [
+      'beef', 'meat', 'ground beef', 'carne de res', 'carne molida', 'bistec',
+      'res', 'carne de vaca',
     ],
     'pork': [
       'pork chop', 'pork chops', 'pork loin', 'pork shoulder', 'ground pork',
-      'pork tenderloin', 'pork ribs', 'bacon'
+      'pork tenderloin', 'pork ribs', 'bacon',
+      // Spanish
+      'cerdo', 'carne de cerdo', 'chuleta de cerdo', 'lomo de cerdo',
+      'costilla de cerdo', 'tocino', 'jamón',
+    ],
+    'cerdo': [
+      'pork', 'pork chop', 'carne de cerdo', 'chuleta de cerdo', 'lomo de cerdo',
+      'costilla de cerdo',
     ],
     'fish': [
       'salmon', 'tuna', 'cod', 'tilapia', 'white fish', 'trout', 'mackerel',
-      'sardines', 'anchovy', 'anchovies'
+      'sardines', 'anchovy', 'anchovies',
+      // Spanish
+      'pescado', 'salmón', 'atún', 'bacalao', 'trucha', 'sardina', 'sardinas',
     ],
+    'pescado': ['fish', 'salmon', 'tuna', 'cod', 'salmón', 'atún', 'bacalao'],
+
+    // GRAINS - English & Spanish
     'rice': [
       'white rice', 'brown rice', 'jasmine rice', 'basmati rice',
-      'wild rice', 'arborio rice', 'sushi rice'
+      'wild rice', 'arborio rice', 'sushi rice',
+      // Spanish
+      'arroz', 'arroz blanco', 'arroz integral', 'arroz jazmín',
     ],
+    'arroz': ['rice', 'white rice', 'brown rice', 'arroz blanco', 'arroz integral'],
     'pasta': [
       'spaghetti', 'penne', 'macaroni', 'fettuccine', 'linguine',
-      'rigatoni', 'fusilli', 'lasagna', 'ravioli'
+      'rigatoni', 'fusilli', 'lasagna', 'ravioli',
+      // Spanish (same names mostly)
+      'espagueti', 'fideos', 'tallarines',
     ],
-    'carrot': ['carrots', 'baby carrot', 'baby carrots'],
-    'celery': ['celery stalk', 'celery stalks', 'celery rib', 'celery ribs'],
-    'lettuce': ['lettuce leaf', 'lettuce leaves', 'romaine lettuce', 'iceberg lettuce'],
-    'spinach': ['fresh spinach', 'baby spinach', 'spinach leaves'],
-    'mushroom': ['mushrooms', 'button mushroom', 'cremini mushroom', 'portobello mushroom'],
-    'broccoli': ['broccoli florets', 'broccoli crown', 'broccoli crowns'],
-    'cauliflower': ['cauliflower florets', 'cauliflower head'],
-    'corn': ['corn kernel', 'corn kernels', 'sweet corn', 'corn on the cob'],
-    'peas': ['pea', 'green peas', 'snow peas', 'sugar snap peas'],
-    'beans': ['bean', 'black beans', 'kidney beans', 'pinto beans', 'navy beans'],
-    'bread': ['bread slice', 'bread slices', 'white bread', 'wheat bread', 'sourdough bread'],
+    'flour': [
+      'all purpose flour', 'all-purpose flour', 'plain flour', 'wheat flour',
+      'white flour', 'bread flour', 'cake flour', 'self rising flour',
+      // Spanish
+      'harina', 'harina de trigo', 'harina para todo uso',
+    ],
+    'harina': ['flour', 'all purpose flour', 'harina de trigo', 'wheat flour'],
+    'bread': [
+      'bread slice', 'bread slices', 'white bread', 'wheat bread', 'sourdough bread',
+      // Spanish
+      'pan', 'pan blanco', 'pan integral', 'pan de caja',
+    ],
+    'pan': ['bread', 'white bread', 'pan blanco', 'pan integral'],
+
+    // SEASONINGS - English & Spanish
+    'sugar': [
+      'white sugar', 'granulated sugar', 'brown sugar', 'cane sugar',
+      'powdered sugar', 'confectioners sugar', 'raw sugar',
+      // Spanish
+      'azúcar', 'azucar', 'azúcar blanca', 'azúcar morena', 'azúcar glass',
+    ],
+    'azucar': ['sugar', 'azúcar', 'white sugar', 'brown sugar', 'azúcar blanca'],
+    'oil': [
+      'olive oil', 'vegetable oil', 'canola oil', 'cooking oil',
+      'coconut oil', 'avocado oil', 'sunflower oil', 'peanut oil',
+      // Spanish
+      'aceite', 'aceite de oliva', 'aceite vegetal', 'aceite de coco',
+    ],
+    'aceite': ['oil', 'olive oil', 'vegetable oil', 'aceite de oliva', 'aceite vegetal'],
+    'salt': [
+      'table salt', 'sea salt', 'kosher salt', 'iodized salt',
+      'rock salt', 'himalayan salt',
+      // Spanish
+      'sal', 'sal de mesa', 'sal marina', 'sal gruesa',
+    ],
+    'sal': ['salt', 'table salt', 'sea salt', 'sal de mesa', 'sal marina'],
+
+    // LEGUMES - English & Spanish
+    'peas': [
+      'pea', 'green peas', 'snow peas', 'sugar snap peas',
+      // Spanish
+      'chícharo', 'chícharos', 'guisante', 'guisantes', 'arveja', 'arvejas',
+    ],
+    'beans': [
+      'bean', 'black beans', 'kidney beans', 'pinto beans', 'navy beans',
+      // Spanish
+      'frijol', 'frijoles', 'frijoles negros', 'habichuelas', 'judías',
+      'poroto', 'porotos', 'alubias',
+    ],
+    'frijoles': ['beans', 'black beans', 'frijol', 'frijoles negros', 'habichuelas'],
+
+    // OTHER
+    'celery': [
+      'celery stalk', 'celery stalks', 'celery rib', 'celery ribs',
+      // Spanish
+      'apio',
+    ],
+    'apio': ['celery', 'celery stalk', 'celery stalks'],
+    'cauliflower': [
+      'cauliflower florets', 'cauliflower head',
+      // Spanish
+      'coliflor',
+    ],
+    'coliflor': ['cauliflower', 'cauliflower florets'],
   };
 
   /// Normalize ingredient name for comparison
@@ -152,21 +311,31 @@ class RecipeRecommendationService {
     
     if (shorterWords.isEmpty || longerWords.isEmpty) return false;
     
-    // If shorter has only one word and it's in longer, it's a match
+    // If shorter has only one word, check if it matches any word in longer
     if (shorterWords.length == 1) {
       final singleWord = shorterWords[0];
-      // Check if this word appears in any of the longer words
+      // Check if this word appears as an exact word match in longer
       for (final longWord in longerWords) {
-        // Exact word match
+        // Exact word match (e.g., "chicken" matches "chicken" in "chicken breast")
         if (longWord == singleWord) {
           return true;
         }
-        // Word contains the shorter word (e.g., "chicken" in "chickenbreast")
-        if (longWord.contains(singleWord) && singleWord.length >= 3) {
-          return true;
+        // Word contains the shorter word as a complete word (e.g., "chicken" in "chickenbreast")
+        // Use word boundary to ensure it's a complete word, not just a substring
+        if (longWord.length >= singleWord.length && 
+            (longWord == singleWord || 
+             longWord.startsWith(singleWord) || 
+             longWord.endsWith(singleWord) ||
+             longWord.contains(singleWord))) {
+          // Additional check: ensure it's not just a very short substring match
+          if (singleWord.length >= 3) {
+            return true;
+          }
         }
-        // Shorter word contains longer word (e.g., "chicken" contains "chick")
-        if (singleWord.contains(longWord) && longWord.length >= 3) {
+        // Shorter word contains longer word (e.g., "chicken" contains "chick" - but this is less reliable)
+        if (singleWord.length > longWord.length && 
+            singleWord.contains(longWord) && 
+            longWord.length >= 4) {
           return true;
         }
       }
@@ -175,6 +344,8 @@ class RecipeRecommendationService {
     // Check if all words in shorter are present in longer
     int matchedWords = 0;
     for (final word in shorterWords) {
+      if (word.length < 3) continue; // Skip very short words
+      
       bool found = false;
       for (final longWord in longerWords) {
         // Exact word match
@@ -189,8 +360,8 @@ class RecipeRecommendationService {
           matchedWords++;
           break;
         }
-        // Shorter word contains longer word (partial match)
-        if (word.contains(longWord) && longWord.length >= 3) {
+        // Shorter word contains longer word (partial match) - be more strict
+        if (word.contains(longWord) && longWord.length >= 4) {
           found = true;
           matchedWords++;
           break;
@@ -198,8 +369,11 @@ class RecipeRecommendationService {
       }
     }
     
-    // Match if at least 50% of words match, or if all words match
-    return matchedWords >= (shorterWords.length * 0.5) || matchedWords == shorterWords.length;
+    // Match if at least 50% of significant words match, or if all words match
+    final significantWords = shorterWords.where((w) => w.length >= 3).length;
+    if (significantWords == 0) return false; // No significant words to match
+    
+    return matchedWords >= (significantWords * 0.5) || matchedWords == shorterWords.length;
   }
 
   /// Check if two ingredient names match (fuzzy matching with improved logic)
@@ -208,11 +382,17 @@ class RecipeRecommendationService {
     final normalized1 = _normalizeIngredientName(name1);
     final normalized2 = _normalizeIngredientName(name2);
 
-    // Exact match after normalization
-    if (normalized1 == normalized2) return true;
+    // Exact match after normalization (most reliable)
+    if (normalized1 == normalized2) {
+      Logger.info('Exact normalized match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
 
-    // Check synonyms first (most reliable)
-    if (_checkSynonyms(normalized1, normalized2)) return true;
+    // Check synonyms first (most reliable after exact match)
+    if (_checkSynonyms(normalized1, normalized2)) {
+      Logger.info('Synonym match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
 
     // Determine shorter and longer strings
     final shorter = normalized1.length < normalized2.length ? normalized1 : normalized2;
@@ -220,47 +400,68 @@ class RecipeRecommendationService {
     
     // Word-based subset matching (e.g., "chicken" matches "chicken breast")
     // This is bidirectional - works both ways
-    if (_isWordSubset(shorter, longer)) return true;
+    if (_isWordSubset(shorter, longer)) {
+      Logger.info('Word subset match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
     
     // Also try the reverse - sometimes longer word might be subset of shorter
-    if (shorter != longer && _isWordSubset(longer, shorter)) return true;
+    if (shorter != longer && _isWordSubset(longer, shorter)) {
+      Logger.info('Reverse word subset match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
 
     // Check if one contains the other as substring (more lenient)
+    // But be careful - only match if it's a meaningful substring
     if (longer.contains(shorter)) {
-      // For substring matches, require shorter to be at least 3 characters
-      // or at least 40% of longer (more lenient than before)
-      if (shorter.length >= 3 || shorter.length >= (longer.length * 0.4)) {
+      // For substring matches, require shorter to be at least 4 characters
+      // or at least 50% of longer (stricter to avoid false positives)
+      if (shorter.length >= 4 && shorter.length >= (longer.length * 0.5)) {
+        Logger.info('Substring match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
         return true;
       }
     }
     
-    // Also check if shorter contains longer (partial match)
-    if (shorter.contains(longer) && longer.length >= 3) {
+    // Also check if shorter contains longer (partial match) - be very strict
+    if (shorter.contains(longer) && longer.length >= 4) {
+      Logger.info('Reverse substring match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
       return true;
     }
 
     // Handle plural/singular variations
     final singular1 = normalized1.replaceAll(RegExp(r's$'), '');
     final singular2 = normalized2.replaceAll(RegExp(r's$'), '');
-    if (singular1 == singular2 && singular1.length > 2) return true;
+    if (singular1 == singular2 && singular1.length > 3) {
+      Logger.info('Singular/plural match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
     
     // Check if singular forms match as word subsets
     if (_isWordSubset(
       singular1.length < singular2.length ? singular1 : singular2,
       singular1.length >= singular2.length ? singular1 : singular2,
-    )) return true;
+    )) {
+      Logger.info('Singular word subset match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
 
     // Handle common word endings (e.g., "ed", "ing")
     final base1 = singular1.replaceAll(RegExp(r'(ed|ing)$'), '');
     final base2 = singular2.replaceAll(RegExp(r'(ed|ing)$'), '');
-    if (base1 == base2 && base1.length > 3) return true;
+    if (base1 == base2 && base1.length > 3) {
+      Logger.info('Base form match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+      return true;
+    }
     
     // Check if base forms match as word subsets
     if (base1.length > 3 && base2.length > 3) {
       if (_isWordSubset(
         base1.length < base2.length ? base1 : base2,
         base1.length >= base2.length ? base1 : base2,
-      )) return true;
+      )) {
+        Logger.info('Base word subset match: "$name1" ↔ "$name2"', 'RecipeRecommendationService');
+        return true;
+      }
     }
 
     // Try matching individual words - if any significant word matches, consider it a match
@@ -279,16 +480,19 @@ class RecipeRecommendationService {
             matchingWords++;
             break;
           }
-          // One word contains the other
+          // One word contains the other (be more strict)
           if ((word1.contains(word2) || word2.contains(word1)) && 
-              (word1.length >= 3 && word2.length >= 3)) {
+              (word1.length >= 3 && word2.length >= 3) &&
+              (word1.length >= word2.length * 0.7 || word2.length >= word1.length * 0.7)) {
             matchingWords++;
             break;
           }
         }
       }
-      // If at least one significant word matches, consider it a match
-      if (matchingWords > 0 && matchingWords >= (words1.length * 0.5).ceil()) {
+      // If at least 50% of significant words match, consider it a match
+      final significantWords1 = words1.where((w) => w.length >= 3).length;
+      if (significantWords1 > 0 && matchingWords > 0 && matchingWords >= (significantWords1 * 0.5).ceil()) {
+        Logger.info('Word overlap match: "$name1" ↔ "$name2" ($matchingWords words)', 'RecipeRecommendationService');
         return true;
       }
     }
@@ -297,21 +501,35 @@ class RecipeRecommendationService {
   }
 
   /// Check if two ingredients match through synonyms
+  /// Note: name1 and name2 should already be normalized
   static bool _checkSynonyms(String name1, String name2) {
+    // Normalize the names if they aren't already (defensive)
+    final norm1 = _normalizeIngredientName(name1);
+    final norm2 = _normalizeIngredientName(name2);
+    
     // Check direct synonym matches
     for (final entry in _ingredientSynonyms.entries) {
       final base = entry.key;
       final synonyms = entry.value;
+      final normalizedBase = _normalizeIngredientName(base);
       
       // Check if name1 matches base and name2 matches any synonym (or vice versa)
-      if (_normalizeIngredientName(base) == name1) {
+      if (normalizedBase == norm1) {
         for (final synonym in synonyms) {
-          if (_normalizeIngredientName(synonym) == name2) return true;
+          final normalizedSynonym = _normalizeIngredientName(synonym);
+          if (normalizedSynonym == norm2) {
+            Logger.info('Synonym match (base-synonym): "$name1" ↔ "$name2" (base: "$base")', 'RecipeRecommendationService');
+            return true;
+          }
         }
       }
-      if (_normalizeIngredientName(base) == name2) {
+      if (normalizedBase == norm2) {
         for (final synonym in synonyms) {
-          if (_normalizeIngredientName(synonym) == name1) return true;
+          final normalizedSynonym = _normalizeIngredientName(synonym);
+          if (normalizedSynonym == norm1) {
+            Logger.info('Synonym match (synonym-base): "$name1" ↔ "$name2" (base: "$base")', 'RecipeRecommendationService');
+            return true;
+          }
         }
       }
       
@@ -319,41 +537,46 @@ class RecipeRecommendationService {
       bool name1Matches = false;
       bool name2Matches = false;
       
-      if (_normalizeIngredientName(base) == name1) {
+      if (normalizedBase == norm1) {
         name1Matches = true;
       } else {
         for (final synonym in synonyms) {
-          if (_normalizeIngredientName(synonym) == name1) {
+          final normalizedSynonym = _normalizeIngredientName(synonym);
+          if (normalizedSynonym == norm1) {
             name1Matches = true;
             break;
           }
         }
       }
       
-      if (_normalizeIngredientName(base) == name2) {
+      if (normalizedBase == norm2) {
         name2Matches = true;
       } else {
         for (final synonym in synonyms) {
-          if (_normalizeIngredientName(synonym) == name2) {
+          final normalizedSynonym = _normalizeIngredientName(synonym);
+          if (normalizedSynonym == norm2) {
             name2Matches = true;
             break;
           }
         }
       }
       
-      if (name1Matches && name2Matches) return true;
+      if (name1Matches && name2Matches) {
+        Logger.info('Synonym match (both synonyms): "$name1" ↔ "$name2" (base: "$base")', 'RecipeRecommendationService');
+        return true;
+      }
     }
 
     return false;
   }
 
   /// Get recommended recipes based on pantry items
-  /// Returns recipes that have at least 15% matching ingredients (configurable)
+  /// Returns recipes that have at least one matching ingredient OR meet minimum coverage threshold
   /// Calculates coverage percentage based on matched ingredients / total ingredients
   static List<RecipeRecommendation> getRecommendedRecipes({
     required List<PantryItem> pantryItems,
     required List<Recipe> allRecipes,
-    double minCoverage = 0.15, // Minimum 15% match required (more lenient)
+    double minCoverage = 0.10, // Minimum 10% match required (very lenient - ensures recipes show up)
   }) {
     try {
       if (pantryItems.isEmpty) {
@@ -386,6 +609,11 @@ class RecipeRecommendationService {
 
         // Check each recipe ingredient against pantry items
         // Use normalized pantry map for faster lookup
+        Logger.info(
+          'Checking recipe "${recipe.title}" with ${recipe.ingredients.length} ingredients',
+          'RecipeRecommendationService',
+        );
+        
         for (final recipeIngredient in recipe.ingredients) {
           bool found = false;
           final normalizedRecipeIngredient = _normalizeIngredientName(recipeIngredient.name);
@@ -401,16 +629,27 @@ class RecipeRecommendationService {
           } else {
             // Try fuzzy matching against all pantry items
             for (final pantryItem in pantryItems) {
-              if (_ingredientNamesMatch(recipeIngredient.name, pantryItem.name)) {
+              final pantryNormalized = _normalizeIngredientName(pantryItem.name);
+              
+              // Try matching both ways (recipe ingredient vs pantry item)
+              if (_ingredientNamesMatch(recipeIngredient.name, pantryItem.name) ||
+                  _ingredientNamesMatch(pantryItem.name, recipeIngredient.name)) {
                 availableIngredients.add(recipeIngredient);
                 found = true;
                 // Log successful match for debugging
                 Logger.info(
-                  'Matched: "${recipeIngredient.name}" ↔ "${pantryItem.name}"',
+                  'Fuzzy match: "${recipeIngredient.name}" ↔ "${pantryItem.name}"',
                   'RecipeRecommendationService',
                 );
                 break;
               }
+            }
+            
+            if (!found) {
+              Logger.info(
+                'No match found for recipe ingredient: "${recipeIngredient.name}" (normalized: "$normalizedRecipeIngredient")',
+                'RecipeRecommendationService',
+              );
             }
           }
 
@@ -418,6 +657,11 @@ class RecipeRecommendationService {
             missingIngredients.add(recipeIngredient);
           }
         }
+        
+        Logger.info(
+          'Recipe "${recipe.title}": ${availableIngredients.length} available, ${missingIngredients.length} missing',
+          'RecipeRecommendationService',
+        );
 
         // Calculate coverage percentage: matched ingredients / total ingredients
         final totalIngredients = recipe.ingredients.length;
@@ -429,15 +673,25 @@ class RecipeRecommendationService {
             ? (matchedCount / totalIngredients).clamp(0.0, 1.0)
             : 0.0;
 
-        // Only include recipes that meet minimum coverage threshold (25% by default)
-        // This ensures recipes only show up with valid matches
-        if (coverage >= minCoverage && availableIngredients.isNotEmpty) {
+        // Include recipes that have at least one matching ingredient
+        // This ensures that if "chicken" is in pantry and recipe has "chicken", it will be suggested
+        // regardless of how many other ingredients the recipe has
+        if (availableIngredients.isNotEmpty) {
+          Logger.info(
+            'Adding recommendation: "${recipe.title}" - Coverage: ${(coverage * 100).toStringAsFixed(1)}%, Matched: ${availableIngredients.length}/${totalIngredients}',
+            'RecipeRecommendationService',
+          );
           recommendations.add(RecipeRecommendation(
             recipe: recipe,
             coveragePercentage: coverage,
             availableIngredients: availableIngredients,
             missingIngredients: missingIngredients,
           ));
+        } else {
+          Logger.info(
+            'Skipping recipe "${recipe.title}" - No matching ingredients found',
+            'RecipeRecommendationService',
+          );
         }
       }
 
@@ -456,9 +710,16 @@ class RecipeRecommendationService {
       });
 
       Logger.success(
-        'Found ${recommendations.length} recommended recipes with matching ingredients',
+        'Found ${recommendations.length} recommended recipes with matching ingredients (from ${allRecipes.length} total recipes)',
         'RecipeRecommendationService',
       );
+      
+      if (recommendations.isEmpty && pantryItems.isNotEmpty) {
+        Logger.warning(
+          'No recommendations found despite having ${pantryItems.length} pantry items. Pantry items: ${pantryItems.map((p) => p.name).join(", ")}',
+          'RecipeRecommendationService',
+        );
+      }
 
       return recommendations;
     } catch (e, stackTrace) {

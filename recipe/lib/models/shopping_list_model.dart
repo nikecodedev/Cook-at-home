@@ -57,8 +57,9 @@ class ShoppingListItem {
       'quantity': quantity,
       'unit': unit,
       'isChecked': isChecked,
-      'amazonLink': amazonLink,
-      'walmartLink': walmartLink,
+      // Only save links if they are non-null and non-empty
+      if (amazonLink != null && amazonLink!.isNotEmpty) 'amazonLink': amazonLink,
+      if (walmartLink != null && walmartLink!.isNotEmpty) 'walmartLink': walmartLink,
       'addedAt': Timestamp.fromDate(addedAt),
     };
   }

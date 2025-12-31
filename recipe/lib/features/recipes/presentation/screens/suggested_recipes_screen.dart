@@ -94,45 +94,6 @@ class SuggestedRecipesScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.secondary.withOpacity(0.1),
-                              AppColors.primary.withOpacity(0.05),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.info_outline_rounded,
-                              color: AppColors.primary,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Recetas con ingredientes coincidentes de tu despensa. La probabilidad de coincidencia se calcula basándose en el número y tipo de elementos coincidentes.',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -156,9 +117,7 @@ class SuggestedRecipesScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        loading: () => _buildEmptyState(context, hasPantryItems: false),
         error: (error, stackTrace) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -268,256 +227,18 @@ class SuggestedRecipesScreen extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        children: [
-          ModernRecipeCard(
-            recipe: recipe,
-            matchPercentage: coverage.toString(),
-            matchColor: matchColor,
-            onTap: () {
-              context.push(Routes.recipeDetail, extra: recipe);
-            },
-          ),
-          // Ingredient Match Summary
-          const SizedBox(height: 12),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 0),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.gray200,
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.gray200.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Match Percentage Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: matchColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.check_circle_outline,
-                            color: matchColor,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$coverage% Coincidencia',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: matchColor,
-                              ),
-                            ),
-                            Text(
-                              '$availableCount de $totalCount ingredientes disponibles',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Available Ingredients
-                if (availableCount > 0) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 16,
-                        color: AppColors.success,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        availableCount == 1
-                            ? 'Tienes $availableCount ingrediente:'
-                            : 'Tienes $availableCount ingredientes:',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: recommendation.availableIngredients
-                        .take(5)
-                        .map((ingredient) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.success.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                ingredient.name,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.success,
-                                ),
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                  if (availableCount > 5)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child:                       Text(
-                        '+ ${availableCount - 5} más disponibles',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.success.withOpacity(0.8),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                ],
-                // Missing Ingredients
-                if (missingCount > 0) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 16,
-                        color: AppColors.warning,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        missingCount == 1
-                            ? 'Falta $missingCount ingrediente:'
-                            : 'Faltan $missingCount ingredientes:',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.warning,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: recommendation.missingIngredients
-                        .take(5)
-                        .map((ingredient) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.warning.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.warning.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                ingredient.name,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.warning,
-                                ),
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                  if (missingCount > 5)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child:                       Text(
-                        '+ ${missingCount - 5} más faltantes',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.warning.withOpacity(0.8),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                  // Generate Shopping List Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: isLoading
-                          ? null
-                          : () => _generateShoppingList(context, ref, recommendation),
-                      icon: isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.shopping_cart, size: 18),
-                      label: Text(
-                        isLoading
-                            ? 'Generando...'
-                            : 'Generar Lista de Compras con Artículos Faltantes',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
+      child: ModernRecipeCard(
+        recipe: recipe,
+        matchPercentage: coverage.toString(),
+        matchColor: matchColor,
+        onTap: () {
+          context.push(Routes.recipeDetail, extra: recipe);
+        },
+        trailing: _buildViewDetailsButton(
+          context,
+          recommendation,
+          matchColor,
+        ),
       ),
     );
   }
@@ -646,5 +367,273 @@ class SuggestedRecipesScreen extends ConsumerWidget {
       return Icons.info_rounded;
     }
   }
+
+  Widget _buildViewDetailsButton(
+    BuildContext context,
+    RecipeRecommendation recommendation,
+    Color matchColor,
+  ) {
+    return MouseRegion(
+      onEnter: (_) {
+        _showMatchDetailsDialog(context, recommendation, matchColor);
+      },
+      child: Tooltip(
+        message: 'Ver detalles de coincidencia',
+        child: InkWell(
+          onTap: () {
+            _showMatchDetailsDialog(context, recommendation, matchColor);
+          },
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: matchColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: matchColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 16,
+                  color: matchColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Ver Detalles',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: matchColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMatchDetailsDialog(
+    BuildContext context,
+    RecipeRecommendation recommendation,
+    Color matchColor,
+  ) {
+    final coverage = recommendation.coveragePercent;
+    final availableCount = recommendation.availableIngredients.length;
+    final missingCount = recommendation.missingIngredients.length;
+    final totalCount = recommendation.recipe.ingredients.length;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: matchColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: matchColor,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Detalles de Coincidencia',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$coverage% Coincidencia',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: matchColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Summary
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.gray50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem(
+                        'Disponibles',
+                        availableCount.toString(),
+                        AppColors.success,
+                      ),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: AppColors.gray200,
+                      ),
+                      _buildStatItem(
+                        'Faltantes',
+                        missingCount.toString(),
+                        AppColors.error,
+                      ),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: AppColors.gray200,
+                      ),
+                      _buildStatItem(
+                        'Total',
+                        totalCount.toString(),
+                        AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Available Ingredients
+                if (recommendation.availableIngredients.isNotEmpty) ...[
+                  Text(
+                    'Ingredientes Disponibles',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...recommendation.availableIngredients.map((ingredient) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: AppColors.success,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              ingredient.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 16),
+                ],
+                // Missing Ingredients
+                if (recommendation.missingIngredients.isNotEmpty) ...[
+                  Text(
+                    'Ingredientes Faltantes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...recommendation.missingIngredients.map((ingredient) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.cancel,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              ingredient.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
 }
+
 

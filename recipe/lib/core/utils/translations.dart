@@ -4,14 +4,23 @@ import '../constants/firebase_constants.dart';
 class Translations {
   /// Unit translations: English -> Spanish
   static const Map<String, String> _unitTranslations = {
+    // Weight
     'grams': 'gramos',
     'kilograms': 'kilogramos',
+    'ounces': 'onzas',
+    'pounds': 'libras',
+    // Volume
     'liters': 'litros',
     'milliliters': 'mililitros',
-    'pieces': 'piezas',
     'cups': 'tazas',
     'tablespoons': 'cucharadas',
     'teaspoons': 'cucharaditas',
+    'fluid_ounces': 'onzas líquidas',
+    'pints': 'pintas',
+    'quarts': 'cuartos',
+    'gallons': 'galones',
+    // Count
+    'pieces': 'piezas',
   };
 
   /// Pantry category translations: English -> Spanish

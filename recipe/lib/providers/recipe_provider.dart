@@ -7,6 +7,35 @@ import '../core/utils/logger.dart';
 import 'profile_provider.dart';
 import 'auth_provider.dart';
 
+/// Validate image format by checking magic bytes (file signature)
+bool _isValidImageFormat(Uint8List bytes) {
+  if (bytes.length < 4) return false;
+  
+  // Check for JPEG: FF D8 FF
+  if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+    return true;
+  }
+  
+  // Check for PNG: 89 50 4E 47
+  if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+    return true;
+  }
+  
+  // Check for GIF: 47 49 46 38
+  if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) {
+    return true;
+  }
+  
+  // Check for WebP: RIFF...WEBP
+  if (bytes.length >= 12 &&
+      bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+      bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) {
+    return true;
+  }
+  
+  return false;
+}
+
 /// Provider for all recipes stream
 final allRecipesStreamProvider = StreamProvider<List<Recipe>>((ref) {
   final firestoreService = ref.watch(firestoreServiceProvider);
@@ -86,6 +115,13 @@ class RecipeController extends StateNotifier<AsyncValue<void>> {
             if (!isValidImageData) {
               throw Exception('Los datos de la imagen están vacíos');
             }
+            // Validate image format before upload
+            Logger.info('Validating image format before upload. Image size: ${imageData.length} bytes', 'RecipeController');
+            if (!_isValidImageFormat(imageData)) {
+              Logger.error('Invalid image format detected. First bytes: ${imageData.take(12).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}', 'RecipeController');
+              throw Exception('El formato de la imagen no es válido. Por favor selecciona una imagen JPEG, PNG, GIF o WebP válida.');
+            }
+            Logger.success('Image format validated successfully', 'RecipeController');
           } else {
             throw Exception('Tipo de datos de imagen inválido: ${imageData.runtimeType}');
           }

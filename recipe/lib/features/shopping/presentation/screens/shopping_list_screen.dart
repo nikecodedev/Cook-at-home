@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/standard_app_bar.dart';
 import '../../../../providers/shopping_list_provider.dart';
 import '../../../../models/shopping_list_model.dart';
 import '../../../../core/utils/translations.dart';
-import '../../../../core/widgets/purchase_button.dart';
+import '../../../../core/widgets/smart_purchase_button.dart';
+import '../../../../core/utils/validators.dart';
 
 class ShoppingListScreen extends ConsumerWidget {
   final ShoppingList shoppingList;
@@ -115,7 +114,7 @@ class ShoppingListScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => _buildEmptyState(context),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -361,24 +360,14 @@ class ShoppingListScreen extends ConsumerWidget {
               const Divider(height: 1, thickness: 1),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: PurchaseButton.amazon(
-                        url: item.amazonLink,
-                        itemName: item.name,
-                        size: PurchaseButtonSize.medium,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PurchaseButton.walmart(
-                        url: item.walmartLink,
-                        itemName: item.name,
-                        size: PurchaseButtonSize.medium,
-                      ),
-                    ),
-                  ],
+                child: SmartPurchaseButton(
+                  itemName: item.name,
+                  amazonLink: item.amazonLink,
+                  walmartLink: item.walmartLink,
+                  size: SmartPurchaseButtonSize.medium,
+                  onLinksUpdated: (amazonUrl, walmartUrl) {
+                    _handleLinkUpdate(context, ref, item, amazonUrl, walmartUrl);
+                  },
                 ),
               ),
             ],
@@ -388,17 +377,84 @@ class ShoppingListScreen extends ConsumerWidget {
     );
   }
 
+  /// Handle link updates from SmartPurchaseButton
+  Future<void> _handleLinkUpdate(
+    BuildContext context,
+    WidgetRef ref,
+    ShoppingListItem item,
+    String? amazonUrl,
+    String? walmartUrl,
+  ) async {
+    try {
+      // Handle link updates:
+      // - null means "don't change this link"
+      // - empty string means "delete this link"
+      // - non-empty string means "set this as the new link"
+      String? newAmazonLink = item.amazonLink;
+      String? newWalmartLink = item.walmartLink;
+
+      if (amazonUrl != null) {
+        newAmazonLink = amazonUrl.isEmpty ? null : amazonUrl;
+      }
+      if (walmartUrl != null) {
+        newWalmartLink = walmartUrl.isEmpty ? null : walmartUrl;
+      }
+
+      await ref.read(shoppingListControllerProvider.notifier).updateShoppingItem(
+        listId: shoppingList.id,
+        itemId: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        amazonLink: newAmazonLink,
+        walmartLink: newWalmartLink,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Enlace guardado exitosamente'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar enlace: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _showEditDialog(BuildContext context, WidgetRef ref, ShoppingListItem item) {
     final nameController = TextEditingController(text: item.name);
     final quantityController = TextEditingController(text: item.quantity.toString());
-    final unitController = TextEditingController(text: item.unit ?? '');
+    final unitController = TextEditingController(text: item.unit);
     final amazonController = TextEditingController(text: item.amazonLink ?? '');
     final walmartController = TextEditingController(text: item.walmartLink ?? '');
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) => Form(
+          key: formKey,
+          child: AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
@@ -565,7 +621,7 @@ class ShoppingListScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               // Amazon Link
-              TextField(
+              TextFormField(
                 controller: amazonController,
                 keyboardType: TextInputType.url,
                 decoration: InputDecoration(
@@ -579,10 +635,17 @@ class ShoppingListScreen extends ConsumerWidget {
                     color: const Color(0xFFFF9900),
                   ),
                   suffixIcon: amazonController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.check_circle, color: AppColors.success),
-                          onPressed: null,
-                          tooltip: 'URL válida',
+                      ? Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Icon(
+                            Validators.validateOptionalUrl(amazonController.text) == null
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            color: Validators.validateOptionalUrl(amazonController.text) == null
+                                ? AppColors.success
+                                : AppColors.error,
+                            size: 22,
+                          ),
                         )
                       : null,
                   border: OutlineInputBorder(
@@ -597,7 +660,16 @@ class ShoppingListScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(color: const Color(0xFFFF9900), width: 2),
                   ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
                 ),
+                validator: Validators.validateOptionalUrl,
                 onChanged: (value) {
                   // Trigger rebuild to show validation icon
                   setState(() {});
@@ -605,7 +677,7 @@ class ShoppingListScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               // Walmart Link
-              TextField(
+              TextFormField(
                 controller: walmartController,
                 keyboardType: TextInputType.url,
                 decoration: InputDecoration(
@@ -619,10 +691,17 @@ class ShoppingListScreen extends ConsumerWidget {
                     color: const Color(0xFF0071CE),
                   ),
                   suffixIcon: walmartController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.check_circle, color: AppColors.success),
-                          onPressed: null,
-                          tooltip: 'URL válida',
+                      ? Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Icon(
+                            Validators.validateOptionalUrl(walmartController.text) == null
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            color: Validators.validateOptionalUrl(walmartController.text) == null
+                                ? AppColors.success
+                                : AppColors.error,
+                            size: 22,
+                          ),
                         )
                       : null,
                   border: OutlineInputBorder(
@@ -637,7 +716,16 @@ class ShoppingListScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(color: const Color(0xFF0071CE), width: 2),
                   ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.error, width: 2),
+                  ),
                 ),
+                validator: Validators.validateOptionalUrl,
                 onChanged: (value) {
                   // Trigger rebuild to show validation icon
                   setState(() {});
@@ -681,6 +769,10 @@ class ShoppingListScreen extends ConsumerWidget {
             ),
             child: ElevatedButton(
               onPressed: () async {
+                if (!formKey.currentState!.validate()) {
+                  return;
+                }
+
                 if (nameController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -694,6 +786,21 @@ class ShoppingListScreen extends ConsumerWidget {
                 try {
                   final quantity = double.tryParse(quantityController.text) ?? item.quantity;
                   final unit = unitController.text.trim().isEmpty ? '' : unitController.text.trim();
+                  
+                  // Validate URLs before saving
+                  final amazonUrlError = Validators.validateOptionalUrl(amazonController.text.trim());
+                  final walmartUrlError = Validators.validateOptionalUrl(walmartController.text.trim());
+                  
+                  if (amazonUrlError != null || walmartUrlError != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(amazonUrlError ?? walmartUrlError ?? 'Invalid URL'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                    return;
+                  }
+                  
                   await ref
                       .read(shoppingListControllerProvider.notifier)
                       .updateShoppingItem(
@@ -759,6 +866,7 @@ class ShoppingListScreen extends ConsumerWidget {
           ),
         ],
       ),
+        ),
       ),
     );
   }

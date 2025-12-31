@@ -12,7 +12,7 @@ import '../../../../core/utils/translations.dart';
 import '../../../../core/widgets/search_bar_widget.dart';
 import '../../../../core/utils/filter_utils.dart';
 import '../../../../widgets/filter_chip_widget.dart';
-import '../../../../core/widgets/purchase_button.dart';
+import '../../../../core/widgets/smart_purchase_button.dart';
 import 'pantry_edit_screen.dart';
 
 class PantryListScreen extends ConsumerStatefulWidget {
@@ -156,18 +156,6 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                       child: _buildFilterSection(items),
                     ),
                   ),
-                // Stats Header
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  sliver: SliverToBoxAdapter(
-                    child: _buildStatsHeader(
-                      context,
-                      expiredItems.length,
-                      expiringSoonItems.length,
-                      filteredItems.length,
-                    ),
-                  ),
-                ),
                 if (expiredItems.isNotEmpty) ...[
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -228,12 +216,13 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                     ),
                   ),
                 ],
-                const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+                // No floating action button; keep normal bottom spacing only.
+                const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
               ],
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => _buildEmptyState(context),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -260,22 +249,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          context.push(Routes.pantryEdit, extra: null);
-        },
-        backgroundColor: AppColors.primary,
-        elevation: 4,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Agregar Artículo',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
+      // Removed bottom "Agregar Artículo" button (use the AppBar '+' action instead).
     );
   }
 
@@ -702,41 +676,48 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                       children: [
                         Icon(
                           Icons.scale_outlined,
-                          size: 14,
+                          size: 12,
                           color: AppColors.textSecondary,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          '${item.quantity} ${Translations.translateUnit(item.unit)}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
+                        Flexible(
+                          flex: 1,
+                          child: Text(
+                            '${item.quantity} ${Translations.translateUnit(item.unit)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 6),
                         Container(
-                          width: 4,
-                          height: 4,
+                          width: 3,
+                          height: 3,
                           decoration: BoxDecoration(
                             color: AppColors.textSecondary,
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 6),
                         Icon(
                           Icons.category_outlined,
-                          size: 14,
+                          size: 12,
                           color: AppColors.textSecondary,
                         ),
                         const SizedBox(width: 4),
-                        Expanded(
+                        Flexible(
+                          flex: 2,
                           child: Text(
                             Translations.translatePantryCategory(item.category),
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
                             overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ],
@@ -771,38 +752,27 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              // Buy buttons and menu
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(width: 12),
+              // Buy buttons and menu - organized horizontally
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Purchase buttons row
-                  if (item.amazonUrl != null || item.walmartUrl != null) ...[
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (item.amazonUrl != null)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            child: PurchaseButton.amazon(
-                              url: item.amazonUrl,
-                              itemName: item.name,
-                              size: PurchaseButtonSize.small,
-                            ),
-                          ),
-                        if (item.amazonUrl != null && item.walmartUrl != null)
-                          const SizedBox(width: 4),
-                        if (item.walmartUrl != null)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            child: PurchaseButton.walmart(
-                              url: item.walmartUrl,
-                              itemName: item.name,
-                              size: PurchaseButtonSize.small,
-                            ),
-                          ),
-                      ],
+                  // Purchase buttons - always show for easy reordering
+                  if (item.name.isNotEmpty) ...[
+                    SizedBox(
+                      width: 100,
+                      child: SmartPurchaseButton(
+                        itemName: item.name,
+                        amazonLink: item.amazonUrl,
+                        walmartLink: item.walmartUrl,
+                        size: SmartPurchaseButtonSize.small,
+                        compact: true,
+                        onLinksUpdated: (amazonUrl, walmartUrl) {
+                          _handlePantryLinkUpdate(context, ref, item, amazonUrl, walmartUrl);
+                        },
+                      ),
                     ),
+                    const SizedBox(width: 8),
                   ],
                   // Menu button
                   isLoading
@@ -815,10 +785,13 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                           icon: Icon(
                             Icons.more_vert,
                             color: AppColors.textSecondary,
+                            size: 20,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                           onSelected: (value) {
                             if (value == 'edit') {
                               context.push(Routes.pantryEdit, extra: item);
@@ -901,6 +874,52 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
       return Icons.schedule;
     }
     return Icons.check_circle;
+  }
+
+  /// Handle link updates from SmartPurchaseButton for pantry items
+  Future<void> _handlePantryLinkUpdate(
+    BuildContext context,
+    WidgetRef ref,
+    PantryItem item,
+    String? amazonUrl,
+    String? walmartUrl,
+  ) async {
+    try {
+      final updatedItem = item.copyWith(
+        amazonUrl: amazonUrl ?? item.amazonUrl,
+        walmartUrl: walmartUrl ?? item.walmartUrl,
+      );
+      await ref.read(pantryControllerProvider.notifier).updatePantryItem(updatedItem);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Enlace guardado exitosamente'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar enlace: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref, PantryItem item) {
