@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/modern_snackbar.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/admin_provider.dart';
 import '../../../../models/recipe_model.dart';
@@ -246,11 +247,9 @@ class AdminRecipesScreen extends ConsumerWidget {
               try {
                 await ref.read(adminControllerProvider.notifier).deleteRecipe(recipe.id);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Receta eliminada exitosamente'),
-                      backgroundColor: AppColors.success,
-                    ),
+                  ModernSnackbar.showSuccess(
+                    context,
+                    message: 'Receta eliminada exitosamente',
                   );
                 }
               } catch (e) {
@@ -260,17 +259,9 @@ class AdminRecipesScreen extends ConsumerWidget {
                     errorMessage = errorMessage.replaceFirst('Exception: ', '');
                   }
                   
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
-                      backgroundColor: AppColors.error,
-                      duration: const Duration(seconds: 4),
-                      action: SnackBarAction(
-                        label: 'Descartar',
-                        textColor: Colors.white,
-                        onPressed: () {},
-                      ),
-                    ),
+                  ModernSnackbar.showError(
+                    context,
+                    message: 'Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}',
                   );
                 }
               }

@@ -236,148 +236,157 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   Widget _buildDrawer(BuildContext context, bool isMobile) {
     return Drawer(
       backgroundColor: Colors.white,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Drawer Header
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.restaurant_menu_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Cocina en tu Casa',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      child: Column(
+        children: [
+          // Status bar area - Red section (#fa4e3d)
+          Container(
+            height: MediaQuery.of(context).padding.top,
+            color: const Color(0xFFFA4E3D),
+          ),
+          // Drawer Header - Red section (no border, no white space)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
             ),
-            
-            // Menu Items
-            Expanded(
-              child: Container(
-                color: AppColors.primary,
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                  _buildDrawerItem(
-                    context,
-                    Icons.home_rounded,
-                    'Inicio',
-                    () {
-                      Navigator.pop(context);
-                      context.go(Routes.home);
-                    },
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  _buildDrawerItem(
-                    context,
-                    Icons.kitchen_rounded,
-                    'Mi Despensa',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.pantry);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context,
+                  child: const Icon(
                     Icons.restaurant_menu_rounded,
-                    'Recetas',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.recipes);
-                    },
+                    color: Colors.white,
+                    size: 24,
                   ),
-                  _buildDrawerItem(
-                    context,
-                    Icons.shopping_cart_rounded,
-                    'Listas de Compras',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.shoppingLists);
-                    },
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Cocina en tu Casa',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  _buildDrawerItem(
-                    context,
-                    Icons.auto_awesome_rounded,
-                    'Sugerencias',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.suggestedRecipes);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    Icons.straighten_rounded,
-                    'Convertidor de Medidas',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.measurementConverter);
-                    },
-                  ),
-                  Divider(
-                    height: 32,
-                    color: Colors.white.withOpacity(0.2),
-                    thickness: 1,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    Icons.person_outline_rounded,
-                    'Perfil',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.profile);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    Icons.feedback_outlined,
-                    'Comentarios',
-                    () {
-                      Navigator.pop(context);
-                      context.push(Routes.feedback);
-                    },
-                  ),
-                  Divider(
-                    height: 32,
-                    color: Colors.white.withOpacity(0.2),
-                    thickness: 1,
-                  ),
-                  // Logout Button - Last item at bottom
-                  _buildDrawerItem(
-                    context,
-                    Icons.logout_rounded,
-                    'Cerrar Sesión',
-                    () => _handleLogout(context),
+                ),
+              ],
+            ),
+          ),
+          // Drawer content with SafeArea
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  // Menu Items
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        _buildDrawerItem(
+                          context,
+                          Icons.home_rounded,
+                          'Inicio',
+                          () {
+                            Navigator.pop(context);
+                            context.go(Routes.home);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.kitchen_rounded,
+                          'Mi Despensa',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.pantry);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.restaurant_menu_rounded,
+                          'Recetas',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.recipes);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.shopping_cart_rounded,
+                          'Listas de Compras',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.shoppingLists);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.auto_awesome_rounded,
+                          'Sugerencias',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.suggestedRecipes);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.straighten_rounded,
+                          'Convertidor de Medidas',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.measurementConverter);
+                          },
+                        ),
+                        Divider(
+                          height: 32,
+                          color: AppColors.gray200,
+                          thickness: 1,
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.person_outline_rounded,
+                          'Perfil',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.profile);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
+                          Icons.feedback_outlined,
+                          'Comentarios',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.feedback);
+                          },
+                        ),
+                        Divider(
+                          height: 32,
+                          color: AppColors.gray200,
+                          thickness: 1,
+                        ),
+                        // Logout Button - Last item at bottom
+                        _buildDrawerItem(
+                          context,
+                          Icons.logout_rounded,
+                          'Cerrar Sesión',
+                          () => _handleLogout(context),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -392,12 +401,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: AppColors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           icon,
-          color: Colors.white,
+          color: AppColors.primary,
           size: 20,
         ),
       ),
@@ -406,7 +415,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.white,
+          color: AppColors.textPrimary,
         ),
       ),
       onTap: onTap,

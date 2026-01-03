@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/standard_app_bar.dart';
+import '../../../../core/widgets/modern_snackbar.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../providers/shopping_list_provider.dart';
@@ -63,8 +64,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     icon: const Icon(Icons.edit_outlined, color: Colors.white),
                     onPressed: isLoading
                         ? null
-                        : () {
-                            context.push(Routes.recipeEdit, extra: widget.recipe);
+                        : () async {
+                            final result = await context.push<bool>(
+                              Routes.recipeEdit,
+                              extra: widget.recipe,
+                            );
+                            if (result == true && context.mounted) {
+                              ModernSnackbar.showSuccess(
+                                context,
+                                message: 'Receta actualizada exitosamente',
+                              );
+                            }
                           },
                   ),
                 ),
@@ -395,31 +405,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       });
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Enlace guardado exitosamente'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
+        ModernSnackbar.showSuccess(
+          context,
+          message: 'Enlace guardado exitosamente',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar enlace: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
+        ModernSnackbar.showError(
+          context,
+          message: 'Error al guardar enlace: ${e.toString()}',
         );
       }
     }
@@ -450,11 +446,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       imageUrl: widget.recipe.imageUrl,
                     );
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Receta eliminada exitosamente'),
-                      backgroundColor: AppColors.success,
-                    ),
+                  ModernSnackbar.showSuccess(
+                    context,
+                    message: 'Receta eliminada exitosamente',
                   );
                   context.pop();
                 }
@@ -465,17 +459,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     errorMessage = errorMessage.replaceFirst('Exception: ', '');
                   }
                   
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
-                      backgroundColor: AppColors.error,
-                      duration: const Duration(seconds: 4),
-                      action: SnackBarAction(
-                        label: 'Descartar',
-                        textColor: Colors.white,
-                        onPressed: () {},
-                      ),
-                    ),
+                  ModernSnackbar.showError(
+                    context,
+                    message: 'Error al eliminar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}',
                   );
                 }
               }

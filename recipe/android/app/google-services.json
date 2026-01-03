@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:27412997936:android:e4b1fd9085175a3962caf5",
+        "mobilesdk_app_id": "1:27412997936:android:f497adf27585348662caf5",
         "android_client_info": {
-          "package_name": "com.example.recipe_app"
+          "package_name": "com.cocinaentucasa.recipe"
         }
       },
       "oauth_client": [],
@@ -27,3 +27,4 @@
   ],
   "configuration_version": "1"
 }
+

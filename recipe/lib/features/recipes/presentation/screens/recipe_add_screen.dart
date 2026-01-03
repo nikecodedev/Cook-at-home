@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/widgets/modern_snackbar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/profile_provider.dart';
@@ -354,13 +355,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
             );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Receta actualizada exitosamente'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          context.pop();
+          context.pop(true); // Return true to indicate successful update
         }
       } else {
         // Create new recipe
@@ -392,11 +387,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
           ]);
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Receta agregada exitosamente'),
-                backgroundColor: AppColors.success,
-              ),
+            ModernSnackbar.showSuccess(
+              context,
+              message: 'Receta agregada exitosamente',
             );
             context.pop();
           }
@@ -421,34 +414,21 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
             
             if (errorMessage.contains('image') || errorMessage.contains('upload') || errorMessage.contains('Storage')) {
               userMessage = 'Receta guardada, pero falló la carga de la imagen. La receta se creó sin imagen.';
+              ModernSnackbar.showWarning(context, message: userMessage);
             } else {
-              userMessage = 'Failed to save recipe: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}';
+              userMessage = 'Error al guardar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}';
+              ModernSnackbar.showError(context, message: userMessage);
             }
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(userMessage),
-                backgroundColor: AppColors.error,
-                duration: const Duration(seconds: 5),
-                action: SnackBarAction(
-                  label: 'Descartar',
-                  textColor: Colors.white,
-                  onPressed: () {},
-                ),
-              ),
-            );
           }
         }
       }
     } catch (e, stackTrace) {
       Logger.error('Failed to save recipe (outer catch)', e, stackTrace, 'RecipeAddScreen');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar la receta: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
+        final errorMessage = e.toString();
+        ModernSnackbar.showError(
+          context,
+          message: 'Error al guardar la receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}',
         );
       }
     }
@@ -1697,56 +1677,28 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
                   topRight: Radius.circular(24),
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.secondary.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      widget.initialInstruction == null
-                          ? Icons.add_rounded
-                          : Icons.edit_rounded,
-                      color: AppColors.secondary,
-                      size: isTablet ? 28 : 24,
+                  Text(
+                    widget.initialInstruction == null
+                        ? 'Agregar Paso de Instrucción'
+                        : 'Editar Paso de Instrucción',
+                    style: TextStyle(
+                      fontSize: isTablet ? 22 : 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                      letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.initialInstruction == null
-                              ? 'Agregar Paso de Instrucción'
-                              : 'Editar Paso de Instrucción',
-                          style: TextStyle(
-                            fontSize: isTablet ? 22 : 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.initialInstruction == null
-                              ? 'Agrega un nuevo paso a tu receta'
-                              : 'Actualiza este paso de instrucción',
-                          style: TextStyle(
-                            fontSize: isTablet ? 14 : 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.initialInstruction == null
+                        ? 'Agrega un nuevo paso a tu receta'
+                        : 'Actualiza este paso de instrucción',
+                    style: TextStyle(
+                      fontSize: isTablet ? 14 : 13,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],

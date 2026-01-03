@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.recipe_app"
+    namespace = "com.cocinaentucasa.recipe"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.recipe_app"
+        applicationId = "com.cocinaentucasa.recipe"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -38,21 +38,6 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            
-            // Enable code shrinking, obfuscation, and optimization
-            isMinifyEnabled = true
-            isShrinkResources = true
-            
-            // ProGuard rules
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-        debug {
-            // Disable minification for faster debug builds
-            isMinifyEnabled = false
-            isShrinkResources = false
         }
     }
 }
