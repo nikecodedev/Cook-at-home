@@ -12,7 +12,6 @@ import '../../../../core/utils/translations.dart';
 import '../../../../core/widgets/search_bar_widget.dart';
 import '../../../../core/utils/filter_utils.dart';
 import '../../../../widgets/filter_chip_widget.dart';
-import '../../../../core/widgets/smart_purchase_button.dart';
 import 'pantry_edit_screen.dart';
 
 class PantryListScreen extends ConsumerStatefulWidget {
@@ -141,7 +140,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                   sliver: SliverToBoxAdapter(
                     child: SearchBarWidget(
                       controller: _searchController,
-                      hintText: 'Buscar artículos de despensa...',
+                      hintText: 'Buscar ingredientes de despensa...',
                       onChanged: (value) {
                         _updateFilter(_filter.copyWith(searchQuery: value.isEmpty ? null : value));
                       },
@@ -200,7 +199,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                     sliver: SliverToBoxAdapter(
-                      child: _buildSectionHeader('✅ Todos los Artículos', AppColors.primary),
+                      child: _buildSectionHeader('✅ Todos los Ingredientes', AppColors.primary),
                     ),
                   ),
                   SliverPadding(
@@ -395,7 +394,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'No Se Encontraron Artículos',
+              'No Se Encontraron Ingredientes',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -467,7 +466,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Comienza a agregar artículos para llevar un registro de lo que hay en tu despensa',
+              'Comienza a agregar ingredientes para llevar un registro de lo que hay en tu despensa',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -482,7 +481,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
               },
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
-                'Agrega tu Primer Artículo',
+                'Agrega tu Primer Ingrediente',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -620,8 +619,9 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
             ],
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon with colored background
+              // Icon with colored background - Fixed size for alignment
               Container(
                 width: 56,
                 height: 56,
@@ -636,12 +636,15 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                 ),
               ),
               const SizedBox(width: 16),
-              // Content
+              // Content - Flexible to prevent overflow
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Name Row - Always same height
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
@@ -650,81 +653,69 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
+                              height: 1.3,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (item.isExpired || item.isExpiringSoon)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: itemColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.isExpired ? 'Vencido' : '${item.daysUntilExpiration}d restantes',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: itemColor,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Row(
+                    const SizedBox(height: 8),
+                    // Quantity and Category - Cleaner layout
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Icon(
-                          Icons.scale_outlined,
-                          size: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          flex: 1,
-                          child: Text(
-                            '${item.quantity} ${Translations.translateUnit(item.unit)}',
-                            style: TextStyle(
-                              fontSize: 12,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.scale_outlined,
+                              size: 14,
                               color: AppColors.textSecondary,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${item.quantity} ${Translations.translateUnit(item.unit)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 3,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: AppColors.textSecondary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.category_outlined,
-                          size: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          flex: 2,
-                          child: Text(
-                            Translations.translatePantryCategory(item.category),
-                            style: TextStyle(
-                              fontSize: 12,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.category_outlined,
+                              size: 14,
                               color: AppColors.textSecondary,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                Translations.translatePantryCategory(item.category),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                     if (item.expirationDate != null) ...[
                       const SizedBox(height: 8),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.calendar_today,
@@ -732,18 +723,22 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                             color: itemColor,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            item.isExpired
-                                ? 'Vencido ${dateFormat.format(item.expirationDate!)}'
-                                : item.isExpiringSoon
-                                    ? 'Vence ${dateFormat.format(item.expirationDate!)}'
-                                    : 'Vence ${dateFormat.format(item.expirationDate!)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: itemColor,
-                              fontWeight: item.isExpiringSoon || item.isExpired
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                          Flexible(
+                            child: Text(
+                              item.isExpired
+                                  ? 'Vencido ${dateFormat.format(item.expirationDate!)}'
+                                  : item.isExpiringSoon
+                                      ? 'Vence ${dateFormat.format(item.expirationDate!)}'
+                                      : 'Vence ${dateFormat.format(item.expirationDate!)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: itemColor,
+                                fontWeight: item.isExpiringSoon || item.isExpired
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -753,102 +748,79 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              // Buy buttons and menu - organized horizontally
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Purchase buttons - always show for easy reordering
-                  if (item.name.isNotEmpty) ...[
-                    SizedBox(
-                      width: 100,
-                      child: SmartPurchaseButton(
-                        itemName: item.name,
-                        amazonLink: item.amazonUrl,
-                        walmartLink: item.walmartUrl,
-                        size: SmartPurchaseButtonSize.small,
-                        compact: true,
-                        onLinksUpdated: (amazonUrl, walmartUrl) {
-                          _handlePantryLinkUpdate(context, ref, item, amazonUrl, walmartUrl);
-                        },
+              // Menu button - Horizontally aligned
+              isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: AppColors.textSecondary,
+                        size: 20,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  // Menu button
-                  isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.more_vert,
-                            color: AppColors.textSecondary,
-                            size: 20,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              context.push(Routes.pantryEdit, extra: item);
-                            } else if (value == 'delete') {
-                              _showDeleteDialog(context, ref, item);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem<String>(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.edit,
-                                      color: AppColors.primary,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text('Editar Artículo'),
-                                ],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          context.push(Routes.pantryEdit, extra: item);
+                        } else if (value == 'delete') {
+                          _showDeleteDialog(context, ref, item);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
                               ),
-                            ),
-                            PopupMenuItem<String>(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.error.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.delete,
-                                      color: AppColors.error,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Eliminar Artículo',
-                                    style: TextStyle(color: AppColors.error),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              const Text('Editar Ingrediente'),
+                            ],
+                          ),
                         ),
-                ],
-              ),
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.error.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: AppColors.error,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Eliminar Ingrediente',
+                                style: TextStyle(color: AppColors.error),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
             ],
           ),
         ),
@@ -876,57 +848,11 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
     return Icons.check_circle;
   }
 
-  /// Handle link updates from SmartPurchaseButton for pantry items
-  Future<void> _handlePantryLinkUpdate(
-    BuildContext context,
-    WidgetRef ref,
-    PantryItem item,
-    String? amazonUrl,
-    String? walmartUrl,
-  ) async {
-    try {
-      final updatedItem = item.copyWith(
-        amazonUrl: amazonUrl ?? item.amazonUrl,
-        walmartUrl: walmartUrl ?? item.walmartUrl,
-      );
-      await ref.read(pantryControllerProvider.notifier).updatePantryItem(updatedItem);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Enlace guardado exitosamente'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar enlace: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-
   void _showDeleteDialog(BuildContext context, WidgetRef ref, PantryItem item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Artículo'),
+        title: const Text('Eliminar Ingrediente'),
         content: Text('¿Estás seguro de que deseas eliminar "${item.name}"?'),
         actions: [
           TextButton(
@@ -941,7 +867,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Artículo eliminado exitosamente'),
+                      content: Text('Ingrediente eliminado exitosamente'),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -955,7 +881,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                   
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error al eliminar artículo: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
+                      content: Text('Error al eliminar ingrediente: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
                       backgroundColor: AppColors.error,
                       duration: const Duration(seconds: 4),
                       action: SnackBarAction(

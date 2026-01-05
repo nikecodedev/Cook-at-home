@@ -105,7 +105,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Artículo agregado exitosamente'),
+              content: Text('Ingrediente agregado exitosamente'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -117,7 +117,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Artículo actualizado exitosamente'),
+              content: Text('Ingrediente actualizado exitosamente'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -133,7 +133,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar artículo: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
+            content: Text('Error al guardar ingrediente: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}'),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
@@ -158,7 +158,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         title: Text(
-          widget.item == null ? 'Agregar Nuevo Artículo' : 'Editar Artículo',
+          widget.item == null ? 'Agregar Nuevo Ingrediente' : 'Editar Ingrediente',
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -207,7 +207,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.item == null ? 'Agregar a la Despensa' : 'Actualizar Artículo',
+                            widget.item == null ? 'Agregar a la Despensa' : 'Actualizar Ingrediente',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -230,10 +230,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               ),
               const SizedBox(height: 24),
               // Name Field
-              _buildSectionTitle('Detalles del Artículo'),
+              _buildSectionTitle('Detalles del Ingrediente'),
               const SizedBox(height: 12),
               CustomTextField(
-                label: 'Nombre del Artículo',
+                label: 'Nombre del Ingrediente',
                 controller: _nameController,
                 prefixIcon: Icons.shopping_basket_outlined,
                 validator: Validators.validateItemName,
@@ -484,7 +484,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                   ],
                 ),
                 child: CustomButton(
-                  text: widget.item == null ? 'Agregar a la Despensa' : 'Actualizar Artículo',
+                  text: widget.item == null ? 'Agregar a la Despensa' : 'Actualizar Ingrediente',
                   onPressed: isLoading ? null : _saveItem,
                   isLoading: isLoading,
                   icon: widget.item == null ? Icons.add : Icons.check,

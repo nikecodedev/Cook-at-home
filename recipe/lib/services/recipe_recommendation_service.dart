@@ -247,6 +247,21 @@ class RecipeRecommendationService {
       'sal', 'sal de mesa', 'sal marina', 'sal gruesa',
     ],
     'sal': ['salt', 'table salt', 'sea salt', 'sal de mesa', 'sal marina'],
+    'ketchup': [
+      'catsup', 'cachup', 'tomato ketchup', 'ketchup sauce',
+      // Spanish
+      'salsa de tomate', 'salsa catsup', 'salsa ketchup', 'catsup',
+    ],
+    'catsup': [
+      'ketchup', 'cachup', 'tomato ketchup', 'ketchup sauce',
+      // Spanish
+      'salsa de tomate', 'salsa catsup', 'salsa ketchup',
+    ],
+    'cachup': [
+      'ketchup', 'catsup', 'tomato ketchup', 'ketchup sauce',
+      // Spanish
+      'salsa de tomate', 'salsa catsup', 'salsa ketchup',
+    ],
 
     // LEGUMES - English & Spanish
     'peas': [

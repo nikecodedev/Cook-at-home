@@ -113,6 +113,7 @@ class _IngredientItemState extends State<IngredientItem>
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               widget.ingredient.name,
@@ -122,6 +123,9 @@ class _IngredientItemState extends State<IngredientItem>
                                 color: const Color(0xFF212121),
                                 letterSpacing: -0.3,
                               ),
+                              textAlign: TextAlign.left,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
                             Container(

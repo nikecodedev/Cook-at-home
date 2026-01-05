@@ -83,7 +83,7 @@ class SuggestedRecipesScreen extends ConsumerWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Basado en artículos de tu despensa',
+                                  'Basado en ingredientes de tu despensa',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AppColors.textSecondary,
@@ -172,7 +172,7 @@ class SuggestedRecipesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              hasPantryItems ? 'Aún No Hay Recomendaciones' : 'No Hay Artículos en la Despensa',
+              hasPantryItems ? 'Aún No Hay Recomendaciones' : 'No Hay Ingredientes en la Despensa',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -182,8 +182,8 @@ class SuggestedRecipesScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               hasPantryItems
-                  ? 'Aún no hay recetas que coincidan con los artículos de tu despensa. Intenta agregar más ingredientes a tu despensa o explora diferentes recetas.'
-                  : 'Agrega artículos a tu despensa para obtener sugerencias de recetas basadas en lo que tienes.',
+                  ? 'Aún no hay recetas que coincidan con los ingredientes de tu despensa. Intenta agregar más ingredientes a tu despensa o explora diferentes recetas.'
+                  : 'Agrega ingredientes a tu despensa para obtener sugerencias de recetas basadas en lo que tienes.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 16,
@@ -196,7 +196,7 @@ class SuggestedRecipesScreen extends ConsumerWidget {
                 context.push(Routes.pantry);
               },
               icon: Icon(hasPantryItems ? Icons.add_circle_outline : Icons.add_shopping_cart),
-              label: Text(hasPantryItems ? 'Agregar Más Artículos' : 'Ir a la Despensa'),
+              label: Text(hasPantryItems ? 'Agregar Más Ingredientes' : 'Ir a la Despensa'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

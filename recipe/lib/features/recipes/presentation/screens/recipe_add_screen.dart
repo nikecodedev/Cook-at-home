@@ -731,6 +731,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
                                       ingredient.name,
@@ -739,6 +740,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textPrimary,
                                       ),
+                                      textAlign: TextAlign.left,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 6),
                                     Row(
