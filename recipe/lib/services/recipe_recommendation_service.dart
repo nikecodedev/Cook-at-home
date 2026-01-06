@@ -295,7 +295,8 @@ class RecipeRecommendationService {
   /// Normalize ingredient name for comparison
   /// Removes extra spaces, converts to lowercase, handles accents and unicode
   /// More aggressive normalization for better matching
-  static String _normalizeIngredientName(String name) {
+  /// Normalize ingredient name for matching (public for use in other services)
+  static String normalizeIngredientName(String name) {
     return name
         .toLowerCase()
         .trim()
@@ -313,7 +314,7 @@ class RecipeRecommendationService {
 
   /// Extract words from ingredient name
   static List<String> _extractWords(String name) {
-    final normalized = _normalizeIngredientName(name);
+    final normalized = normalizeIngredientName(name);
     return normalized.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
   }
 
@@ -393,9 +394,10 @@ class RecipeRecommendationService {
 
   /// Check if two ingredient names match (fuzzy matching with improved logic)
   /// Handles flexible matching like "chicken" ↔ "chicken breast"
-  static bool _ingredientNamesMatch(String name1, String name2) {
-    final normalized1 = _normalizeIngredientName(name1);
-    final normalized2 = _normalizeIngredientName(name2);
+  /// Public for use in other services (e.g., shopping list generation)
+  static bool ingredientNamesMatch(String name1, String name2) {
+    final normalized1 = normalizeIngredientName(name1);
+    final normalized2 = normalizeIngredientName(name2);
 
     // Exact match after normalization (most reliable)
     if (normalized1 == normalized2) {
@@ -519,19 +521,19 @@ class RecipeRecommendationService {
   /// Note: name1 and name2 should already be normalized
   static bool _checkSynonyms(String name1, String name2) {
     // Normalize the names if they aren't already (defensive)
-    final norm1 = _normalizeIngredientName(name1);
-    final norm2 = _normalizeIngredientName(name2);
+    final norm1 = normalizeIngredientName(name1);
+    final norm2 = normalizeIngredientName(name2);
     
     // Check direct synonym matches
     for (final entry in _ingredientSynonyms.entries) {
       final base = entry.key;
       final synonyms = entry.value;
-      final normalizedBase = _normalizeIngredientName(base);
+      final normalizedBase = normalizeIngredientName(base);
       
       // Check if name1 matches base and name2 matches any synonym (or vice versa)
       if (normalizedBase == norm1) {
         for (final synonym in synonyms) {
-          final normalizedSynonym = _normalizeIngredientName(synonym);
+          final normalizedSynonym = normalizeIngredientName(synonym);
           if (normalizedSynonym == norm2) {
             Logger.info('Synonym match (base-synonym): "$name1" ↔ "$name2" (base: "$base")', 'RecipeRecommendationService');
             return true;
@@ -540,7 +542,7 @@ class RecipeRecommendationService {
       }
       if (normalizedBase == norm2) {
         for (final synonym in synonyms) {
-          final normalizedSynonym = _normalizeIngredientName(synonym);
+          final normalizedSynonym = normalizeIngredientName(synonym);
           if (normalizedSynonym == norm1) {
             Logger.info('Synonym match (synonym-base): "$name1" ↔ "$name2" (base: "$base")', 'RecipeRecommendationService');
             return true;
@@ -556,7 +558,7 @@ class RecipeRecommendationService {
         name1Matches = true;
       } else {
         for (final synonym in synonyms) {
-          final normalizedSynonym = _normalizeIngredientName(synonym);
+          final normalizedSynonym = normalizeIngredientName(synonym);
           if (normalizedSynonym == norm1) {
             name1Matches = true;
             break;
@@ -568,7 +570,7 @@ class RecipeRecommendationService {
         name2Matches = true;
       } else {
         for (final synonym in synonyms) {
-          final normalizedSynonym = _normalizeIngredientName(synonym);
+          final normalizedSynonym = normalizeIngredientName(synonym);
           if (normalizedSynonym == norm2) {
             name2Matches = true;
             break;
@@ -607,7 +609,7 @@ class RecipeRecommendationService {
       // Create a map of pantry items by normalized name for quick lookup
       final pantryMap = <String, PantryItem>{};
       for (final item in pantryItems) {
-        final normalizedName = _normalizeIngredientName(item.name);
+        final normalizedName = normalizeIngredientName(item.name);
         // Store the first occurrence (or could use quantity-based logic)
         if (!pantryMap.containsKey(normalizedName)) {
           pantryMap[normalizedName] = item;
@@ -631,7 +633,7 @@ class RecipeRecommendationService {
         
         for (final recipeIngredient in recipe.ingredients) {
           bool found = false;
-          final normalizedRecipeIngredient = _normalizeIngredientName(recipeIngredient.name);
+          final normalizedRecipeIngredient = normalizeIngredientName(recipeIngredient.name);
 
           // First try exact match in pantry map
           if (pantryMap.containsKey(normalizedRecipeIngredient)) {
@@ -644,11 +646,11 @@ class RecipeRecommendationService {
           } else {
             // Try fuzzy matching against all pantry items
             for (final pantryItem in pantryItems) {
-              final pantryNormalized = _normalizeIngredientName(pantryItem.name);
+              final pantryNormalized = normalizeIngredientName(pantryItem.name);
               
               // Try matching both ways (recipe ingredient vs pantry item)
-              if (_ingredientNamesMatch(recipeIngredient.name, pantryItem.name) ||
-                  _ingredientNamesMatch(pantryItem.name, recipeIngredient.name)) {
+              if (ingredientNamesMatch(recipeIngredient.name, pantryItem.name) ||
+                  ingredientNamesMatch(pantryItem.name, recipeIngredient.name)) {
                 availableIngredients.add(recipeIngredient);
                 found = true;
                 // Log successful match for debugging

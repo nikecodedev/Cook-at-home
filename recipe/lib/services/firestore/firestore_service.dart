@@ -13,6 +13,7 @@ import '../../models/feedback_model.dart';
 import '../../models/user_model.dart';
 import '../../core/utils/logger.dart';
 import '../purchase_link_service.dart';
+import '../recipe_recommendation_service.dart';
 
 /// Service for managing user profiles in Firestore
 class FirestoreService {
@@ -505,12 +506,14 @@ class FirestoreService {
       // Store both normalized name and original item for better matching
       final pantryMap = <String, PantryItem>{};
       for (final item in pantryItems) {
-        final normalized = _normalizeIngredientName(item.name);
+        final normalized = RecipeRecommendationService.normalizeIngredientName(item.name);
         pantryMap[normalized] = item;
       }
 
-      // Find missing ingredients
+      // Find missing ingredients and track matched pantry items for purchase links
       final missingIngredients = <RecipeIngredient>[];
+      final matchedPantryItems = <RecipeIngredient, PantryItem?>{};
+      
       Logger.info(
         'Generating shopping list for recipe "${recipe.title}" with ${recipe.ingredients.length} ingredients',
         'FirestoreService',
@@ -521,27 +524,26 @@ class FirestoreService {
       );
 
       for (final ingredient in recipe.ingredients) {
-        final normalizedName = _normalizeIngredientName(ingredient.name);
+        final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
         bool found = false;
-        String? matchedPantryItem;
+        PantryItem? matchedPantryItem;
 
         // First try exact match
         if (pantryMap.containsKey(normalizedName)) {
           found = true;
-          matchedPantryItem = pantryMap[normalizedName]!.name;
+          matchedPantryItem = pantryMap[normalizedName]!;
           Logger.info(
-            'Exact match: "${ingredient.name}" ↔ "${matchedPantryItem}"',
+            'Exact match: "${ingredient.name}" ↔ "${matchedPantryItem!.name}"',
             'FirestoreService',
           );
         } else {
-          // Try fuzzy matching against all pantry items
+          // Try fuzzy matching using RecipeRecommendationService (includes synonyms)
           for (final pantryItem in pantryItems) {
-            final pantryNormalized = _normalizeIngredientName(pantryItem.name);
-            if (_ingredientNamesMatch(normalizedName, pantryNormalized)) {
+            if (RecipeRecommendationService.ingredientNamesMatch(ingredient.name, pantryItem.name)) {
               found = true;
-              matchedPantryItem = pantryItem.name;
+              matchedPantryItem = pantryItem;
               Logger.info(
-                'Fuzzy match: "${ingredient.name}" ↔ "${matchedPantryItem}"',
+                'Fuzzy match (with synonyms): "${ingredient.name}" ↔ "${matchedPantryItem!.name}"',
                 'FirestoreService',
               );
               break;
@@ -551,10 +553,14 @@ class FirestoreService {
 
         if (!found) {
           missingIngredients.add(ingredient);
+          matchedPantryItems[ingredient] = null;
           Logger.info(
             'Missing ingredient: "${ingredient.name}" (${ingredient.quantity} ${ingredient.unit})',
             'FirestoreService',
           );
+        } else {
+          // Store matched pantry item for potential purchase link transfer
+          matchedPantryItems[ingredient] = matchedPantryItem;
         }
       }
 
@@ -612,13 +618,43 @@ class FirestoreService {
         try {
           final itemId = itemsRef.doc().id;
 
-          // Use purchase links from recipe ingredient if available, otherwise generate search links
-          final amazonLink = ingredient.amazonLink?.isNotEmpty == true
-              ? ingredient.amazonLink
-              : _generateAmazonLink(ingredient.name);
-          final walmartLink = ingredient.walmartLink?.isNotEmpty == true
-              ? ingredient.walmartLink
-              : _generateWalmartLink(ingredient.name);
+          // Determine purchase links with priority:
+          // 1. Recipe ingredient links (if available)
+          // 2. Matched pantry item links (if ingredient matches a pantry item but is still missing)
+          // 3. Generated search links
+          final matchedPantryItem = matchedPantryItems[ingredient];
+          
+          String? amazonLink;
+          String? walmartLink;
+          
+          // Priority 1: Use recipe ingredient links if available
+          if (ingredient.amazonLink?.isNotEmpty == true) {
+            amazonLink = ingredient.amazonLink;
+          } else if (matchedPantryItem?.amazonUrl?.isNotEmpty == true) {
+            // Priority 2: Use matched pantry item links
+            amazonLink = matchedPantryItem!.amazonUrl;
+            Logger.info(
+              'Using Amazon link from matched pantry item "${matchedPantryItem.name}" for ingredient "${ingredient.name}"',
+              'FirestoreService',
+            );
+          } else {
+            // Priority 3: Generate search link
+            amazonLink = _generateAmazonLink(ingredient.name);
+          }
+          
+          if (ingredient.walmartLink?.isNotEmpty == true) {
+            walmartLink = ingredient.walmartLink;
+          } else if (matchedPantryItem?.walmartUrl?.isNotEmpty == true) {
+            // Priority 2: Use matched pantry item links
+            walmartLink = matchedPantryItem!.walmartUrl;
+            Logger.info(
+              'Using Walmart link from matched pantry item "${matchedPantryItem.name}" for ingredient "${ingredient.name}"',
+              'FirestoreService',
+            );
+          } else {
+            // Priority 3: Generate search link
+            walmartLink = _generateWalmartLink(ingredient.name);
+          }
 
           await itemsRef.doc(itemId).set({
             'name': ingredient.name,
@@ -631,7 +667,7 @@ class FirestoreService {
           });
           addedCount++;
           Logger.info(
-            'Successfully added item: "${ingredient.name}"',
+            'Successfully added item: "${ingredient.name}" (Amazon: ${amazonLink != null ? "yes" : "no"}, Walmart: ${walmartLink != null ? "yes" : "no"})',
             'FirestoreService',
           );
         } catch (itemError) {
