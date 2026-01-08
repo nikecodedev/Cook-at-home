@@ -292,6 +292,30 @@ class RecipeRecommendationService {
     'coliflor': ['cauliflower', 'cauliflower florets'],
   };
 
+  /// Format ingredient name for consistent storage
+  /// Capitalizes first letter of each word, normalizes spaces, preserves full name
+  /// This ensures consistent storage format while keeping the original name intact
+  static String formatIngredientNameForStorage(String name) {
+    if (name.trim().isEmpty) return name;
+    
+    // Normalize spaces and trim
+    String formatted = name
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' '); // Replace multiple spaces with single space
+    
+    // Capitalize first letter of each word
+    final words = formatted.split(' ');
+    formatted = words
+        .map((word) {
+          if (word.isEmpty) return word;
+          // Handle accented characters and special cases
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
+    
+    return formatted;
+  }
+
   /// Normalize ingredient name for comparison
   /// Removes extra spaces, converts to lowercase, handles accents and unicode
   /// More aggressive normalization for better matching

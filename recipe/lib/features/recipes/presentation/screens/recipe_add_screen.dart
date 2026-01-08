@@ -9,7 +9,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/widgets/modern_snackbar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/profile_provider.dart';
@@ -18,6 +17,7 @@ import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/translations.dart';
+import '../../../../services/recipe_recommendation_service.dart';
 import 'package:uuid/uuid.dart';
 
 class RecipeAddScreen extends ConsumerStatefulWidget {
@@ -355,7 +355,13 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
             );
 
         if (mounted) {
-          context.pop(true); // Return true to indicate successful update
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Receta actualizada exitosamente'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          context.pop();
         }
       } else {
         // Create new recipe
@@ -387,9 +393,11 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
           ]);
 
           if (mounted) {
-            ModernSnackbar.showSuccess(
-              context,
-              message: 'Receta agregada exitosamente',
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Receta agregada exitosamente'),
+                backgroundColor: AppColors.success,
+              ),
             );
             context.pop();
           }
@@ -414,21 +422,34 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
             
             if (errorMessage.contains('image') || errorMessage.contains('upload') || errorMessage.contains('Storage')) {
               userMessage = 'Receta guardada, pero falló la carga de la imagen. La receta se creó sin imagen.';
-              ModernSnackbar.showWarning(context, message: userMessage);
             } else {
-              userMessage = 'Error al guardar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}';
-              ModernSnackbar.showError(context, message: userMessage);
+              userMessage = 'Failed to save recipe: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}';
             }
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(userMessage),
+                backgroundColor: AppColors.error,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'Descartar',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
           }
         }
       }
     } catch (e, stackTrace) {
       Logger.error('Failed to save recipe (outer catch)', e, stackTrace, 'RecipeAddScreen');
       if (mounted) {
-        final errorMessage = e.toString();
-        ModernSnackbar.showError(
-          context,
-          message: 'Error al guardar la receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar la receta: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
@@ -655,14 +676,64 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               ),
               const SizedBox(height: 16),
               if (_ingredients.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Sin ingredientes todavía.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.gray50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.gray200,
+                      width: 2,
+                      style: BorderStyle.solid,
                     ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shopping_basket_outlined,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Aún no hay ingredientes',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Agrega ingredientes a tu receta',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _addIngredient,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Agregar Primer Ingrediente'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else
@@ -731,7 +802,6 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
                                       ingredient.name,
@@ -740,9 +810,6 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textPrimary,
                                       ),
-                                      textAlign: TextAlign.left,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 6),
                                     Row(
@@ -862,14 +929,64 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               ),
               const SizedBox(height: 16),
               if (_instructions.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Sin instrucciones todavía.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.gray50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.gray200,
+                      width: 2,
+                      style: BorderStyle.solid,
                     ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.list_alt_rounded,
+                          size: 40,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Aún no hay instrucciones',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Agrega instrucciones paso a paso para cocinar',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _addInstruction,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Agregar Primer Paso'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else
@@ -1074,6 +1191,15 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
   Widget _buildSectionTitle(String title) {
     return Row(
       children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 12),
         Text(
           title,
           style: const TextStyle(
@@ -1281,7 +1407,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                       ],
                     ),
                   ),
-                const SizedBox(height: 16),
+                SizedBox(height: hasImage ? 16 : 0),
                 Row(
                   children: [
                     Expanded(
@@ -1366,8 +1492,13 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
       return;
     }
 
+    // Format ingredient name consistently for storage
+    final formattedName = RecipeRecommendationService.formatIngredientNameForStorage(
+      _nameController.text.trim(),
+    );
+
     final ingredient = RecipeIngredient(
-      name: _nameController.text.trim(),
+      name: formattedName,
       quantity: double.tryParse(_quantityController.text) ?? 1.0,
       unit: _unitController.text.trim(),
       amazonLink: _amazonLinkController.text.trim().isEmpty
@@ -1681,28 +1812,56 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
                   topRight: Radius.circular(24),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    widget.initialInstruction == null
-                        ? 'Agregar Paso de Instrucción'
-                        : 'Editar Paso de Instrucción',
-                    style: TextStyle(
-                      fontSize: isTablet ? 22 : 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      letterSpacing: 0.3,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.secondary.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      widget.initialInstruction == null
+                          ? Icons.add_rounded
+                          : Icons.edit_rounded,
+                      color: AppColors.secondary,
+                      size: isTablet ? 28 : 24,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.initialInstruction == null
-                        ? 'Agrega un nuevo paso a tu receta'
-                        : 'Actualiza este paso de instrucción',
-                    style: TextStyle(
-                      fontSize: isTablet ? 14 : 13,
-                      color: AppColors.textSecondary,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.initialInstruction == null
+                              ? 'Agregar Paso de Instrucción'
+                              : 'Editar Paso de Instrucción',
+                          style: TextStyle(
+                            fontSize: isTablet ? 22 : 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.initialInstruction == null
+                              ? 'Agrega un nuevo paso a tu receta'
+                              : 'Actualiza este paso de instrucción',
+                          style: TextStyle(
+                            fontSize: isTablet ? 14 : 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

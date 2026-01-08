@@ -1001,56 +1001,6 @@ class FirestoreService {
     }
   }
 
-  /// Helper: Normalize ingredient name for comparison
-  String _normalizeIngredientName(String name) {
-    return name
-        .toLowerCase()
-        .trim()
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .replaceAll(RegExp(r'[^\w\s]'), '');
-  }
-
-  /// Helper: Check if two ingredient names match
-  /// Uses VERY strict matching to avoid false positives
-  /// Only matches: exact match, or simple singular/plural variations
-  bool _ingredientNamesMatch(String name1, String name2) {
-    final normalized1 = _normalizeIngredientName(name1);
-    final normalized2 = _normalizeIngredientName(name2);
-
-    // Exact match
-    if (normalized1 == normalized2) return true;
-
-    // Singular/plural matching only
-    // Remove trailing 's', 'es', 'ies' for comparison
-    String toSingular(String word) {
-      if (word.endsWith('ies') && word.length > 4) {
-        return '${word.substring(0, word.length - 3)}y';
-      }
-      if (word.endsWith('es') && word.length > 3) {
-        return word.substring(0, word.length - 2);
-      }
-      if (word.endsWith('s') && word.length > 2) {
-        return word.substring(0, word.length - 1);
-      }
-      return word;
-    }
-
-    final singular1 = toSingular(normalized1);
-    final singular2 = toSingular(normalized2);
-
-    // Only match if singularized versions are exactly equal
-    // and the original words are reasonably similar in length
-    if (singular1 == singular2 && singular1.length >= 3) {
-      return true;
-    }
-
-    // NO substring matching - this causes too many false positives
-    // e.g., "tuna" should NOT match "atun" or "tuna pasta"
-    // e.g., "pasta" should NOT match "tuna pasta"
-
-    return false;
-  }
-
   /// Generate Amazon search link for item
   /// Uses PurchaseLinkService for centralized link generation with affiliate support
   String _generateAmazonLink(String itemName) {

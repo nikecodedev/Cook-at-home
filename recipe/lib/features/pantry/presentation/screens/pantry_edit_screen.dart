@@ -10,6 +10,7 @@ import '../../../../models/pantry_item_model.dart';
 import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/translations.dart';
+import '../../../../services/recipe_recommendation_service.dart';
 import 'package:uuid/uuid.dart';
 
 class PantryEditScreen extends ConsumerStatefulWidget {
@@ -82,9 +83,14 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     final quantity = double.tryParse(_quantityController.text) ?? 1.0;
     final now = DateTime.now();
 
+    // Format ingredient name consistently for storage
+    final formattedName = RecipeRecommendationService.formatIngredientNameForStorage(
+      _nameController.text.trim(),
+    );
+
     final item = PantryItem(
       id: widget.item?.id ?? const Uuid().v4(),
-      name: _nameController.text.trim(),
+      name: formattedName,
       quantity: quantity,
       unit: _unitController.text.trim(),
       category: _categoryController.text.trim(),
