@@ -11,6 +11,12 @@ import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/translations.dart';
 import '../../../../services/recipe_recommendation_service.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/localization/app_localizations.dart';
+import 'barcode_scanner_screen.dart';
+import '../../../../providers/phase2_providers.dart';
+import '../../../../models/product_model.dart';
+import '../../../../services/canonical_ingredient_service.dart';
 import 'package:uuid/uuid.dart';
 
 class PantryEditScreen extends ConsumerStatefulWidget {
@@ -238,12 +244,48 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               // Name Field
               _buildSectionTitle('Detalles del Ingrediente'),
               const SizedBox(height: 12),
-              CustomTextField(
-                label: 'Nombre del Ingrediente',
-                controller: _nameController,
-                prefixIcon: Icons.shopping_basket_outlined,
-                validator: Validators.validateItemName,
-                textInputAction: TextInputAction.next,
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      label: 'Nombre del Ingrediente',
+                      controller: _nameController,
+                      prefixIcon: Icons.shopping_basket_outlined,
+                      validator: Validators.validateItemName,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Barcode Scanner Button (Phase 2)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
+                      onPressed: () async {
+                        final result = await context.push<Product?>(
+                          Routes.barcodeScanner,
+                        );
+                        if (result != null && mounted) {
+                          // Product found - auto-fill fields
+                          setState(() {
+                            _nameController.text = result.name;
+                            if (result.category != null) {
+                              _categoryController.text = result.category!;
+                            }
+                            if (result.suggestedUnit != null) {
+                              _unitController.text = result.suggestedUnit!;
+                            }
+                          });
+                        }
+                      },
+                      tooltip: AppLocalizations.of(context)?.scanBarcode ?? 'Scan Barcode',
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 16),

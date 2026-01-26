@@ -13,6 +13,8 @@ import '../../../../core/widgets/search_bar_widget.dart';
 import '../../../../core/utils/filter_utils.dart';
 import '../../../../widgets/filter_chip_widget.dart';
 import 'pantry_edit_screen.dart';
+import '../widgets/pantry_analytics_widget.dart';
+import '../widgets/refill_alerts_widget.dart';
 
 class PantryListScreen extends ConsumerStatefulWidget {
   const PantryListScreen({super.key});
@@ -134,6 +136,20 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
             color: AppColors.primary,
             child: CustomScrollView(
               slivers: [
+                // Refill Alerts (Phase 2)
+                SliverToBoxAdapter(
+                  child: const RefillAlertsWidget(),
+                ),
+                
+                // Pantry Analytics (Phase 2)
+                if (items.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    sliver: SliverToBoxAdapter(
+                      child: PantryAnalyticsWidget(pantryItems: items),
+                    ),
+                  ),
+
                 // Search Bar
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),

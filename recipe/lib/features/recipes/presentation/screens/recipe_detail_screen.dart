@@ -45,63 +45,86 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       appBar: StandardAppBar(
         title: 'Receta',
         showBackButton: true,
-        actions: isOwner
-            ? [
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                    onPressed: isLoading
-                        ? null
-                        : () async {
-                            final result = await context.push<bool>(
-                              Routes.recipeEdit,
-                              extra: widget.recipe,
-                            );
-                            if (result == true && context.mounted) {
-                              ModernSnackbar.showSuccess(
-                                context,
-                                message: 'Receta actualizada exitosamente',
-                              );
-                            }
-                          },
-                  ),
+        actions: [
+          // Share button (Phase 2) - visible to all users
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.share_outlined, color: Colors.white),
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      _shareRecipe(context, ref);
+                    },
+            ),
+          ),
+          if (isOwner) ...[
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.white),
-                    onPressed: isLoading
-                        ? null
-                        : () {
-                            _showDeleteDialog(context, ref);
-                          },
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final result = await context.push<bool>(
+                          Routes.recipeEdit,
+                          extra: widget.recipe,
+                        );
+                        if (result == true && context.mounted) {
+                          ModernSnackbar.showSuccess(
+                            context,
+                            message: 'Receta actualizada exitosamente',
+                          );
+                        }
+                      },
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-              ]
-            : null,
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.white),
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        _showDeleteDialog(context, ref);
+                      },
+              ),
+            ),
+          ],
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -124,7 +147,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ),
               ),
 
-              // Generate Shopping List Button
+              // Recipe Cost Widget (Phase 2)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -133,7 +156,36 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     isTablet ? 48 : 24,
                     0,
                   ),
+                  child: RecipeCostWidget(
+                    recipe: _currentRecipe,
+                    isTablet: isTablet,
+                  ),
+                ),
+              ),
+
+              // Generate Shopping List Button
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    isTablet ? 48 : 24,
+                    16,
+                    isTablet ? 48 : 24,
+                    0,
+                  ),
                   child: _buildShoppingListButton(context, ref, isTablet),
+                ),
+              ),
+
+              // Share Recipe Button (Phase 2)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    isTablet ? 48 : 24,
+                    16,
+                    isTablet ? 48 : 24,
+                    0,
+                  ),
+                  child: _buildShareButton(context, ref, isTablet),
                 ),
               ),
 
@@ -416,6 +468,86 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         ModernSnackbar.showError(
           context,
           message: 'Error al guardar enlace: ${e.toString()}',
+        );
+      }
+    }
+  }
+
+  Widget _buildShareButton(BuildContext context, WidgetRef ref, bool isTablet) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gray200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.gray200.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _shareRecipe(context, ref),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isTablet ? 32 : 24,
+              vertical: isTablet ? 20 : 18,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.share_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  AppLocalizations.of(context)?.shareRecipe ?? 'Share Recipe',
+                  style: TextStyle(
+                    fontSize: isTablet ? 17 : 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareRecipe(BuildContext context, WidgetRef ref) async {
+    try {
+      final sharingService = ref.read(recipeSharingServiceProvider);
+      await sharingService.shareRecipe(_currentRecipe);
+      
+      if (context.mounted) {
+        ModernSnackbar.showSuccess(
+          context,
+          message: 'Receta compartida exitosamente',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ModernSnackbar.showError(
+          context,
+          message: 'Error al compartir receta: ${e.toString()}',
         );
       }
     }

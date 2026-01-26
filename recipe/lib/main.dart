@@ -20,6 +20,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'core/config/firebase_config.dart';
+import 'core/localization/app_localizations.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized before Firebase
@@ -259,6 +260,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         Locale('en', 'US'), // English (fallback)
       ],
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

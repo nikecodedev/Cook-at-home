@@ -61,6 +61,9 @@ class Routes {
   static const String adminUsers = '/admin/users';
   static const String adminCategories = '/admin/categories';
   static const String adminFeedback = '/admin/feedback';
+  // Phase 2 routes
+  static const String barcodeScanner = '/barcode-scanner';
+  static const String contributeProduct = '/contribute-product';
 }
 
 /// Perform redirect logic with proper timeout handling
@@ -536,6 +539,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             const AdminFeedbackScreen(),
           ),
         ),
+      ),
+      // Phase 2 routes
+      GoRoute(
+        path: Routes.barcodeScanner,
+        name: 'barcode-scanner',
+        builder: (context, state) => const BarcodeScannerScreen(),
       ),
     ],
   );

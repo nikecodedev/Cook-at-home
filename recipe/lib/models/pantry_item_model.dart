@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class PantryItem {
   final String id;
   final String name;
+  final String? canonicalIngredientId; // Phase 2: Reference to canonical ingredient
   final double quantity;
   final String unit;
   final String category;
@@ -15,6 +16,7 @@ class PantryItem {
   PantryItem({
     required this.id,
     required this.name,
+    this.canonicalIngredientId,
     required this.quantity,
     required this.unit,
     required this.category,
@@ -30,6 +32,7 @@ class PantryItem {
     return PantryItem(
       id: doc.id,
       name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
       quantity: (data['quantity'] ?? 0).toDouble(),
       unit: data['unit'] ?? '',
       category: data['category'] ?? '',
@@ -47,6 +50,7 @@ class PantryItem {
     return PantryItem(
       id: id,
       name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
       quantity: (data['quantity'] ?? 0).toDouble(),
       unit: data['unit'] ?? '',
       category: data['category'] ?? '',
@@ -67,6 +71,7 @@ class PantryItem {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'canonicalIngredientId': canonicalIngredientId,
       'quantity': quantity,
       'unit': unit,
       'category': category,
@@ -83,6 +88,7 @@ class PantryItem {
   PantryItem copyWith({
     String? id,
     String? name,
+    String? canonicalIngredientId,
     double? quantity,
     String? unit,
     String? category,
@@ -94,6 +100,7 @@ class PantryItem {
     return PantryItem(
       id: id ?? this.id,
       name: name ?? this.name,
+      canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
       category: category ?? this.category,

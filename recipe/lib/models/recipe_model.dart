@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Recipe ingredient model
 class RecipeIngredient {
   final String name;
+  final String? canonicalIngredientId; // Phase 2: Reference to canonical ingredient
   final double quantity;
   final String unit;
   final String? amazonLink;
@@ -10,6 +11,7 @@ class RecipeIngredient {
 
   RecipeIngredient({
     required this.name,
+    this.canonicalIngredientId,
     required this.quantity,
     required this.unit,
     this.amazonLink,
@@ -19,6 +21,7 @@ class RecipeIngredient {
   factory RecipeIngredient.fromMap(Map<String, dynamic> data) {
     return RecipeIngredient(
       name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
       quantity: (data['quantity'] ?? 0).toDouble(),
       unit: data['unit'] ?? '',
       amazonLink: data['amazonLink'],
@@ -29,6 +32,7 @@ class RecipeIngredient {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'canonicalIngredientId': canonicalIngredientId,
       'quantity': quantity,
       'unit': unit,
       // Only save links if they are non-null and non-empty
@@ -39,6 +43,7 @@ class RecipeIngredient {
 
   RecipeIngredient copyWith({
     String? name,
+    String? canonicalIngredientId,
     double? quantity,
     String? unit,
     String? amazonLink,
@@ -46,6 +51,7 @@ class RecipeIngredient {
   }) {
     return RecipeIngredient(
       name: name ?? this.name,
+      canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
       amazonLink: amazonLink ?? this.amazonLink,
@@ -69,6 +75,10 @@ class Recipe {
   final String? source;
   final String authorId;
   final String? imageUrl;
+  // Phase 2: Yield and portion fields
+  final double? yieldValue; // Total yield value
+  final String? yieldUnit; // Yield unit (grams, liters, cups, pieces)
+  final double? standardPortionSize; // Standard portion size in yield units
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -81,6 +91,9 @@ class Recipe {
     this.source,
     required this.authorId,
     this.imageUrl,
+    this.yieldValue,
+    this.yieldUnit,
+    this.standardPortionSize,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -109,6 +122,9 @@ class Recipe {
       source: data['source'],
       authorId: data['authorId'] ?? '',
       imageUrl: imageUrl,
+      yieldValue: data['yieldValue'] != null ? (data['yieldValue'] as num).toDouble() : null,
+      yieldUnit: data['yieldUnit'] as String?,
+      standardPortionSize: data['standardPortionSize'] != null ? (data['standardPortionSize'] as num).toDouble() : null,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -137,6 +153,9 @@ class Recipe {
       source: data['source'],
       authorId: data['authorId'] ?? '',
       imageUrl: imageUrl,
+      yieldValue: data['yieldValue'] != null ? (data['yieldValue'] as num).toDouble() : null,
+      yieldUnit: data['yieldUnit'] as String?,
+      standardPortionSize: data['standardPortionSize'] != null ? (data['standardPortionSize'] as num).toDouble() : null,
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -156,6 +175,9 @@ class Recipe {
       'source': source,
       'authorId': authorId,
       'imageUrl': imageUrl,
+      'yieldValue': yieldValue,
+      'yieldUnit': yieldUnit,
+      'standardPortionSize': standardPortionSize,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -171,6 +193,9 @@ class Recipe {
     String? source,
     String? authorId,
     String? imageUrl,
+    double? yieldValue,
+    String? yieldUnit,
+    double? standardPortionSize,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -183,9 +208,20 @@ class Recipe {
       source: source ?? this.source,
       authorId: authorId ?? this.authorId,
       imageUrl: imageUrl ?? this.imageUrl,
+      yieldValue: yieldValue ?? this.yieldValue,
+      yieldUnit: yieldUnit ?? this.yieldUnit,
+      standardPortionSize: standardPortionSize ?? this.standardPortionSize,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  /// Calculate number of servings based on yield and portion size
+  int? get numberOfServings {
+    if (yieldValue == null || standardPortionSize == null || standardPortionSize == 0) {
+      return null;
+    }
+    return (yieldValue! / standardPortionSize!).round();
   }
 
   /// Get formatted cook time

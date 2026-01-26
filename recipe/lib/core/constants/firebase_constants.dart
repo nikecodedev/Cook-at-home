@@ -9,6 +9,12 @@ class FirebaseCollections {
   static const String categories = 'categories';
   static const String userActivity = 'user_activity';
   static const String feedback = 'feedback';
+  // Phase 2 collections
+  static const String canonicalIngredients = 'canonical_ingredients';
+  static const String products = 'products';
+  static const String ingredientPrices = 'ingredient_prices';
+  static const String mealPlans = 'meal_plans';
+  static const String refillAlerts = 'refill_alerts';
 }
 
 /// Firebase Storage Paths
@@ -68,6 +74,19 @@ class FirebaseFields {
   // Recommendation fields
   static const String matchScore = 'matchScore';
   static const String isViewed = 'isViewed';
+  
+  // Phase 2 fields
+  static const String canonicalIngredientId = 'canonicalIngredientId';
+  static const String barcode = 'barcode';
+  static const String averagePrice = 'averagePrice';
+  static const String userOverridePrice = 'userOverridePrice';
+  static const String priceUnit = 'priceUnit';
+  static const String yieldValue = 'yieldValue';
+  static const String yieldUnit = 'yieldUnit';
+  static const String standardPortionSize = 'standardPortionSize';
+  static const String totalCost = 'totalCost';
+  static const String costPerPortion = 'costPerPortion';
+  static const String costTier = 'costTier';
 }
 
 /// User Roles
@@ -229,6 +248,34 @@ class StorageLocations {
     pantry,
     cabinet,
     counter,
+  ];
+}
+
+/// Cost Tiers
+class CostTiers {
+  static const String low = 'low';
+  static const String medium = 'medium';
+  static const String high = 'high';
+  
+  static List<String> get all => [low, medium, high];
+}
+
+/// Yield Units (for recipes)
+class YieldUnits {
+  static const String grams = 'grams';
+  static const String kilograms = 'kilograms';
+  static const String liters = 'liters';
+  static const String milliliters = 'milliliters';
+  static const String cups = 'cups';
+  static const String pieces = 'pieces';
+  
+  static List<String> get all => [
+    grams,
+    kilograms,
+    liters,
+    milliliters,
+    cups,
+    pieces,
   ];
 }
 
