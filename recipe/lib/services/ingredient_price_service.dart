@@ -79,7 +79,6 @@ class IngredientPriceService {
             .update({
               'averagePrice': averagePrice,
               'priceUnit': priceUnit,
-              'lastUpdated': Timestamp.now(),
               'updatedAt': Timestamp.now(),
             });
       } else {
@@ -90,7 +89,7 @@ class IngredientPriceService {
           canonicalIngredientId: canonicalIngredientId,
           averagePrice: averagePrice,
           priceUnit: priceUnit,
-          lastUpdated: now,
+          updatedAt: now,
           createdAt: now,
         );
 
@@ -191,4 +190,6 @@ class IngredientPriceService {
     }
   }
 }
+
+
 

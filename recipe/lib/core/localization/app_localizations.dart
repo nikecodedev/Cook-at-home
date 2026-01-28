@@ -37,8 +37,12 @@ class AppLocalizations {
   String get medium => _localizedValues[locale.languageCode]?['medium'] ?? 'Medium';
   String get high => _localizedValues[locale.languageCode]?['high'] ?? 'High';
   String get pantryValue => _localizedValues[locale.languageCode]?['pantryValue'] ?? 'Pantry Value';
+  String get totalValue => _localizedValues[locale.languageCode]?['totalValue'] ?? 'Total Value';
+  String get pantryAnalytics => _localizedValues[locale.languageCode]?['pantryAnalytics'] ?? 'Pantry Analytics';
   String get coveragePercentage => _localizedValues[locale.languageCode]?['coveragePercentage'] ?? 'Coverage';
+  String get coverage => _localizedValues[locale.languageCode]?['coverage'] ?? 'Coverage';
   String get estimatedMeals => _localizedValues[locale.languageCode]?['estimatedMeals'] ?? 'Estimated Meals';
+  String get efficiencyScore => _localizedValues[locale.languageCode]?['efficiencyScore'] ?? 'Efficiency';
   String get missingIngredients => _localizedValues[locale.languageCode]?['missingIngredients'] ?? 'Missing Ingredients';
   String get weeklyMealPlan => _localizedValues[locale.languageCode]?['weeklyMealPlan'] ?? 'Weekly Meal Plan';
   String get weeklyCost => _localizedValues[locale.languageCode]?['weeklyCost'] ?? 'Weekly Cost';
@@ -57,6 +61,14 @@ class AppLocalizations {
   String get cancel => _localizedValues[locale.languageCode]?['cancel'] ?? 'Cancel';
   String get required => _localizedValues[locale.languageCode]?['required'] ?? 'Required';
   String get optional => _localizedValues[locale.languageCode]?['optional'] ?? 'Optional';
+  String get lowStock => _localizedValues[locale.languageCode]?['lowStock'] ?? 'Low Stock';
+  String get frequentlyUsed => _localizedValues[locale.languageCode]?['frequentlyUsed'] ?? 'Frequently Used';
+  String get goodPrice => _localizedValues[locale.languageCode]?['goodPrice'] ?? 'Good Price';
+  String get language => _localizedValues[locale.languageCode]?['language'] ?? 'Language';
+  String get languageDescription => _localizedValues[locale.languageCode]?['languageDescription'] ?? 'Select your preferred language for the app interface';
+  String get languageNote => _localizedValues[locale.languageCode]?['languageNote'] ?? 'Note: User-generated content (recipes, ingredients) will not be translated.';
+  String get languageChanged => _localizedValues[locale.languageCode]?['languageChanged'] ?? 'Language changed';
+  String get languageChangeError => _localizedValues[locale.languageCode]?['languageChangeError'] ?? 'Error changing language';
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
@@ -76,8 +88,12 @@ class AppLocalizations {
       'medium': 'Medium',
       'high': 'High',
       'pantryValue': 'Pantry Value',
+      'totalValue': 'Total Value',
+      'pantryAnalytics': 'Pantry Analytics',
       'coveragePercentage': 'Coverage',
+      'coverage': 'Coverage',
       'estimatedMeals': 'Estimated Meals',
+      'efficiencyScore': 'Efficiency',
       'missingIngredients': 'Missing Ingredients',
       'weeklyMealPlan': 'Weekly Meal Plan',
       'weeklyCost': 'Weekly Cost',
@@ -96,6 +112,14 @@ class AppLocalizations {
       'cancel': 'Cancel',
       'required': 'Required',
       'optional': 'Optional',
+      'lowStock': 'Low Stock',
+      'frequentlyUsed': 'Frequently Used',
+      'goodPrice': 'Good Price',
+      'language': 'Language',
+      'languageDescription': 'Select your preferred language for the app interface',
+      'languageNote': 'Note: User-generated content (recipes, ingredients) will not be translated.',
+      'languageChanged': 'Language changed',
+      'languageChangeError': 'Error changing language',
     },
     'es': {
       'appName': 'Cocina en tu Casa',
@@ -114,8 +138,12 @@ class AppLocalizations {
       'medium': 'Medio',
       'high': 'Alto',
       'pantryValue': 'Valor de la Despensa',
+      'totalValue': 'Valor Total',
+      'pantryAnalytics': 'Análisis de Despensa',
       'coveragePercentage': 'Cobertura',
+      'coverage': 'Cobertura',
       'estimatedMeals': 'Comidas Estimadas',
+      'efficiencyScore': 'Eficiencia',
       'missingIngredients': 'Ingredientes Faltantes',
       'weeklyMealPlan': 'Plan de Comidas Semanal',
       'weeklyCost': 'Costo Semanal',
@@ -134,6 +162,14 @@ class AppLocalizations {
       'cancel': 'Cancelar',
       'required': 'Requerido',
       'optional': 'Opcional',
+      'lowStock': 'Stock Bajo',
+      'frequentlyUsed': 'Uso Frecuente',
+      'goodPrice': 'Buen Precio',
+      'language': 'Idioma',
+      'languageDescription': 'Selecciona tu idioma preferido para la interfaz de la aplicación',
+      'languageNote': 'Nota: El contenido generado por usuarios (recetas, ingredientes) no se traducirá.',
+      'languageChanged': 'Idioma cambiado',
+      'languageChangeError': 'Error al cambiar el idioma',
     },
   };
 }
@@ -154,4 +190,6 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
+
+
 

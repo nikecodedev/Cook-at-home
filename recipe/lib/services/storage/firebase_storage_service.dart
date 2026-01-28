@@ -282,6 +282,42 @@ class FirebaseStorageService {
     }
   }
 
+  /// Upload product image
+  /// 
+  /// [barcode] - Product barcode
+  /// [imageData] - File (mobile) or Uint8List (web)
+  /// 
+  /// Returns download URL on success, null on failure
+  Future<String?> uploadProductImage(
+    String barcode,
+    dynamic imageData,
+  ) async {
+    try {
+      // Generate unique filename
+      final cleanBarcode = barcode.trim().replaceAll(RegExp(r'[^\w-]'), '_');
+      if (cleanBarcode.isEmpty) {
+        throw Exception('El código de barras no es válido');
+      }
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final randomSuffix = timestamp.toString().substring(timestamp.toString().length - 6);
+      final fileName = 'product_${cleanBarcode}_$randomSuffix.jpg';
+
+      // Build file path: products/{barcode}/{filename}
+      final filePath = 'products/$cleanBarcode/$fileName';
+
+      return await uploadImage(
+        path: filePath,
+        imageData: imageData,
+        contentType: 'image/jpeg',
+        maxSizeMB: 10.0,
+      );
+    } catch (e, stackTrace) {
+      Logger.error('Failed to upload product image', e, stackTrace, 'FirebaseStorageService');
+      return null;
+    }
+  }
+
   /// Upload pantry item image
   /// 
   /// [userId] - User ID

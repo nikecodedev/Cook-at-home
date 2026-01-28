@@ -9,6 +9,7 @@ class ProfileModel {
   final String? location;
   final String unitPreference; // e.g., 'metric', 'imperial'
   final int servingSize;
+  final String? languagePreference; // e.g., 'en', 'es' - null = use device default
   final List<HouseholdMember> householdMembers;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -20,6 +21,7 @@ class ProfileModel {
     this.location,
     this.unitPreference = 'metric',
     this.servingSize = 4,
+    this.languagePreference,
     this.householdMembers = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -65,6 +67,7 @@ class ProfileModel {
       location: data['location'],
       unitPreference: data['unitPreference'] ?? 'metric',
       servingSize: data['servingSize'] ?? 4,
+      languagePreference: data['languagePreference'] as String?,
       householdMembers: householdMembers,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -105,6 +108,7 @@ class ProfileModel {
       location: data['location'],
       unitPreference: data['unitPreference'] ?? 'metric',
       servingSize: data['servingSize'] ?? 4,
+      languagePreference: data['languagePreference'] as String?,
       householdMembers: householdMembers,
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
@@ -124,6 +128,7 @@ class ProfileModel {
       'location': location,
       'unitPreference': unitPreference,
       'servingSize': servingSize,
+      'languagePreference': languagePreference,
       'householdMembers': householdMembers.map((member) => member.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -138,6 +143,7 @@ class ProfileModel {
     String? location,
     String? unitPreference,
     int? servingSize,
+    String? languagePreference,
     List<HouseholdMember>? householdMembers,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -149,6 +155,7 @@ class ProfileModel {
       location: location ?? this.location,
       unitPreference: unitPreference ?? this.unitPreference,
       servingSize: servingSize ?? this.servingSize,
+      languagePreference: languagePreference ?? this.languagePreference,
       householdMembers: householdMembers ?? this.householdMembers,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

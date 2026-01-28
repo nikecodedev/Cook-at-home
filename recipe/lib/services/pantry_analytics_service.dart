@@ -1,8 +1,11 @@
 import '../models/pantry_item_model.dart';
 import '../models/recipe_model.dart';
 import '../models/ingredient_price_model.dart';
+import '../models/meal_plan_model.dart';
 import '../services/ingredient_price_service.dart';
 import '../services/canonical_ingredient_service.dart';
+import '../services/meal_plan_service.dart';
+import '../services/firestore/firestore_service.dart';
 import '../core/utils/logger.dart';
 import '../services/measurement_converter_service.dart' show MeasurementConverterService;
 
@@ -10,12 +13,18 @@ import '../services/measurement_converter_service.dart' show MeasurementConverte
 class PantryAnalyticsService {
   final IngredientPriceService _priceService;
   final CanonicalIngredientService _canonicalService;
+  final MealPlanService? _mealPlanService;
+  final FirestoreService? _firestoreService;
 
   PantryAnalyticsService({
     required IngredientPriceService priceService,
     required CanonicalIngredientService canonicalService,
+    MealPlanService? mealPlanService,
+    FirestoreService? firestoreService,
   })  : _priceService = priceService,
-        _canonicalService = canonicalService;
+        _canonicalService = canonicalService,
+        _mealPlanService = mealPlanService,
+        _firestoreService = firestoreService;
 
   /// Calculate total pantry value
   Future<PantryValueMetrics> calculatePantryValue(
@@ -200,6 +209,115 @@ class PantryAnalyticsService {
     }
   }
 
+  /// Calculate comprehensive pantry analytics
+  /// Includes: total value, estimated meals, coverage %, and efficiency score
+  Future<PantryAnalytics> calculateComprehensiveAnalytics(
+    List<PantryItem> pantryItems,
+    String? userId,
+  ) async {
+    try {
+      // Calculate pantry value
+      final valueMetrics = await calculatePantryValue(pantryItems, userId);
+
+      // Get planned recipes from meal plan
+      List<Recipe> plannedRecipes = [];
+      if (userId != null && _mealPlanService != null && _firestoreService != null) {
+        try {
+          // Get current week's meal plan
+          final now = DateTime.now();
+          final monday = _getMonday(now);
+          final mealPlan = await _mealPlanService!.getMealPlanForWeek(userId, monday);
+          
+          if (mealPlan != null) {
+            // Fetch all recipes in the meal plan
+            final recipeIds = mealPlan.allRecipeIds;
+            for (final recipeId in recipeIds) {
+              try {
+                final recipe = await _firestoreService!.getRecipe(recipeId);
+                if (recipe != null) {
+                  plannedRecipes.add(recipe);
+                }
+              } catch (e) {
+                Logger.warning('Failed to fetch recipe: $recipeId', 'PantryAnalyticsService');
+              }
+            }
+          }
+        } catch (e) {
+          Logger.warning('Failed to get meal plan for analytics', 'PantryAnalyticsService');
+        }
+      }
+
+      // Calculate coverage
+      final coverageMetrics = await calculatePantryCoverage(
+        pantryItems,
+        plannedRecipes,
+        userId,
+      );
+
+      // Calculate efficiency score
+      final efficiencyScore = _calculateEfficiencyScore(
+        valueMetrics: valueMetrics,
+        coverageMetrics: coverageMetrics,
+        pantryItems: pantryItems,
+      );
+
+      return PantryAnalytics(
+        totalValue: valueMetrics.totalValue,
+        estimatedMealsAvailable: coverageMetrics.estimatedMealsAvailable,
+        coveragePercentage: coverageMetrics.coveragePercentage,
+        efficiencyScore: efficiencyScore,
+        itemCount: valueMetrics.itemCount,
+        missingIngredients: coverageMetrics.missingIngredients,
+      );
+    } catch (e) {
+      Logger.error('Failed to calculate comprehensive analytics', e, null, 'PantryAnalyticsService');
+      return PantryAnalytics(
+        totalValue: 0.0,
+        estimatedMealsAvailable: 0,
+        coveragePercentage: 0.0,
+        efficiencyScore: 0.0,
+        itemCount: 0,
+        missingIngredients: [],
+      );
+    }
+  }
+
+  /// Calculate efficiency score (0-100)
+  /// Based on: value utilization, coverage, and pantry health
+  double _calculateEfficiencyScore({
+    required PantryValueMetrics valueMetrics,
+    required PantryCoverageMetrics coverageMetrics,
+    required List<PantryItem> pantryItems,
+  }) {
+    // Factor 1: Coverage (40% weight)
+    final coverageScore = coverageMetrics.coveragePercentage * 0.4;
+
+    // Factor 2: Value utilization (30% weight)
+    // Higher value with good coverage = better efficiency
+    final valueUtilizationScore = coverageMetrics.coveragePercentage > 50
+        ? 30.0
+        : (coverageMetrics.coveragePercentage / 50.0) * 30.0;
+
+    // Factor 3: Pantry health (30% weight)
+    // Based on expired/expiring items
+    final expiredCount = pantryItems.where((item) => item.isExpired).length;
+    final expiringCount = pantryItems.where((item) => item.isExpiringSoon).length;
+    final totalItems = pantryItems.length;
+    
+    final healthScore = totalItems > 0
+        ? ((totalItems - expiredCount - expiringCount * 0.5) / totalItems) * 30.0
+        : 30.0;
+
+    return (coverageScore + valueUtilizationScore + healthScore).clamp(0.0, 100.0);
+  }
+
+  /// Get Monday of the week for a given date
+  DateTime _getMonday(DateTime date) {
+    final weekday = date.weekday; // 1 = Monday, 7 = Sunday
+    final daysFromMonday = weekday - 1;
+    return DateTime(date.year, date.month, date.day).subtract(Duration(days: daysFromMonday));
+  }
+
   /// Get user-specific prices (with overrides)
   Future<Map<String, IngredientPrice>> _getUserPrices(
     List<String> canonicalIds,
@@ -243,6 +361,25 @@ class PantryCoverageMetrics {
     required this.missingIngredients,
     required this.availableIngredients,
     required this.estimatedMealsAvailable,
+  });
+}
+
+/// Comprehensive pantry analytics
+class PantryAnalytics {
+  final double totalValue; // Total estimated pantry value
+  final int estimatedMealsAvailable; // Estimated meals from pantry
+  final double coveragePercentage; // Coverage % for planned recipes (0-100)
+  final double efficiencyScore; // Efficiency score (0-100)
+  final int itemCount; // Total number of pantry items
+  final List<String> missingIngredients; // Missing ingredients for planned recipes
+
+  PantryAnalytics({
+    required this.totalValue,
+    required this.estimatedMealsAvailable,
+    required this.coveragePercentage,
+    required this.efficiencyScore,
+    required this.itemCount,
+    required this.missingIngredients,
   });
 }
 

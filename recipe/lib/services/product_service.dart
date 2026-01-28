@@ -47,6 +47,7 @@ class ProductService {
   }
 
   /// Create a new product (contribute product flow)
+  /// Throws exception if barcode already exists (duplicate prevention)
   Future<String> createProduct({
     required String barcode,
     required String name,
@@ -58,11 +59,19 @@ class ProductService {
     String? contributorId,
   }) async {
     try {
-      // Check if product with this barcode already exists
-      final existing = await getProductByBarcode(barcode);
+      // Normalize barcode
+      final normalizedBarcode = barcode.trim();
+      
+      // Validate barcode format
+      if (!RegExp(r'^\d{8,14}$').hasMatch(normalizedBarcode)) {
+        throw Exception('Invalid barcode format. Must be 8-14 digits.');
+      }
+      
+      // Check if product with this barcode already exists (duplicate prevention)
+      final existing = await getProductByBarcode(normalizedBarcode);
       if (existing != null) {
-        Logger.warning('Product with barcode $barcode already exists', 'ProductService');
-        return existing.id;
+        Logger.warning('Product with barcode $normalizedBarcode already exists', 'ProductService');
+        throw Exception('A product with barcode $normalizedBarcode already exists in the catalog.');
       }
 
       final now = DateTime.now();
@@ -150,4 +159,6 @@ class ProductService {
     }
   }
 }
+
+
 

@@ -21,6 +21,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'core/config/firebase_config.dart';
 import 'core/localization/app_localizations.dart';
+import 'providers/locale_provider.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized before Firebase
@@ -249,16 +250,16 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
     });
 
+    // Watch locale from provider (user preference or device default)
+    final currentLocale = ref.watch(appLocaleProvider);
+
     return MaterialApp.router(
       title: 'Cocina en tu Casa',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
-      locale: const Locale('es', 'ES'), // Spanish locale
-      supportedLocales: const [
-        Locale('es', 'ES'), // Spanish
-        Locale('en', 'US'), // English (fallback)
-      ],
+      locale: currentLocale,
+      supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

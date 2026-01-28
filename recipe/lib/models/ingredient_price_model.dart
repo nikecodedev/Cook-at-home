@@ -7,7 +7,7 @@ class IngredientPrice {
   final double averagePrice; // Average price per default unit
   final String priceUnit; // Unit for the price (e.g., 'grams', 'liters', 'pieces')
   final double? userOverridePrice; // User's manual override (optional)
-  final DateTime lastUpdated;
+  final DateTime updatedAt; // Last update timestamp
   final DateTime createdAt;
 
   IngredientPrice({
@@ -16,7 +16,7 @@ class IngredientPrice {
     required this.averagePrice,
     required this.priceUnit,
     this.userOverridePrice,
-    required this.lastUpdated,
+    required this.updatedAt,
     required this.createdAt,
   });
 
@@ -34,7 +34,8 @@ class IngredientPrice {
       userOverridePrice: data['userOverridePrice'] != null
           ? (data['userOverridePrice'] as num).toDouble()
           : null,
-      lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? 
+                 (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(), // Support legacy field
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -49,9 +50,11 @@ class IngredientPrice {
       userOverridePrice: data['userOverridePrice'] != null
           ? (data['userOverridePrice'] as num).toDouble()
           : null,
-      lastUpdated: data['lastUpdated'] is Timestamp
-          ? (data['lastUpdated'] as Timestamp).toDate()
-          : DateTime.now(),
+      updatedAt: data['updatedAt'] is Timestamp
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : (data['lastUpdated'] is Timestamp
+              ? (data['lastUpdated'] as Timestamp).toDate()
+              : DateTime.now()), // Support legacy field
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -65,7 +68,7 @@ class IngredientPrice {
       'averagePrice': averagePrice,
       'priceUnit': priceUnit,
       'userOverridePrice': userOverridePrice,
-      'lastUpdated': Timestamp.fromDate(lastUpdated),
+      'updatedAt': Timestamp.fromDate(updatedAt),
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -77,7 +80,7 @@ class IngredientPrice {
     double? averagePrice,
     String? priceUnit,
     double? userOverridePrice,
-    DateTime? lastUpdated,
+    DateTime? updatedAt,
     DateTime? createdAt,
   }) {
     return IngredientPrice(
@@ -86,7 +89,7 @@ class IngredientPrice {
       averagePrice: averagePrice ?? this.averagePrice,
       priceUnit: priceUnit ?? this.priceUnit,
       userOverridePrice: userOverridePrice ?? this.userOverridePrice,
-      lastUpdated: lastUpdated ?? this.lastUpdated,
+      updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -96,4 +99,6 @@ class IngredientPrice {
     return 'IngredientPrice(id: $id, canonicalIngredientId: $canonicalIngredientId, effectivePrice: $effectivePrice $priceUnit)';
   }
 }
+
+
 

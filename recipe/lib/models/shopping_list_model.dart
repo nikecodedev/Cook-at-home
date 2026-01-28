@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ShoppingListItem {
   final String id;
   final String name;
+  final String? canonicalIngredientId; // Phase 2: Reference to canonical ingredient
   final double quantity;
   final String unit;
   final bool isChecked;
@@ -14,6 +15,7 @@ class ShoppingListItem {
   ShoppingListItem({
     required this.id,
     required this.name,
+    this.canonicalIngredientId,
     required this.quantity,
     required this.unit,
     this.isChecked = false,
@@ -27,6 +29,7 @@ class ShoppingListItem {
     return ShoppingListItem(
       id: doc.id,
       name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
       quantity: (data['quantity'] ?? 0).toDouble(),
       unit: data['unit'] ?? '',
       isChecked: data['isChecked'] ?? false,
@@ -40,6 +43,7 @@ class ShoppingListItem {
     return ShoppingListItem(
       id: id,
       name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
       quantity: (data['quantity'] ?? 0).toDouble(),
       unit: data['unit'] ?? '',
       isChecked: data['isChecked'] ?? false,
@@ -54,6 +58,7 @@ class ShoppingListItem {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'canonicalIngredientId': canonicalIngredientId,
       'quantity': quantity,
       'unit': unit,
       'isChecked': isChecked,
@@ -67,6 +72,7 @@ class ShoppingListItem {
   ShoppingListItem copyWith({
     String? id,
     String? name,
+    String? canonicalIngredientId,
     double? quantity,
     String? unit,
     bool? isChecked,
@@ -77,6 +83,7 @@ class ShoppingListItem {
     return ShoppingListItem(
       id: id ?? this.id,
       name: name ?? this.name,
+      canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
       isChecked: isChecked ?? this.isChecked,

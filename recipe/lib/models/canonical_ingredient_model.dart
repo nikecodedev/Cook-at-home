@@ -97,11 +97,39 @@ class CanonicalIngredient {
   }
 
   /// Normalize a string for matching (lowercase, trim, remove accents)
+  /// Removes diacritics (accents) from characters for better matching
   static String normalize(String input) {
-    return input
+    return _removeAccents(input
         .toLowerCase()
         .trim()
-        .replaceAll(RegExp(r'\s+'), ' '); // Normalize whitespace
+        .replaceAll(RegExp(r'\s+'), ' ')); // Normalize whitespace
+  }
+
+  /// Remove accents/diacritics from a string
+  /// Converts accented characters to their base form (e.g., é -> e, ñ -> n)
+  static String _removeAccents(String input) {
+    const Map<String, String> accentMap = {
+      'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'å': 'a',
+      'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
+      'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i',
+      'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'õ': 'o',
+      'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
+      'ý': 'y', 'ÿ': 'y',
+      'ñ': 'n', 'ç': 'c',
+      'Á': 'a', 'À': 'a', 'Ä': 'a', 'Â': 'a', 'Ã': 'a', 'Å': 'a',
+      'É': 'e', 'È': 'e', 'Ë': 'e', 'Ê': 'e',
+      'Í': 'i', 'Ì': 'i', 'Ï': 'i', 'Î': 'i',
+      'Ó': 'o', 'Ò': 'o', 'Ö': 'o', 'Ô': 'o', 'Õ': 'o',
+      'Ú': 'u', 'Ù': 'u', 'Ü': 'u', 'Û': 'u',
+      'Ý': 'y',
+      'Ñ': 'n', 'Ç': 'c',
+    };
+    
+    String result = input;
+    accentMap.forEach((accented, base) {
+      result = result.replaceAll(accented, base);
+    });
+    return result;
   }
 
   /// Check if this ingredient matches a given name (case-insensitive, handles synonyms)
@@ -115,4 +143,6 @@ class CanonicalIngredient {
     return 'CanonicalIngredient(id: $id, name: $name, synonyms: $synonyms)';
   }
 }
+
+
 

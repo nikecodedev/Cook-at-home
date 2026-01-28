@@ -8,10 +8,13 @@ import '../../../../core/widgets/modern_snackbar.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../providers/shopping_list_provider.dart';
+import '../../../../providers/phase2_providers.dart';
 import '../../../../models/recipe_model.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../widgets/recipe_header.dart';
 import '../widgets/ingredient_item.dart';
 import '../widgets/instruction_step_card.dart';
+import '../widgets/recipe_cost_widget.dart';
 
 /// Modern, minimal recipe detail page with Notion-style design
 class RecipeDetailScreen extends ConsumerStatefulWidget {

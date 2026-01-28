@@ -6,7 +6,7 @@ class RefillAlert {
   final String userId;
   final String canonicalIngredientId;
   final String ingredientName; // Display name
-  final String reason; // 'depletion' or 'price_index'
+  final String reason; // 'depletion', 'high_usage', or 'price_index'
   final double? currentQuantity; // Current quantity in pantry (if available)
   final String? currentUnit;
   final double? priceIndex; // Internal price index (if reason is price_index)
@@ -129,4 +129,6 @@ class RefillAlert {
     return 'RefillAlert(id: $id, ingredientName: $ingredientName, reason: $reason, isActive: $isActive)';
   }
 }
+
+
 

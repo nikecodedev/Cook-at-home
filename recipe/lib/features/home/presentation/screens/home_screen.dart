@@ -328,6 +328,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         ),
                         _buildDrawerItem(
                           context,
+                          Icons.calendar_today_rounded,
+                          'Plan Semanal',
+                          () {
+                            Navigator.pop(context);
+                            context.push(Routes.mealPlan);
+                          },
+                        ),
+                        _buildDrawerItem(
+                          context,
                           Icons.auto_awesome_rounded,
                           'Sugerencias',
                           () {
@@ -510,6 +519,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
         'color': AppColors.cornYellow,
         'gradient': [AppColors.cornYellow, const Color(0xFFFFD966)],
         'bgGradient': [AppColors.cornYellow.withOpacity(0.08), AppColors.cornYellow.withOpacity(0.03)],
+      },
+      {
+        'icon': Icons.calendar_today_rounded,
+        'title': 'Plan Semanal',
+        'subtitle': 'Planifica tus comidas',
+        'route': Routes.mealPlan,
+        'color': const Color(0xFF9C27B0),
+        'gradient': [const Color(0xFF9C27B0), const Color(0xFFBA68C8)],
+        'bgGradient': [const Color(0xFF9C27B0).withOpacity(0.08), const Color(0xFF9C27B0).withOpacity(0.03)],
       },
     ];
 

@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/phase2_providers.dart';
-import '../../../../providers/auth_provider.dart';
+import '../../../../providers/profile_provider.dart';
 import '../../../../models/recipe_model.dart';
 import '../../../../services/recipe_cost_service.dart';
 import '../../../../core/constants/firebase_constants.dart';
 
 /// Widget to display recipe cost information
-class RecipeCostWidget extends ConsumerStatefulWidget {
+/// Automatically recalculates when recipe or prices change
+class RecipeCostWidget extends ConsumerWidget {
   final Recipe recipe;
   final bool isTablet;
 
@@ -20,98 +21,50 @@ class RecipeCostWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<RecipeCostWidget> createState() => _RecipeCostWidgetState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userId = ref.watch(currentUserIdProvider);
+    final costAsync = ref.watch(
+      recipeCostProvider(
+        RecipeCostParams(recipe: recipe, userId: userId),
+      ),
+    );
 
-class _RecipeCostWidgetState extends ConsumerState<RecipeCostWidget> {
-  RecipeCostCalculation? _costCalculation;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _calculateCost();
+    return costAsync.when(
+      data: (calculation) => _buildCostDisplay(context, calculation),
+      loading: () => _buildLoadingState(),
+      error: (error, stack) => _buildErrorState(context, error),
+    );
   }
 
-  Future<void> _calculateCost() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final userId = ref.read(currentUserIdProvider);
-      final costService = ref.read(recipeCostServiceProvider);
-      final calculation = await costService.calculateRecipeCost(
-        widget.recipe,
-        userId,
-      );
-
-      if (mounted) {
-        setState(() {
-          _costCalculation = calculation;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+  Widget _buildLoadingState() {
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 24 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
   }
 
-  Color _getCostTierColor(String tier) {
-    switch (tier) {
-      case CostTiers.low:
-        return AppColors.success;
-      case CostTiers.medium:
-        return AppColors.warning;
-      case CostTiers.high:
-        return AppColors.error;
-      default:
-        return AppColors.textSecondary;
-    }
+  Widget _buildErrorState(BuildContext context, Object error) {
+    // Silently hide on error - cost calculation is non-critical
+    return const SizedBox.shrink();
   }
 
-  String _getCostTierLabel(String tier, BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    switch (tier) {
-      case CostTiers.low:
-        return l10n?.low ?? 'Low';
-      case CostTiers.medium:
-        return l10n?.medium ?? 'Medium';
-      case CostTiers.high:
-        return l10n?.high ?? 'High';
-      default:
-        return tier;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCostDisplay(BuildContext context, RecipeCostCalculation calculation) {
     final l10n = AppLocalizations.of(context);
 
-    if (_isLoading) {
-      return Container(
-        padding: EdgeInsets.all(widget.isTablet ? 24 : 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.gray200),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (_costCalculation == null || _costCalculation!.totalCost == 0) {
+    // Don't show if no cost data
+    if (calculation.totalCost == 0) {
       return const SizedBox.shrink();
     }
 
     return Container(
-      padding: EdgeInsets.all(widget.isTablet ? 24 : 20),
+      padding: EdgeInsets.all(isTablet ? 24 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -145,7 +98,7 @@ class _RecipeCostWidgetState extends ConsumerState<RecipeCostWidget> {
               Text(
                 l10n?.recipeCost ?? 'Recipe Cost',
                 style: TextStyle(
-                  fontSize: widget.isTablet ? 20 : 18,
+                  fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
@@ -160,17 +113,17 @@ class _RecipeCostWidgetState extends ConsumerState<RecipeCostWidget> {
                 child: _buildCostItem(
                   context,
                   l10n?.totalCost ?? 'Total Cost',
-                  '\$${_costCalculation!.totalCost.toStringAsFixed(2)}',
+                  '\$${calculation.totalCost.toStringAsFixed(2)}',
                   AppColors.textPrimary,
                 ),
               ),
-              if (_costCalculation!.costPerPortion != null) ...[
+              if (calculation.costPerPortion != null) ...[
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildCostItem(
                     context,
                     l10n?.costPerPortion ?? 'Per Portion',
-                    '\$${_costCalculation!.costPerPortion!.toStringAsFixed(2)}',
+                    '\$${calculation.costPerPortion!.toStringAsFixed(2)}',
                     AppColors.primary,
                   ),
                 ),
@@ -181,10 +134,10 @@ class _RecipeCostWidgetState extends ConsumerState<RecipeCostWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _getCostTierColor(_costCalculation!.costTier).withOpacity(0.1),
+              color: _getCostTierColor(calculation.costTier).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _getCostTierColor(_costCalculation!.costTier).withOpacity(0.3),
+                color: _getCostTierColor(calculation.costTier).withOpacity(0.3),
               ),
             ),
             child: Row(
@@ -193,24 +146,24 @@ class _RecipeCostWidgetState extends ConsumerState<RecipeCostWidget> {
                 Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: _getCostTierColor(_costCalculation!.costTier),
+                  color: _getCostTierColor(calculation.costTier),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${l10n?.costTier ?? 'Cost Tier'}: ${_getCostTierLabel(_costCalculation!.costTier, context)}',
+                  '${l10n?.costTier ?? 'Cost Tier'}: ${_getCostTierLabel(calculation.costTier, context)}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _getCostTierColor(_costCalculation!.costTier),
+                    color: _getCostTierColor(calculation.costTier),
                   ),
                 ),
               ],
             ),
           ),
-          if (_costCalculation!.numberOfServings != null) ...[
+          if (calculation.numberOfServings != null) ...[
             const SizedBox(height: 12),
             Text(
-              '${l10n?.numberOfServings ?? 'Servings'}: ${_costCalculation!.numberOfServings}',
+              '${l10n?.numberOfServings ?? 'Servings'}: ${calculation.numberOfServings}',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -243,13 +196,40 @@ class _RecipeCostWidgetState extends ConsumerState<RecipeCostWidget> {
         Text(
           value,
           style: TextStyle(
-            fontSize: widget.isTablet ? 24 : 20,
+            fontSize: isTablet ? 24 : 20,
             fontWeight: FontWeight.bold,
             color: valueColor,
           ),
         ),
       ],
     );
+  }
+
+  Color _getCostTierColor(String tier) {
+    switch (tier) {
+      case CostTiers.low:
+        return AppColors.success;
+      case CostTiers.medium:
+        return AppColors.warning;
+      case CostTiers.high:
+        return AppColors.error;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _getCostTierLabel(String tier, BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (tier) {
+      case CostTiers.low:
+        return l10n?.low ?? 'Low';
+      case CostTiers.medium:
+        return l10n?.medium ?? 'Medium';
+      case CostTiers.high:
+        return l10n?.high ?? 'High';
+      default:
+        return tier;
+    }
   }
 }
 

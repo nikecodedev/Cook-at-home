@@ -14,6 +14,7 @@ import '../../../../models/profile_model.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../services/location/location_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../widgets/language_selector_widget.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -610,6 +611,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     },
                   ),
 
+                  const SizedBox(height: 24),
+
+                  // Language Selector
+                  const LanguageSelectorWidget(enabled: true),
+                  
                   const SizedBox(height: 24),
 
                   // Household Members Section

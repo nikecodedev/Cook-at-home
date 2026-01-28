@@ -10,6 +10,7 @@ import '../../../../models/pantry_item_model.dart';
 import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/translations.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../services/recipe_recommendation_service.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -37,6 +38,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
   late TextEditingController _amazonUrlController;
   late TextEditingController _walmartUrlController;
   DateTime? _expirationDate;
+  String? _canonicalIngredientId; // Store canonical ingredient ID from scanned product
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     _amazonUrlController = TextEditingController(text: widget.item?.amazonUrl ?? '');
     _walmartUrlController = TextEditingController(text: widget.item?.walmartUrl ?? '');
     _expirationDate = widget.item?.expirationDate;
+    _canonicalIngredientId = widget.item?.canonicalIngredientId;
   }
 
   @override
@@ -97,6 +100,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     final item = PantryItem(
       id: widget.item?.id ?? const Uuid().v4(),
       name: formattedName,
+      canonicalIngredientId: _canonicalIngredientId, // Include canonical ingredient ID
       quantity: quantity,
       unit: _unitController.text.trim(),
       category: _categoryController.text.trim(),
@@ -266,10 +270,11 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
                       onPressed: () async {
-                        final result = await context.push<Product?>(
-                          Routes.barcodeScanner,
-                        );
-                        if (result != null && mounted) {
+                        try {
+                          final result = await context.push<Product?>(
+                            Routes.barcodeScanner,
+                          );
+                          if (result != null && mounted) {
                           // Product found - auto-fill fields
                           setState(() {
                             _nameController.text = result.name;
@@ -279,7 +284,29 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                             if (result.suggestedUnit != null) {
                               _unitController.text = result.suggestedUnit!;
                             }
+                            // Store canonical ingredient ID from product
+                            _canonicalIngredientId = result.canonicalIngredientId;
                           });
+                            
+                            // Show success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Product loaded: ${result.name}'),
+                                backgroundColor: AppColors.success,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          Logger.error('Error scanning barcode', e, null, 'PantryEditScreen');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error scanning barcode: ${e.toString()}'),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                          }
                         }
                       },
                       tooltip: AppLocalizations.of(context)?.scanBarcode ?? 'Scan Barcode',

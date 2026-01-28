@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../../core/config/firebase_config.dart';
@@ -7,6 +8,7 @@ import '../../core/constants/firebase_constants.dart';
 import '../../models/profile_model.dart';
 import '../../models/pantry_item_model.dart';
 import '../../models/recipe_model.dart';
+import '../../models/meal_plan_model.dart';
 import '../storage/firebase_storage_service.dart';
 import '../../models/shopping_list_model.dart';
 import '../../models/feedback_model.dart';
@@ -90,6 +92,7 @@ class FirestoreService {
     String? location,
     String? unitPreference,
     int? servingSize,
+    String? languagePreference,
     List<HouseholdMember>? householdMembers,
   }) async {
     try {
@@ -111,6 +114,9 @@ class FirestoreService {
       }
       if (servingSize != null) {
         updates['servingSize'] = servingSize;
+      }
+      if (languagePreference != null) {
+        updates['languagePreference'] = languagePreference;
       }
       if (householdMembers != null) {
         updates['householdMembers'] =
@@ -359,6 +365,29 @@ class FirestoreService {
       Logger.error('Error in recipes stream', error, null, 'FirestoreService');
       return <Recipe>[];
     });
+  }
+
+  /// Get a single recipe by ID
+  Future<Recipe?> getRecipe(String recipeId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.recipes)
+          .doc(recipeId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        try {
+          return Recipe.fromFirestore(doc);
+        } catch (e) {
+          Logger.error('Failed to parse recipe from Firestore', e, null, 'FirestoreService');
+          return null;
+        }
+      }
+      return null;
+    } catch (e) {
+      Logger.error('Failed to get recipe', e, null, 'FirestoreService');
+      return null;
+    }
   }
 
   /// Get recipes by a specific user
@@ -658,6 +687,7 @@ class FirestoreService {
 
           await itemsRef.doc(itemId).set({
             'name': ingredient.name,
+            'canonicalIngredientId': ingredient.canonicalIngredientId,
             'quantity': ingredient.quantity,
             'unit': ingredient.unit,
             'isChecked': false,
@@ -693,6 +723,164 @@ class FirestoreService {
       return listId;
     } catch (e) {
       Logger.error('Failed to generate shopping list', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Generate consolidated shopping list from meal plan
+  /// Aggregates missing ingredients from all recipes in the meal plan
+  Future<String> generateShoppingListFromMealPlan({
+    required String userId,
+    required MealPlan mealPlan,
+    required List<PantryItem> pantryItems,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final listId = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc()
+          .id;
+
+      // Get all recipes from meal plan
+      final recipeIds = mealPlan.allRecipeIds;
+      final List<Recipe> recipes = [];
+      for (final recipeId in recipeIds) {
+        try {
+          final recipe = await getRecipe(recipeId);
+          if (recipe != null) {
+            recipes.add(recipe);
+          }
+        } catch (e) {
+          Logger.warning('Failed to fetch recipe: $recipeId', 'FirestoreService');
+        }
+      }
+
+      if (recipes.isEmpty) {
+        throw Exception('No recipes found in meal plan');
+      }
+
+      // Aggregate all ingredients from all recipes
+      final Map<String, RecipeIngredient> aggregatedIngredients = {}; // normalizedName -> ingredient (with aggregated quantity)
+      final pantryMap = <String, PantryItem>{};
+      
+      for (final item in pantryItems) {
+        final normalized = RecipeRecommendationService.normalizeIngredientName(item.name);
+        pantryMap[normalized] = item;
+      }
+
+      // Aggregate ingredients from all recipes
+      for (final recipe in recipes) {
+        for (final ingredient in recipe.ingredients) {
+          final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
+          
+          if (aggregatedIngredients.containsKey(normalizedName)) {
+            // Aggregate quantities (simplified: add quantities)
+            final existing = aggregatedIngredients[normalizedName]!;
+            aggregatedIngredients[normalizedName] = RecipeIngredient(
+              name: existing.name,
+              quantity: existing.quantity + ingredient.quantity,
+              unit: existing.unit, // Keep first unit
+              canonicalIngredientId: existing.canonicalIngredientId ?? ingredient.canonicalIngredientId,
+            );
+          } else {
+            aggregatedIngredients[normalizedName] = ingredient;
+          }
+        }
+      }
+
+      // Find missing ingredients
+      final missingIngredients = <RecipeIngredient>[];
+      for (final ingredient in aggregatedIngredients.values) {
+        final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
+        bool found = false;
+
+        if (pantryMap.containsKey(normalizedName)) {
+          found = true;
+        } else {
+          // Try fuzzy matching
+          for (final pantryItem in pantryItems) {
+            if (RecipeRecommendationService.ingredientNamesMatch(ingredient.name, pantryItem.name)) {
+              found = true;
+              break;
+            }
+          }
+        }
+
+        if (!found) {
+          missingIngredients.add(ingredient);
+        }
+      }
+
+      if (missingIngredients.isEmpty) {
+        throw Exception('¡Todos los ingredientes ya están en tu despensa!');
+      }
+
+      // Create shopping list document
+      final weekEnd = mealPlan.weekStartDate.add(const Duration(days: 6));
+      final dateFormat = DateFormat('MMM dd', 'es');
+      final shoppingList = {
+        'name': 'Lista de Compras - ${dateFormat.format(mealPlan.weekStartDate)} - ${dateFormat.format(weekEnd)}',
+        'mealPlanId': mealPlan.id,
+        'createdAt': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+      };
+
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .set(shoppingList);
+
+      // Add items to subcollection
+      final itemsRef = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems);
+
+      int addedCount = 0;
+      for (final ingredient in missingIngredients) {
+        try {
+          final itemId = itemsRef.doc().id;
+          final amazonLink = ingredient.amazonLink?.isNotEmpty == true
+              ? ingredient.amazonLink
+              : _generateAmazonLink(ingredient.name);
+          final walmartLink = ingredient.walmartLink?.isNotEmpty == true
+              ? ingredient.walmartLink
+              : _generateWalmartLink(ingredient.name);
+
+          await itemsRef.doc(itemId).set({
+            'name': ingredient.name,
+            'canonicalIngredientId': ingredient.canonicalIngredientId,
+            'quantity': ingredient.quantity,
+            'unit': ingredient.unit,
+            'isChecked': false,
+            'amazonLink': amazonLink,
+            'walmartLink': walmartLink,
+            'addedAt': Timestamp.fromDate(now),
+          });
+          addedCount++;
+        } catch (itemError) {
+          Logger.error(
+            'Failed to add item "${ingredient.name}"',
+            itemError,
+            null,
+            'FirestoreService',
+          );
+        }
+      }
+
+      Logger.success(
+        'Shopping list generated from meal plan: $listId with $addedCount items',
+        'FirestoreService',
+      );
+      return listId;
+    } catch (e) {
+      Logger.error('Failed to generate shopping list from meal plan', e, null, 'FirestoreService');
       rethrow;
     }
   }
@@ -800,6 +988,32 @@ class FirestoreService {
     });
   }
 
+  /// Get a single shopping list by ID with its items
+  Future<ShoppingList?> getShoppingList(String userId, String listId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .get();
+
+      if (!doc.exists || doc.data() == null) {
+        return null;
+      }
+
+      final shoppingList = ShoppingList.fromFirestore(doc);
+      
+      // Load items
+      final items = await getShoppingListItems(userId, listId);
+      
+      return shoppingList.copyWith(items: items);
+    } catch (e) {
+      Logger.error('Failed to get shopping list', e, null, 'FirestoreService');
+      return null;
+    }
+  }
+
   /// Update shopping item checked status
   Future<void> updateShoppingItemStatus({
     required String userId,
@@ -844,7 +1058,7 @@ class FirestoreService {
     }
   }
 
-  /// Update shopping list item (name, quantity, unit, links)
+  /// Update shopping list item (name, quantity, unit, links, canonicalIngredientId)
   Future<void> updateShoppingItem({
     required String userId,
     required String listId,
@@ -852,6 +1066,7 @@ class FirestoreService {
     required String name,
     required double quantity,
     required String unit,
+    String? canonicalIngredientId,
     String? amazonLink,
     String? walmartLink,
   }) async {
@@ -862,6 +1077,9 @@ class FirestoreService {
         'unit': unit,
       };
 
+      if (canonicalIngredientId != null) {
+        updateData['canonicalIngredientId'] = canonicalIngredientId;
+      }
       if (amazonLink != null) {
         updateData['amazonLink'] = amazonLink;
       }

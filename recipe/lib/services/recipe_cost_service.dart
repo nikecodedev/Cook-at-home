@@ -4,6 +4,7 @@ import '../services/ingredient_price_service.dart';
 import '../services/canonical_ingredient_service.dart';
 import '../core/utils/logger.dart';
 import '../core/constants/firebase_constants.dart';
+import '../core/config/cost_tier_config.dart';
 import '../services/measurement_converter_service.dart' show MeasurementConverterService;
 
 /// Service for calculating recipe costs
@@ -18,6 +19,8 @@ class RecipeCostService {
         _canonicalService = canonicalService;
 
   /// Calculate total cost for a recipe
+  /// Always fetches fresh prices (no caching) to ensure accuracy
+  /// Recalculates dynamically when recipe or prices change
   Future<RecipeCostCalculation> calculateRecipeCost(
     Recipe recipe,
     String? userId,
@@ -26,49 +29,67 @@ class RecipeCostService {
       double totalCost = 0.0;
       final Map<String, double> ingredientCosts = {};
 
-      // Get all canonical ingredient IDs from recipe ingredients
-      final List<String?> canonicalIds = recipe.ingredients
-          .map((ing) => ing.canonicalIngredientId)
-          .where((id) => id != null && id.isNotEmpty)
-          .toList();
+      // Early return if no ingredients
+      if (recipe.ingredients.isEmpty) {
+        return RecipeCostCalculation(
+          totalCost: 0.0,
+          costPerPortion: null,
+          costTier: CostTiers.low,
+          ingredientCosts: {},
+          numberOfServings: recipe.numberOfServings,
+        );
+      }
 
-      // If no canonical IDs, try to find them by name
+      // Resolve canonical ingredient IDs (with name fallback for backward compatibility)
       final List<String> resolvedIds = [];
+      final Map<String, String> ingredientToCanonicalId = {}; // ingredient name -> canonical ID
+      
       for (final ingredient in recipe.ingredients) {
         String? canonicalId = ingredient.canonicalIngredientId;
         
         if (canonicalId == null || canonicalId.isEmpty) {
-          // Try to find canonical ingredient by name
+          // Try to find canonical ingredient by name (backward compatibility)
           final canonical = await _canonicalService.findCanonicalIngredientByName(ingredient.name);
           canonicalId = canonical?.id;
         }
 
         if (canonicalId != null && canonicalId.isNotEmpty) {
           resolvedIds.add(canonicalId);
+          ingredientToCanonicalId[ingredient.name] = canonicalId;
         }
       }
 
-      // Get prices for all ingredients
+      // Early return if no canonical ingredients found
+      if (resolvedIds.isEmpty) {
+        return RecipeCostCalculation(
+          totalCost: 0.0,
+          costPerPortion: null,
+          costTier: CostTiers.low,
+          ingredientCosts: {},
+          numberOfServings: recipe.numberOfServings,
+        );
+      }
+
+      // Get prices for all ingredients (always fresh, no caching)
+      // Batch get for performance (handles Firestore 'in' query limit of 10)
       final prices = userId != null
           ? await _getUserPrices(resolvedIds, userId)
           : await _priceService.getIngredientPrices(resolvedIds);
 
       // Calculate cost for each ingredient
       for (final ingredient in recipe.ingredients) {
-        String? canonicalId = ingredient.canonicalIngredientId;
+        // Get canonical ID from map (already resolved above)
+        final canonicalId = ingredient.canonicalIngredientId ?? 
+                           ingredientToCanonicalId[ingredient.name];
         
         if (canonicalId == null || canonicalId.isEmpty) {
-          final canonical = await _canonicalService.findCanonicalIngredientByName(ingredient.name);
-          canonicalId = canonical?.id;
-        }
-
-        if (canonicalId == null) {
-          // No price available for this ingredient
+          // No canonical ingredient found - skip this ingredient
           continue;
         }
 
         final price = prices[canonicalId];
         if (price == null) {
+          // No price available for this ingredient - skip
           continue;
         }
 
@@ -97,13 +118,22 @@ class RecipeCostService {
         }
       }
 
-      // Calculate cost per portion
+      // Calculate cost per serving/portion
       double? costPerPortion;
-      if (recipe.yieldValue != null && recipe.standardPortionSize != null && recipe.standardPortionSize! > 0) {
+      
+      // Method 1: Use yield and portion size (most accurate)
+      if (recipe.yieldValue != null && 
+          recipe.standardPortionSize != null && 
+          recipe.standardPortionSize! > 0 &&
+          recipe.yieldValue! > 0) {
+        // Cost per serving = (totalCost / totalYield) * portionSize
         costPerPortion = (totalCost / recipe.yieldValue!) * recipe.standardPortionSize!;
-      } else if (recipe.numberOfServings != null && recipe.numberOfServings! > 0) {
+      } 
+      // Method 2: Use calculated number of servings (fallback)
+      else if (recipe.numberOfServings != null && recipe.numberOfServings! > 0) {
         costPerPortion = totalCost / recipe.numberOfServings!;
       }
+      // If no yield information, cost per portion cannot be calculated
 
       // Determine cost tier
       final costTier = _determineCostTier(costPerPortion ?? totalCost);
@@ -145,15 +175,9 @@ class RecipeCostService {
   }
 
   /// Determine cost tier based on cost per portion
+  /// Uses configurable thresholds from CostTierConfig
   String _determineCostTier(double costPerPortion) {
-    // Adjust thresholds based on your market/currency
-    if (costPerPortion < 2.0) {
-      return CostTiers.low;
-    } else if (costPerPortion < 5.0) {
-      return CostTiers.medium;
-    } else {
-      return CostTiers.high;
-    }
+    return CostTierConfig.determineTier(costPerPortion);
   }
 }
 

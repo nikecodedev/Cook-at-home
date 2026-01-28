@@ -5,7 +5,10 @@ class MealPlan {
   final String id;
   final String userId;
   final DateTime weekStartDate; // Start of the week (Monday)
-  final Map<String, List<String>> dailyRecipes; // day -> [recipeIds]
+  final Map<String, List<String>> dailyRecipes; // day -> [recipeIds] (backward compatibility)
+  // day keys: 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+  final Map<String, Map<String, String?>> dailyMeals; // day -> mealType -> recipeId
+  // mealType keys: 'breakfast', 'lunch', 'dinner'
   // day keys: 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -15,13 +18,64 @@ class MealPlan {
     required this.userId,
     required this.weekStartDate,
     required this.dailyRecipes,
+    Map<String, Map<String, String?>>? dailyMeals,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : dailyMeals = dailyMeals ?? {};
+
+  /// Get recipe ID for a specific day and meal type
+  String? getRecipeForMeal(String dayKey, String mealType) {
+    return dailyMeals[dayKey]?[mealType];
+  }
+
+  /// Set recipe for a specific day and meal type
+  MealPlan setRecipeForMeal(String dayKey, String mealType, String? recipeId) {
+    final updatedMeals = Map<String, Map<String, String?>>.from(dailyMeals);
+    if (!updatedMeals.containsKey(dayKey)) {
+      updatedMeals[dayKey] = {};
+    }
+    updatedMeals[dayKey]![mealType] = recipeId;
+    return copyWith(dailyMeals: updatedMeals);
+  }
+
+  /// Get all recipe IDs from meal slots (includes backward compatibility with dailyRecipes)
+  List<String> get allRecipeIds {
+    final recipeIds = <String>{};
+    
+    // Get from meal slots
+    for (final dayMeals in dailyMeals.values) {
+      for (final recipeId in dayMeals.values) {
+        if (recipeId != null && recipeId.isNotEmpty) {
+          recipeIds.add(recipeId);
+        }
+      }
+    }
+    
+    // Get from legacy dailyRecipes (backward compatibility)
+    for (final recipeList in dailyRecipes.values) {
+      recipeIds.addAll(recipeList);
+    }
+    
+    return recipeIds.toList();
+  }
 
   /// Create MealPlan from Firestore document
   factory MealPlan.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    
+    // Parse dailyMeals (new structure)
+    final dailyMealsData = data['dailyMeals'] as Map<String, dynamic>? ?? {};
+    final dailyMeals = <String, Map<String, String?>>{};
+    for (final entry in dailyMealsData.entries) {
+      final dayKey = entry.key;
+      final mealsData = entry.value as Map<String, dynamic>? ?? {};
+      dailyMeals[dayKey] = {
+        'breakfast': mealsData['breakfast'] as String?,
+        'lunch': mealsData['lunch'] as String?,
+        'dinner': mealsData['dinner'] as String?,
+      };
+    }
+    
     return MealPlan(
       id: doc.id,
       userId: (data['userId'] as String?)?.trim() ?? '',
@@ -32,6 +86,7 @@ class MealPlan {
             key,
             List<String>.from(value as List<dynamic>? ?? []),
           )),
+      dailyMeals: dailyMeals,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -39,6 +94,19 @@ class MealPlan {
 
   /// Create MealPlan from Map
   factory MealPlan.fromMap(Map<String, dynamic> data, String id) {
+    // Parse dailyMeals
+    final dailyMealsData = data['dailyMeals'] as Map<String, dynamic>? ?? {};
+    final dailyMeals = <String, Map<String, String?>>{};
+    for (final entry in dailyMealsData.entries) {
+      final dayKey = entry.key;
+      final mealsData = entry.value is Map ? entry.value as Map<String, dynamic> : {};
+      dailyMeals[dayKey] = {
+        'breakfast': mealsData['breakfast'] as String?,
+        'lunch': mealsData['lunch'] as String?,
+        'dinner': mealsData['dinner'] as String?,
+      };
+    }
+    
     return MealPlan(
       id: id,
       userId: (data['userId'] as String?)?.trim() ?? '',
@@ -51,6 +119,7 @@ class MealPlan {
             key,
             List<String>.from(value as List<dynamic>? ?? []),
           )),
+      dailyMeals: dailyMeals,
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -65,7 +134,8 @@ class MealPlan {
     return {
       'userId': userId,
       'weekStartDate': Timestamp.fromDate(weekStartDate),
-      'dailyRecipes': dailyRecipes,
+      'dailyRecipes': dailyRecipes, // Keep for backward compatibility
+      'dailyMeals': dailyMeals.map((key, value) => MapEntry(key, value)),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -77,6 +147,7 @@ class MealPlan {
     String? userId,
     DateTime? weekStartDate,
     Map<String, List<String>>? dailyRecipes,
+    Map<String, Map<String, String?>>? dailyMeals,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -85,14 +156,10 @@ class MealPlan {
       userId: userId ?? this.userId,
       weekStartDate: weekStartDate ?? this.weekStartDate,
       dailyRecipes: dailyRecipes ?? this.dailyRecipes,
+      dailyMeals: dailyMeals ?? this.dailyMeals,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
-  }
-
-  /// Get all recipe IDs in the meal plan
-  List<String> get allRecipeIds {
-    return dailyRecipes.values.expand((ids) => ids).toSet().toList();
   }
 
   @override
@@ -100,4 +167,6 @@ class MealPlan {
     return 'MealPlan(id: $id, userId: $userId, weekStartDate: $weekStartDate)';
   }
 }
+
+
 

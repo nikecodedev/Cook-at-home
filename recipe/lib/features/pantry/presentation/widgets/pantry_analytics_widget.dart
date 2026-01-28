@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/phase2_providers.dart';
-import '../../../../providers/auth_provider.dart';
-import '../../../../providers/pantry_provider.dart';
+import '../../../../providers/profile_provider.dart';
 import '../../../../models/pantry_item_model.dart';
 import '../../../../services/pantry_analytics_service.dart';
 import 'package:intl/intl.dart';
 
-/// Widget to display pantry analytics (value and coverage)
+/// Widget to display comprehensive pantry analytics
+/// Shows: total value, estimated meals, coverage %, and efficiency score
 class PantryAnalyticsWidget extends ConsumerWidget {
   final List<PantryItem> pantryItems;
 
@@ -24,8 +24,8 @@ class PantryAnalyticsWidget extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     final analyticsService = ref.watch(pantryAnalyticsServiceProvider);
 
-    return FutureBuilder<PantryValueMetrics>(
-      future: analyticsService.calculatePantryValue(pantryItems, userId),
+    return FutureBuilder<PantryAnalytics>(
+      future: analyticsService.calculateComprehensiveAnalytics(pantryItems, userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
@@ -45,7 +45,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
           return const SizedBox.shrink();
         }
 
-        final metrics = snapshot.data!;
+        final analytics = snapshot.data!;
         final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
         return Container(
@@ -68,6 +68,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header
               Row(
                 children: [
                   Container(
@@ -84,7 +85,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    l10n?.pantryValue ?? 'Pantry Value',
+                    l10n?.pantryAnalytics ?? 'Pantry Analytics',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -94,25 +95,63 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 20),
+
+              // Main metrics grid (2x2)
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatItem(
-                    context,
-                    l10n?.pantryValue ?? 'Total Value',
-                    formatter.format(metrics.totalValue),
-                    AppColors.primary,
-                    Icons.attach_money_rounded,
+                  Expanded(
+                    child: _buildMetricCard(
+                      context,
+                      l10n?.totalValue ?? 'Total Value',
+                      formatter.format(analytics.totalValue),
+                      AppColors.primary,
+                      Icons.attach_money_rounded,
+                    ),
                   ),
-                  _buildStatItem(
-                    context,
-                    'Items',
-                    metrics.itemCount.toString(),
-                    AppColors.textPrimary,
-                    Icons.inventory_2_outlined,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricCard(
+                      context,
+                      l10n?.estimatedMeals ?? 'Meals Available',
+                      analytics.estimatedMealsAvailable.toString(),
+                      AppColors.secondary,
+                      Icons.restaurant_menu_rounded,
+                    ),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+
+              // Coverage and Efficiency row
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      context,
+                      l10n?.coverage ?? 'Coverage',
+                      '${analytics.coveragePercentage.toStringAsFixed(0)}%',
+                      _getCoverageColor(analytics.coveragePercentage),
+                      Icons.check_circle_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricCard(
+                      context,
+                      l10n?.efficiencyScore ?? 'Efficiency',
+                      '${analytics.efficiencyScore.toStringAsFixed(0)}',
+                      _getEfficiencyColor(analytics.efficiencyScore),
+                      Icons.trending_up_rounded,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Efficiency score visual indicator
+              if (analytics.efficiencyScore > 0) ...[
+                const SizedBox(height: 16),
+                _buildEfficiencyBar(analytics.efficiencyScore),
+              ],
             ],
           ),
         );
@@ -120,36 +159,111 @@ class PantryAnalyticsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatItem(
+  Widget _buildMetricCard(
     BuildContext context,
     String label,
     String value,
     Color color,
     IconData icon,
   ) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEfficiencyBar(double score) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Efficiency Score',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              '${score.toStringAsFixed(0)}/100',
+              style: TextStyle(
+                fontSize: 12,
+                color: _getEfficiencyColor(score),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: score / 100.0,
+            backgroundColor: AppColors.gray200,
+            valueColor: AlwaysStoppedAnimation<Color>(_getEfficiencyColor(score)),
+            minHeight: 8,
           ),
         ),
       ],
     );
+  }
+
+  Color _getCoverageColor(double percentage) {
+    if (percentage >= 80) return AppColors.success;
+    if (percentage >= 50) return AppColors.warning;
+    return AppColors.error;
+  }
+
+  Color _getEfficiencyColor(double score) {
+    if (score >= 80) return AppColors.success;
+    if (score >= 60) return AppColors.warning;
+    return AppColors.error;
   }
 }
 

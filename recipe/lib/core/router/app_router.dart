@@ -33,6 +33,9 @@ import '../../features/admin/presentation/screens/admin_categories_screen.dart';
 import '../../features/admin/presentation/screens/admin_feedback_screen.dart';
 import '../../features/landing/presentation/screens/landing_page.dart';
 import '../../features/tools/presentation/screens/measurement_converter_screen.dart';
+import '../../features/pantry/presentation/screens/barcode_scanner_screen.dart';
+import '../../features/pantry/presentation/screens/contribute_product_screen.dart';
+import '../../features/meal_plan/presentation/screens/meal_plan_screen.dart';
 import 'admin_guard.dart';
 
 /// Route names
@@ -64,6 +67,7 @@ class Routes {
   // Phase 2 routes
   static const String barcodeScanner = '/barcode-scanner';
   static const String contributeProduct = '/contribute-product';
+  static const String mealPlan = '/meal-plan';
 }
 
 /// Perform redirect logic with proper timeout handling
@@ -418,10 +422,36 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.recipeDetail,
         name: 'recipe-detail',
         pageBuilder: (context, state) {
-          final extra = state.extra as Recipe;
+          // Support both extra (direct navigation) and query param (deep link)
+          Recipe? recipe;
+          if (state.extra != null && state.extra is Recipe) {
+            recipe = state.extra as Recipe;
+          } else if (state.uri.queryParameters.containsKey('id')) {
+            // Deep link: /recipes/detail?id={recipeId}
+            // For deep links, we redirect to recipes list with a message
+            // Full async recipe loading would require a loading screen widget
+            // This structure supports the deep link format
+            final recipeId = state.uri.queryParameters['id'] ?? '';
+            Logger.info('Deep link received for recipe: $recipeId', 'AppRouter');
+            // Redirect to recipes list (user can search for recipe)
+            // Future enhancement: Load recipe async and show loading screen
+            return MaterialPage(
+              key: state.pageKey,
+              child: const RecipeListScreen(initialTabIndex: 0),
+            );
+          }
+          
+          if (recipe == null) {
+            // If no recipe available, redirect to recipes list
+            return MaterialPage(
+              key: state.pageKey,
+              child: const RecipeListScreen(initialTabIndex: 0),
+            );
+          }
+          
           return MaterialPage(
             key: state.pageKey,
-            child: RecipeDetailScreen(recipe: extra),
+            child: RecipeDetailScreen(recipe: recipe),
           );
         },
       ),
@@ -545,6 +575,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.barcodeScanner,
         name: 'barcode-scanner',
         builder: (context, state) => const BarcodeScannerScreen(),
+      ),
+      GoRoute(
+        path: Routes.contributeProduct,
+        name: 'contribute-product',
+        builder: (context, state) {
+          final barcode = state.uri.queryParameters['barcode'];
+          return ContributeProductScreen(barcode: barcode);
+        },
+      ),
+      GoRoute(
+        path: Routes.mealPlan,
+        name: 'meal-plan',
+        builder: (context, state) {
+          final date = state.uri.queryParameters['date'];
+          DateTime? initialDate;
+          if (date != null) {
+            initialDate = DateTime.tryParse(date);
+          }
+          return MealPlanScreen(initialDate: initialDate);
+        },
       ),
     ],
   );

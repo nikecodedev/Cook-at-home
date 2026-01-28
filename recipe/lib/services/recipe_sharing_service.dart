@@ -1,16 +1,47 @@
+import 'dart:io';
 import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../models/recipe_model.dart';
 import '../core/utils/logger.dart';
+import '../core/router/app_router.dart';
 
-/// Service for sharing recipes
+/// Service for sharing recipes with native Android share sheet
 class RecipeSharingService {
+  /// Base URL for web deep links (update when web app is deployed)
+  static const String webBaseUrl = 'https://cocinaentucasa.app'; // Placeholder
+  
+  /// App deep link scheme
+  static const String appScheme = 'cocinaentucasa';
+  
   /// Share a recipe using native share sheet
+  /// Handles both text-only and image sharing automatically
   Future<void> shareRecipe(Recipe recipe) async {
     try {
-      // Build share text
+      // Build share text with deep link
       final shareText = _buildShareText(recipe);
       
-      // Share with native share sheet
+      // If recipe has an image, download and share with image
+      if (recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty) {
+        try {
+          final imageFile = await _downloadImage(recipe.imageUrl!);
+          if (imageFile != null) {
+            await Share.shareXFiles(
+              [XFile(imageFile.path)],
+              text: shareText,
+              subject: recipe.title,
+            );
+            Logger.success('Recipe shared with image: ${recipe.id}', 'RecipeSharingService');
+            return;
+          }
+        } catch (e) {
+          Logger.warning('Failed to download image for sharing, sharing text only: $e', 'RecipeSharingService');
+          // Fall through to text-only sharing
+        }
+      }
+      
+      // Share text only (no image or image download failed)
       await Share.share(
         shareText,
         subject: recipe.title,
@@ -23,29 +54,70 @@ class RecipeSharingService {
     }
   }
 
-  /// Share recipe with image (if available)
-  Future<void> shareRecipeWithImage(
-    Recipe recipe,
-    String imagePath,
-  ) async {
+  /// Download image from URL to temporary file for sharing
+  Future<File?> _downloadImage(String imageUrl) async {
     try {
-      final shareText = _buildShareText(recipe);
-      
-      // Share with image
-      await Share.shareXFiles(
-        [XFile(imagePath)],
-        text: shareText,
-        subject: recipe.title,
+      // Download image
+      final response = await http.get(Uri.parse(imageUrl)).timeout(
+        const Duration(seconds: 10),
       );
-
-      Logger.success('Recipe shared with image: ${recipe.id}', 'RecipeSharingService');
+      
+      if (response.statusCode != 200) {
+        Logger.warning('Failed to download image: HTTP ${response.statusCode}', 'RecipeSharingService');
+        return null;
+      }
+      
+      // Get temporary directory
+      final tempDir = await getTemporaryDirectory();
+      
+      // Determine file extension from URL or content type
+      String extension = 'jpg';
+      final contentType = response.headers['content-type'];
+      if (contentType != null) {
+        if (contentType.contains('png')) {
+          extension = 'png';
+        } else if (contentType.contains('gif')) {
+          extension = 'gif';
+        } else if (contentType.contains('webp')) {
+          extension = 'webp';
+        }
+      } else {
+        // Try to get extension from URL
+        final urlPath = Uri.parse(imageUrl).path;
+        final urlExtension = path.extension(urlPath).toLowerCase();
+        if (urlExtension.isNotEmpty) {
+          extension = urlExtension.substring(1); // Remove the dot
+        }
+      }
+      
+      // Create temporary file
+      final tempFile = File(path.join(tempDir.path, 'recipe_share_${DateTime.now().millisecondsSinceEpoch}.$extension'));
+      
+      // Write image bytes to file
+      await tempFile.writeAsBytes(response.bodyBytes);
+      
+      Logger.info('Image downloaded to: ${tempFile.path}', 'RecipeSharingService');
+      return tempFile;
     } catch (e) {
-      Logger.error('Failed to share recipe with image', e, null, 'RecipeSharingService');
-      rethrow;
+      Logger.error('Failed to download image for sharing', e, null, 'RecipeSharingService');
+      return null;
     }
   }
 
-  /// Build share text for recipe
+  /// Generate deep link for recipe
+  /// Returns app deep link (preferred) or web link (fallback)
+  String _generateDeepLink(Recipe recipe) {
+    // App deep link format: cocinaentucasa://recipe/{recipeId}
+    final appDeepLink = '$appScheme://recipe/${recipe.id}';
+    
+    // Web deep link format: https://cocinaentucasa.app/recipe/{recipeId}
+    final webDeepLink = '$webBaseUrl/recipe/${recipe.id}';
+    
+    // Return both (user can choose, or app can handle app link)
+    return '$appDeepLink\n$webDeepLink';
+  }
+
+  /// Build short, predefined share text for recipe
   String _buildShareText(Recipe recipe) {
     final buffer = StringBuffer();
     
@@ -53,48 +125,28 @@ class RecipeSharingService {
     buffer.writeln('🍳 ${recipe.title}');
     buffer.writeln();
     
-    // Ingredients
-    if (recipe.ingredients.isNotEmpty) {
-      buffer.writeln('📋 Ingredients:');
-      for (final ingredient in recipe.ingredients) {
-        buffer.writeln('• ${ingredient.quantity} ${ingredient.unit} ${ingredient.name}');
-      }
-      buffer.writeln();
-    }
-    
-    // Cook time
+    // Short description with key info
     if (recipe.cookTime > 0) {
-      buffer.writeln('⏱️ Cook time: ${recipe.formattedCookTime}');
-      buffer.writeln();
+      buffer.writeln('⏱️ ${recipe.formattedCookTime}');
     }
     
-    // Yield and servings (if available)
-    if (recipe.yieldValue != null && recipe.yieldUnit != null) {
-      buffer.writeln('📊 Yield: ${recipe.yieldValue} ${recipe.yieldUnit}');
-      if (recipe.numberOfServings != null) {
-        buffer.writeln('🍽️ Servings: ${recipe.numberOfServings}');
-      }
-      buffer.writeln();
+    if (recipe.numberOfServings != null) {
+      buffer.writeln('🍽️ ${recipe.numberOfServings} servings');
     }
     
-    // Instructions preview (first 2 steps)
-    if (recipe.instructions.isNotEmpty) {
-      buffer.writeln('👨‍🍳 Instructions:');
-      final previewSteps = recipe.instructions.take(2);
-      for (var i = 0; i < previewSteps.length; i++) {
-        buffer.writeln('${i + 1}. ${previewSteps.elementAt(i)}');
-      }
-      if (recipe.instructions.length > 2) {
-        buffer.writeln('...');
-      }
-      buffer.writeln();
+    if (recipe.ingredients.isNotEmpty) {
+      buffer.writeln('📋 ${recipe.ingredients.length} ingredients');
     }
     
-    // App link (placeholder - replace with actual app link)
-    buffer.writeln('📱 View full recipe in Cocina en tu Casa app');
-    // TODO: Add deep link or web link when available
+    buffer.writeln();
+    
+    // Deep link
+    buffer.writeln('📱 View full recipe:');
+    buffer.writeln(_generateDeepLink(recipe));
     
     return buffer.toString();
   }
 }
+
+
 

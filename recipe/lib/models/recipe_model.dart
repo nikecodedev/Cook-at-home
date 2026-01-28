@@ -76,9 +76,9 @@ class Recipe {
   final String authorId;
   final String? imageUrl;
   // Phase 2: Yield and portion fields
-  final double? yieldValue; // Total yield value
+  final double? yieldValue; // Total yield value (alias: totalYield)
   final String? yieldUnit; // Yield unit (grams, liters, cups, pieces)
-  final double? standardPortionSize; // Standard portion size in yield units
+  final double? standardPortionSize; // Standard portion size in yield units (alias: portionSize)
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -175,9 +175,9 @@ class Recipe {
       'source': source,
       'authorId': authorId,
       'imageUrl': imageUrl,
-      'yieldValue': yieldValue,
+      'yieldValue': yieldValue, // Also accessible as totalYield
       'yieldUnit': yieldUnit,
-      'standardPortionSize': standardPortionSize,
+      'standardPortionSize': standardPortionSize, // Also accessible as portionSize
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -216,12 +216,62 @@ class Recipe {
     );
   }
 
+  /// Get total yield (alias for yieldValue)
+  double? get totalYield => yieldValue;
+
+  /// Get portion size (alias for standardPortionSize)
+  double? get portionSize => standardPortionSize;
+
   /// Calculate number of servings based on yield and portion size
+  /// Formula: totalYield / portionSize
+  /// Returns null if yield or portion size is not set or invalid
   int? get numberOfServings {
     if (yieldValue == null || standardPortionSize == null || standardPortionSize == 0) {
       return null;
     }
+    if (yieldValue! <= 0) {
+      return null;
+    }
     return (yieldValue! / standardPortionSize!).round();
+  }
+
+  /// Validate yield and portion fields
+  /// Returns true if yield configuration is valid, false otherwise
+  bool get hasValidYield {
+    if (yieldValue == null || yieldUnit == null || standardPortionSize == null) {
+      return false;
+    }
+    if (yieldValue! <= 0 || standardPortionSize! <= 0) {
+      return false;
+    }
+    if (yieldValue! < standardPortionSize!) {
+      return false; // Portion size cannot be larger than total yield
+    }
+    return true;
+  }
+
+  /// Get formatted yield string (e.g., "500 grams" or "4 cups")
+  String? get formattedYield {
+    if (yieldValue == null || yieldUnit == null) {
+      return null;
+    }
+    // Format number to remove unnecessary decimals
+    final formattedValue = yieldValue! % 1 == 0 
+        ? yieldValue!.toInt().toString()
+        : yieldValue!.toStringAsFixed(2).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+    return '$formattedValue $yieldUnit';
+  }
+
+  /// Get formatted portion size string (e.g., "125 grams" or "1 cup")
+  String? get formattedPortionSize {
+    if (standardPortionSize == null || yieldUnit == null) {
+      return null;
+    }
+    // Format number to remove unnecessary decimals
+    final formattedValue = standardPortionSize! % 1 == 0 
+        ? standardPortionSize!.toInt().toString()
+        : standardPortionSize!.toStringAsFixed(2).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+    return '$formattedValue $yieldUnit';
   }
 
   /// Get formatted cook time

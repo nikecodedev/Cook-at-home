@@ -207,5 +207,51 @@ class Validators {
   static String? validateItemName(String? value) {
     return validateMinLength(value, 2, 'Nombre del artículo');
   }
+
+  /// Validate recipe yield value (totalYield)
+  static String? validateYieldValue(String? value) {
+    if (value == null || value.isEmpty) {
+      return null; // Yield is optional for backward compatibility
+    }
+    final number = double.tryParse(value);
+    if (number == null) {
+      return 'El rendimiento total debe ser un número válido';
+    }
+    if (number <= 0) {
+      return 'El rendimiento total debe ser mayor que 0';
+    }
+    return null;
+  }
+
+  /// Validate recipe portion size
+  static String? validatePortionSize(String? value, double? totalYield) {
+    if (value == null || value.isEmpty) {
+      return null; // Portion size is optional for backward compatibility
+    }
+    final number = double.tryParse(value);
+    if (number == null) {
+      return 'El tamaño de porción debe ser un número válido';
+    }
+    if (number <= 0) {
+      return 'El tamaño de porción debe ser mayor que 0';
+    }
+    if (totalYield != null && number > totalYield) {
+      return 'El tamaño de porción no puede ser mayor que el rendimiento total';
+    }
+    return null;
+  }
+
+  /// Validate yield unit
+  static String? validateYieldUnit(String? value) {
+    if (value == null || value.isEmpty) {
+      return null; // Yield unit is optional for backward compatibility
+    }
+    // Import YieldUnits from constants if needed, or validate against known units
+    const validUnits = ['grams', 'kilograms', 'liters', 'milliliters', 'cups', 'pieces'];
+    if (!validUnits.contains(value)) {
+      return 'Unidad de rendimiento inválida. Debe ser: ${validUnits.join(", ")}';
+    }
+    return null;
+  }
 }
 
