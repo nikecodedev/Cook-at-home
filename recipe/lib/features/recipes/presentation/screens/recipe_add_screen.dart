@@ -35,6 +35,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
   late TextEditingController _titleController;
   late TextEditingController _cookTimeController;
   late TextEditingController _sourceController;
+  late TextEditingController _yieldValueController;
+  late TextEditingController _portionSizeController;
+  String _yieldUnit = YieldUnits.grams; // Default for dropdown
   List<RecipeIngredient> _ingredients = [];
   List<String> _instructions = [];
   File? _imageFile;
@@ -51,6 +54,13 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
       _titleController = TextEditingController(text: recipe.title);
       _cookTimeController = TextEditingController(text: recipe.cookTime.toString());
       _sourceController = TextEditingController(text: recipe.source ?? '');
+      _yieldValueController = TextEditingController(
+        text: recipe.yieldValue != null ? recipe.yieldValue.toString() : '',
+      );
+      _portionSizeController = TextEditingController(
+        text: recipe.standardPortionSize != null ? recipe.standardPortionSize.toString() : '',
+      );
+      _yieldUnit = recipe.yieldUnit ?? YieldUnits.grams;
       _ingredients = List.from(recipe.ingredients);
       _instructions = List.from(recipe.instructions);
       _existingImageUrl = recipe.imageUrl;
@@ -58,6 +68,8 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
       _titleController = TextEditingController();
       _cookTimeController = TextEditingController();
       _sourceController = TextEditingController();
+      _yieldValueController = TextEditingController();
+      _portionSizeController = TextEditingController();
     }
   }
 
@@ -66,6 +78,8 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
     _titleController.dispose();
     _cookTimeController.dispose();
     _sourceController.dispose();
+    _yieldValueController.dispose();
+    _portionSizeController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -334,6 +348,14 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
         'RecipeAddScreen',
       );
       
+      final yieldValue = _yieldValueController.text.trim().isEmpty
+          ? null
+          : double.tryParse(_yieldValueController.text.trim());
+      final portionSize = _portionSizeController.text.trim().isEmpty
+          ? null
+          : double.tryParse(_portionSizeController.text.trim());
+      final yieldUnit = _yieldValueController.text.trim().isEmpty ? null : _yieldUnit;
+
       if (_isEditMode) {
         // Update existing recipe
         final updatedRecipe = widget.recipe!.copyWith(
@@ -345,6 +367,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               ? null
               : _sourceController.text.trim(),
           imageUrl: imageData == null ? _existingImageUrl : null, // Keep existing if no new image
+          yieldValue: yieldValue,
+          yieldUnit: yieldUnit,
+          standardPortionSize: portionSize,
           updatedAt: now,
         );
 
@@ -376,6 +401,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               : _sourceController.text.trim(),
           authorId: userId,
           imageUrl: null, // Will be set after image upload
+          yieldValue: yieldValue,
+          yieldUnit: yieldUnit,
+          standardPortionSize: portionSize,
           createdAt: now,
           updatedAt: now,
         );
@@ -620,6 +648,85 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                         }
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 20),
+                    // Yield and portion (Phase 2)
+                    Text(
+                      'Rendimiento y porciones (opcional)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: CustomTextField(
+                            label: 'Rendimiento total',
+                            controller: _yieldValueController,
+                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                            prefixIcon: Icons.scale_outlined,
+                            hint: 'ej. 500',
+                            validator: (value) {
+                              if (value != null && value.trim().isNotEmpty) {
+                                return Validators.validateYieldValue(value);
+                              }
+                              return null;
+                            },
+                            textInputAction: TextInputAction.next,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.gray300),
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              value: YieldUnits.all.contains(_yieldUnit) ? _yieldUnit : YieldUnits.grams,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Unidad',
+                                prefixIcon: Icon(Icons.straighten),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              ),
+                              items: YieldUnits.all.map((unit) {
+                                final translated = Translations.translateUnit(unit);
+                                return DropdownMenuItem(
+                                  value: unit,
+                                  child: Text(translated, overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) setState(() => _yieldUnit = value);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      label: 'Porción estándar (misma unidad)',
+                      controller: _portionSizeController,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      prefixIcon: Icons.restaurant_outlined,
+                      hint: 'ej. 125',
+                      validator: (value) {
+                        if (value != null && value.trim().isNotEmpty) {
+                          final totalYield = double.tryParse(_yieldValueController.text.trim());
+                          return Validators.validatePortionSize(value, totalYield);
+                        }
+                        return null;
+                      },
+                      textInputAction: TextInputAction.next,
                     ),
                   ],
                 ),

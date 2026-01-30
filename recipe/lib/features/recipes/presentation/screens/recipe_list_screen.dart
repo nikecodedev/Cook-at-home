@@ -16,10 +16,13 @@ import 'suggested_recipes_screen.dart';
 
 class RecipeListScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
-  
+  /// When true, tapping a recipe returns it (e.g. for meal plan selection) instead of opening detail.
+  final bool selectForMealPlan;
+
   const RecipeListScreen({
     super.key,
     this.initialTabIndex = 0,
+    this.selectForMealPlan = false,
   });
 
   @override
@@ -36,10 +39,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen>
   @override
   void initState() {
     super.initState();
+    final tabCount = widget.selectForMealPlan ? 1 : 2;
     _tabController = TabController(
-      length: 2,
+      length: tabCount,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 1),
+      initialIndex: widget.initialTabIndex.clamp(0, tabCount - 1),
     );
   }
 
@@ -68,34 +72,36 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: StandardAppBar(
-        title: 'Recetas',
+        title: widget.selectForMealPlan ? 'Seleccionar receta' : 'Recetas',
         showBackButton: true,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.7),
-          indicatorColor: Colors.transparent,
-          indicatorWeight: 0,
-          indicator: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          indicatorSize: TabBarIndicatorSize.tab,
-          labelStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-          tabs: const [
-            Tab(text: 'Todas las Recetas'),
-            Tab(text: 'Sugeridas'),
-          ],
-        ),
+        bottom: widget.selectForMealPlan
+            ? null
+            : TabBar(
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white.withOpacity(0.7),
+                indicatorColor: Colors.transparent,
+                indicatorWeight: 0,
+                indicator: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+                tabs: const [
+                  Tab(text: 'Todas las Recetas'),
+                  Tab(text: 'Sugeridas'),
+                ],
+              ),
         actions: [
           IconButton(
             icon: Icon(
@@ -126,8 +132,9 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen>
             showFilters: _showFilters,
             onFilterChanged: _updateFilter,
             onClearFilters: _clearFilters,
+            selectForMealPlan: widget.selectForMealPlan,
           ),
-          const SuggestedRecipesScreen(),
+          if (!widget.selectForMealPlan) const SuggestedRecipesScreen(),
         ],
       ),
     );
@@ -140,6 +147,7 @@ class _AllRecipesTab extends ConsumerWidget {
   final bool showFilters;
   final Function(RecipeFilter) onFilterChanged;
   final VoidCallback onClearFilters;
+  final bool selectForMealPlan;
 
   const _AllRecipesTab({
     required this.searchController,
@@ -147,6 +155,7 @@ class _AllRecipesTab extends ConsumerWidget {
     required this.showFilters,
     required this.onFilterChanged,
     required this.onClearFilters,
+    this.selectForMealPlan = false,
   });
 
   @override
@@ -207,7 +216,11 @@ class _AllRecipesTab extends ConsumerWidget {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildRecipeCard(context, filteredRecipes[index]),
+                      child: _buildRecipeCard(
+                        context,
+                        filteredRecipes[index],
+                        selectForMealPlan: selectForMealPlan,
+                      ),
                     ),
                     childCount: filteredRecipes.length,
                   ),
@@ -502,11 +515,19 @@ class _AllRecipesTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecipeCard(BuildContext context, Recipe recipe) {
+  Widget _buildRecipeCard(
+    BuildContext context,
+    Recipe recipe, {
+    bool selectForMealPlan = false,
+  }) {
     return ModernRecipeCard(
       recipe: recipe,
       onTap: () {
-        context.push(Routes.recipeDetail, extra: recipe);
+        if (selectForMealPlan) {
+          context.pop(recipe);
+        } else {
+          context.push(Routes.recipeDetail, extra: recipe);
+        }
       },
     );
   }

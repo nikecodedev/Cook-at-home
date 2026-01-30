@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/standard_app_bar.dart';
 import '../../../../providers/shopping_list_provider.dart';
+import '../../../../providers/phase2_providers.dart';
+import '../../../../providers/profile_provider.dart';
 import '../../../../models/shopping_list_model.dart';
 import '../../../../core/utils/translations.dart';
 import '../../../../core/widgets/smart_purchase_button.dart';
@@ -17,6 +19,7 @@ class ShoppingListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(shoppingListItemsStreamProvider(shoppingList.id));
     final isLoading = ref.watch(shoppingListControllerProvider).isLoading;
+    final userId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -45,61 +48,8 @@ class ShoppingListScreen extends ConsumerWidget {
 
           return Column(
             children: [
-              // Progress Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.gray200.withOpacity(0.5),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '$checkedCount de $totalCount artículos',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          '${(progress * 100).round()}%',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: progress == 1.0
-                                ? AppColors.success
-                                : AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 8,
-                        backgroundColor: AppColors.gray200,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          progress == 1.0
-                              ? AppColors.success
-                              : AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Progress Header with Estimated Cost
+              _buildProgressHeader(context, ref, items, checkedCount, totalCount, progress, userId),
               // Items List
               Expanded(
                 child: ListView.builder(
@@ -135,6 +85,141 @@ class ShoppingListScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildProgressHeader(
+    BuildContext context,
+    WidgetRef ref,
+    List<ShoppingListItem> items,
+    int checkedCount,
+    int totalCount,
+    double progress,
+    String? userId,
+  ) {
+    // Calculate estimated cost asynchronously
+    final priceService = ref.watch(ingredientPriceServiceProvider);
+    
+    return FutureBuilder<double>(
+      future: _calculateEstimatedCost(items, priceService, userId),
+      builder: (context, snapshot) {
+        final estimatedCost = snapshot.data;
+        
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.gray200.withOpacity(0.5),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$checkedCount de $totalCount artículos',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: progress == 1.0
+                          ? AppColors.success
+                          : AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: AppColors.gray200,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress == 1.0
+                        ? AppColors.success
+                        : AppColors.primary,
+                  ),
+                ),
+              ),
+              // Estimated cost display
+              if (estimatedCost != null && estimatedCost > 0) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.attach_money_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Costo estimado: \$${estimatedCost.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<double> _calculateEstimatedCost(
+    List<ShoppingListItem> items,
+    dynamic priceService,
+    String? userId,
+  ) async {
+    if (userId == null) return 0;
+    
+    double totalCost = 0;
+    for (final item in items) {
+      if (item.canonicalIngredientId != null && item.canonicalIngredientId!.isNotEmpty) {
+        try {
+          final price = await priceService.getUserIngredientPrice(
+            item.canonicalIngredientId!,
+            userId,
+          );
+          if (price != null) {
+            // Simple cost calculation: price * quantity
+            totalCost += price.effectivePrice * item.quantity;
+          }
+        } catch (e) {
+          // Ignore errors for individual items
+        }
+      }
+    }
+    return totalCost;
   }
 
   Widget _buildEmptyState(BuildContext context) {

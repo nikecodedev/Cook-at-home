@@ -24,6 +24,11 @@ class PantryAnalyticsWidget extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     final analyticsService = ref.watch(pantryAnalyticsServiceProvider);
 
+    // Empty state: always show a card so Phase 2 section is visible
+    if (pantryItems.isEmpty) {
+      return _buildEmptyState(context, l10n);
+    }
+
     return FutureBuilder<PantryAnalytics>(
       future: analyticsService.calculateComprehensiveAnalytics(pantryItems, userId),
       builder: (context, snapshot) {
@@ -42,7 +47,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
         }
 
         if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
+          return _buildEmptyState(context, l10n);
         }
 
         final analytics = snapshot.data!;
@@ -251,6 +256,66 @@ class PantryAnalyticsWidget extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, AppLocalizations? l10n) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.08),
+            AppColors.secondary.withOpacity(0.04),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.analytics_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                l10n?.pantryAnalytics ?? 'Análisis de Despensa',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Agrega ingredientes a tu despensa para ver el valor total, comidas estimadas, cobertura de recetas y puntuación de eficiencia.',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

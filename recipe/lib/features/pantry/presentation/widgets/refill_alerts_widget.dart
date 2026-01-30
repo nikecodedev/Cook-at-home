@@ -30,10 +30,6 @@ class RefillAlertsWidget extends ConsumerWidget {
 
     return alertsAsync.when(
       data: (alerts) {
-        if (alerts.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           padding: const EdgeInsets.all(16),
@@ -64,7 +60,7 @@ class RefillAlertsWidget extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    l10n?.refillAlerts ?? 'Refill Alerts',
+                    l10n?.refillAlerts ?? 'Alertas de Reabastecimiento',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -74,28 +70,66 @@ class RefillAlertsWidget extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              ...alerts.take(3).map((alert) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildAlertItem(context, ref, alert),
-                  )),
-              if (alerts.length > 3)
-                TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to full alerts screen
-                  },
+              if (alerts.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'Ver ${alerts.length - 3} más',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
+                    'No hay alertas en este momento. Las alertas aparecerán cuando un ingrediente esté bajo, se use con frecuencia o haya buena oferta.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
                     ),
                   ),
-                ),
+                )
+              else ...[
+                ...alerts.take(3).map((alert) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildAlertItem(context, ref, alert),
+                    )),
+                if (alerts.length > 3)
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      'Ver ${alerts.length - 3} más',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.warning.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              l10n?.refillAlerts ?? 'Alertas de Reabastecimiento',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
       error: (_, __) => const SizedBox.shrink(),
     );
   }

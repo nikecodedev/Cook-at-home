@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../../models/recipe_model.dart';
 import '../../../../core/utils/translations.dart';
 import '../../../../core/widgets/smart_purchase_button.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Elegant ingredient item with animations
 class IngredientItem extends StatefulWidget {
   final RecipeIngredient ingredient;
   final int index;
   final bool isTablet;
+  
+  /// Whether the ingredient is available in the user's pantry (null = unknown)
+  final bool? isAvailable;
 
   /// Callback when purchase links are updated
   final void Function(String? amazonUrl, String? walmartUrl)? onLinksUpdated;
@@ -17,6 +21,7 @@ class IngredientItem extends StatefulWidget {
     required this.ingredient,
     required this.index,
     required this.isTablet,
+    this.isAvailable,
     this.onLinksUpdated,
   });
 
@@ -107,8 +112,31 @@ class _IngredientItemState extends State<IngredientItem>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                    Row(
                     children: [
+                      // Availability indicator
+                      if (widget.isAvailable != null) ...[
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: widget.isAvailable!
+                                ? AppColors.success.withOpacity(0.15)
+                                : AppColors.error.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            widget.isAvailable!
+                                ? Icons.check_rounded
+                                : Icons.close_rounded,
+                            size: 16,
+                            color: widget.isAvailable!
+                                ? AppColors.success
+                                : AppColors.error,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
                       // Ingredient Info
                       Expanded(
                         child: Column(

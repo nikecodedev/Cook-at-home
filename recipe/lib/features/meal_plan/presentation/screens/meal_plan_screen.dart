@@ -139,8 +139,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   }
 
   Future<void> _addRecipeToMealSlot(String dayKey, String mealType) async {
-    // Navigate to recipe selection
-    final recipe = await context.push<Recipe?>(Routes.recipes);
+    // Navigate to recipe picker (returns selected recipe when user taps one)
+    final recipe = await context.push<Recipe?>(
+      Routes.recipes,
+      extra: true, // Enables "select for meal plan" mode: tap returns recipe instead of opening detail
+    );
     if (recipe == null || !mounted) return;
 
     final userId = ref.read(currentUserIdProvider);

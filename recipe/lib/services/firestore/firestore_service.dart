@@ -823,6 +823,7 @@ class FirestoreService {
       final shoppingList = {
         'name': 'Lista de Compras - ${dateFormat.format(mealPlan.weekStartDate)} - ${dateFormat.format(weekEnd)}',
         'mealPlanId': mealPlan.id,
+        'source': 'meal_plan', // Phase 2: Track auto-generated lists
         'createdAt': Timestamp.fromDate(now),
         'updatedAt': Timestamp.fromDate(now),
       };

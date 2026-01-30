@@ -105,6 +105,7 @@ class ShoppingList {
   final String name;
   final String? recipeId;
   final String? recipeTitle;
+  final String? source; // Phase 2: 'recipe', 'meal_plan', or null
   final List<ShoppingListItem> items;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -114,10 +115,14 @@ class ShoppingList {
     required this.name,
     this.recipeId,
     this.recipeTitle,
+    this.source,
     required this.items,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Check if this list was auto-generated from meal plan
+  bool get isFromMealPlan => source == 'meal_plan';
 
   factory ShoppingList.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -131,6 +136,7 @@ class ShoppingList {
       name: data['name'] ?? 'Shopping List',
       recipeId: data['recipeId'],
       recipeTitle: data['recipeTitle'],
+      source: data['source'] as String?,
       items: items,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -143,6 +149,7 @@ class ShoppingList {
       name: data['name'] ?? 'Shopping List',
       recipeId: data['recipeId'],
       recipeTitle: data['recipeTitle'],
+      source: data['source'] as String?,
       items: [], // Items loaded separately
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
@@ -158,6 +165,7 @@ class ShoppingList {
       'name': name,
       'recipeId': recipeId,
       'recipeTitle': recipeTitle,
+      'source': source,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -168,6 +176,7 @@ class ShoppingList {
     String? name,
     String? recipeId,
     String? recipeTitle,
+    String? source,
     List<ShoppingListItem>? items,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -177,6 +186,7 @@ class ShoppingList {
       name: name ?? this.name,
       recipeId: recipeId ?? this.recipeId,
       recipeTitle: recipeTitle ?? this.recipeTitle,
+      source: source ?? this.source,
       items: items ?? this.items,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

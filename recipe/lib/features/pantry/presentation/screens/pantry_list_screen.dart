@@ -13,8 +13,13 @@ import '../../../../core/widgets/search_bar_widget.dart';
 import '../../../../core/utils/filter_utils.dart';
 import '../../../../widgets/filter_chip_widget.dart';
 import 'pantry_edit_screen.dart';
+import 'barcode_scanner_screen.dart';
 import '../widgets/pantry_analytics_widget.dart';
 import '../widgets/refill_alerts_widget.dart';
+import '../../../../models/product_model.dart';
+import '../../../../models/refill_alert_model.dart';
+import '../../../../providers/phase2_providers.dart';
+import '../../../../providers/profile_provider.dart';
 
 class PantryListScreen extends ConsumerStatefulWidget {
   const PantryListScreen({super.key});
@@ -50,6 +55,21 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
   @override
   Widget build(BuildContext context) {
     final pantryItemsAsync = ref.watch(pantryItemsStreamProvider);
+    final userId = ref.watch(currentUserIdProvider);
+    
+    // Stream refill alerts to show low stock badges on items
+    final refillAlertsAsync = userId != null
+        ? ref.watch(StreamProvider<List<RefillAlert>>((ref) {
+            final service = ref.watch(refillAlertServiceProvider);
+            return service.streamActiveRefillAlerts(userId);
+          }))
+        : const AsyncValue<List<RefillAlert>>.data([]);
+    
+    // Build a set of canonical ingredient IDs that have active alerts
+    final alertedIngredientIds = refillAlertsAsync.maybeWhen(
+      data: (alerts) => alerts.map((a) => a.canonicalIngredientId).toSet(),
+      orElse: () => <String>{},
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -97,10 +117,35 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
               ],
             ),
             child: IconButton(
+              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+              onPressed: () async {
+                final product = await context.push<Product?>(Routes.barcodeScanner);
+                if (product != null && context.mounted) {
+                  context.push(Routes.pantryEdit, extra: product);
+                }
+              },
+              tooltip: 'Escanear código de barras',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () {
                 context.push(Routes.pantryEdit, extra: null);
               },
+              tooltip: 'Agregar ingrediente',
             ),
           ),
         ],
@@ -141,14 +186,13 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                   child: const RefillAlertsWidget(),
                 ),
                 
-                // Pantry Analytics (Phase 2)
-                if (items.isNotEmpty)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    sliver: SliverToBoxAdapter(
-                      child: PantryAnalyticsWidget(pantryItems: items),
-                    ),
+                // Pantry Analytics (Phase 2) - always visible
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  sliver: SliverToBoxAdapter(
+                    child: PantryAnalyticsWidget(pantryItems: items),
                   ),
+                ),
 
                 // Search Bar
                 SliverPadding(
@@ -184,7 +228,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildPantryItemCard(context, ref, expiredItems[index], true),
+                          child: _buildPantryItemCard(context, ref, expiredItems[index], true, alertedIngredientIds),
                         ),
                         childCount: expiredItems.length,
                       ),
@@ -204,7 +248,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildPantryItemCard(context, ref, expiringSoonItems[index], false),
+                          child: _buildPantryItemCard(context, ref, expiringSoonItems[index], false, alertedIngredientIds),
                         ),
                         childCount: expiringSoonItems.length,
                       ),
@@ -224,7 +268,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildPantryItemCard(context, ref, normalItems[index], false),
+                          child: _buildPantryItemCard(context, ref, normalItems[index], false, alertedIngredientIds),
                         ),
                         childCount: normalItems.length,
                       ),
@@ -604,11 +648,16 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
     WidgetRef ref,
     PantryItem item,
     bool isExpired,
+    Set<String> alertedIngredientIds,
   ) {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final isLoading = ref.watch(pantryControllerProvider).isLoading;
     final itemColor = _getItemColor(item);
     final backgroundColor = itemColor.withOpacity(0.08);
+    
+    // Check if this item has a low stock alert
+    final hasLowStockAlert = item.canonicalIngredientId != null &&
+        alertedIngredientIds.contains(item.canonicalIngredientId);
 
     return Material(
       color: Colors.transparent,
@@ -675,6 +724,38 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (hasLowStockAlert) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.warning.withOpacity(0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 12,
+                                  color: AppColors.warning,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Bajo',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.warning,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 8),

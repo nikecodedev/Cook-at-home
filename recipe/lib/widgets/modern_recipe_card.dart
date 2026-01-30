@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../core/theme/app_colors.dart';
+import '../core/constants/firebase_constants.dart';
 import '../models/recipe_model.dart';
 
 /// Modern, responsive recipe card widget
@@ -13,6 +14,7 @@ class ModernRecipeCard extends StatelessWidget {
   final bool showSource;
   final String? matchPercentage; // For suggested recipes
   final Color? matchColor; // For suggested recipes
+  final String? costTier; // Optional cost tier (low, medium, high)
 
   const ModernRecipeCard({
     super.key,
@@ -23,6 +25,7 @@ class ModernRecipeCard extends StatelessWidget {
     this.showSource = true,
     this.matchPercentage,
     this.matchColor,
+    this.costTier,
   });
 
   @override
@@ -100,6 +103,12 @@ class ModernRecipeCard extends StatelessWidget {
 
                     // Stats Row - Modern Pills
                     _buildStatsRow(context, isTablet),
+                    
+                    // Cost Tier Badge
+                    if (costTier != null) ...[
+                      const SizedBox(height: 12),
+                      _buildCostTierBadge(context, costTier!, isTablet),
+                    ],
                     
                     // Match Badge (for suggested recipes)
                     if (matchPercentage != null) ...[
@@ -385,6 +394,85 @@ class ModernRecipeCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildCostTierBadge(BuildContext context, String tier, bool isTablet) {
+    final color = _getCostTierColor(tier);
+    final label = _getCostTierLabel(tier);
+    final icon = _getCostTierIcon(tier);
+    
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 14 : 12,
+        vertical: isTablet ? 8 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: isTablet ? 16 : 14,
+            color: color,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Costo: $label',
+            style: TextStyle(
+              fontSize: isTablet ? 12 : 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getCostTierColor(String tier) {
+    switch (tier) {
+      case CostTiers.low:
+        return AppColors.success;
+      case CostTiers.medium:
+        return AppColors.warning;
+      case CostTiers.high:
+        return AppColors.error;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _getCostTierLabel(String tier) {
+    switch (tier) {
+      case CostTiers.low:
+        return 'Bajo';
+      case CostTiers.medium:
+        return 'Medio';
+      case CostTiers.high:
+        return 'Alto';
+      default:
+        return tier;
+    }
+  }
+
+  IconData _getCostTierIcon(String tier) {
+    switch (tier) {
+      case CostTiers.low:
+        return Icons.trending_down_rounded;
+      case CostTiers.medium:
+        return Icons.trending_flat_rounded;
+      case CostTiers.high:
+        return Icons.trending_up_rounded;
+      default:
+        return Icons.attach_money_rounded;
+    }
   }
 
   Widget _buildSourceChip(BuildContext context, String source) {

@@ -15,6 +15,8 @@ import '../widgets/recipe_header.dart';
 import '../widgets/ingredient_item.dart';
 import '../widgets/instruction_step_card.dart';
 import '../widgets/recipe_cost_widget.dart';
+import '../../../../providers/pantry_provider.dart';
+import '../../../../services/recipe_recommendation_service.dart';
 
 /// Modern, minimal recipe detail page with Notion-style design
 class RecipeDetailScreen extends ConsumerStatefulWidget {
@@ -42,6 +44,26 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final isOwner = currentUserId == widget.recipe.authorId;
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 768;
+    
+    // Fetch pantry items to check ingredient availability
+    final pantryItemsAsync = ref.watch(pantryItemsStreamProvider);
+    final pantryItemNames = pantryItemsAsync.maybeWhen(
+      data: (items) => items
+          .map((item) => RecipeRecommendationService.formatIngredientNameForStorage(item.name.toLowerCase()))
+          .toSet(),
+      orElse: () => <String>{},
+    );
+    
+    // Calculate availability for each ingredient
+    Map<String, bool> ingredientAvailability = {};
+    int availableCount = 0;
+    for (final ingredient in _currentRecipe.ingredients) {
+      final normalizedName = RecipeRecommendationService.formatIngredientNameForStorage(ingredient.name.toLowerCase());
+      final isAvailable = pantryItemNames.contains(normalizedName);
+      ingredientAvailability[ingredient.name] = isAvailable;
+      if (isAvailable) availableCount++;
+    }
+    final missingCount = _currentRecipe.ingredients.length - availableCount;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
@@ -214,22 +236,99 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     0,
                   ),
                   child: Column(
-                    children: _currentRecipe.ingredients.asMap().entries.map((entry) {
-                      return IngredientItem(
-                        ingredient: entry.value,
-                        index: entry.key,
-                        isTablet: isTablet,
-                        onLinksUpdated: (amazonUrl, walmartUrl) {
-                          _handleIngredientLinkUpdate(
-                            context,
-                            ref,
-                            entry.key,
-                            amazonUrl,
-                            walmartUrl,
-                          );
-                        },
-                      );
-                    }).toList(),
+                    children: [
+                      // Availability summary card
+                      if (pantryItemsAsync.hasValue) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: missingCount == 0
+                                ? AppColors.success.withOpacity(0.1)
+                                : AppColors.warning.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: missingCount == 0
+                                  ? AppColors.success.withOpacity(0.3)
+                                  : AppColors.warning.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: missingCount == 0
+                                      ? AppColors.success.withOpacity(0.2)
+                                      : AppColors.warning.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  missingCount == 0
+                                      ? Icons.check_circle_outline_rounded
+                                      : Icons.shopping_cart_outlined,
+                                  size: 20,
+                                  color: missingCount == 0
+                                      ? AppColors.success
+                                      : AppColors.warning,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      missingCount == 0
+                                          ? 'Todos los ingredientes disponibles'
+                                          : '$availableCount de ${_currentRecipe.ingredients.length} disponibles',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: missingCount == 0
+                                            ? AppColors.success
+                                            : AppColors.warning,
+                                      ),
+                                    ),
+                                    if (missingCount > 0) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Faltan $missingCount ingrediente${missingCount > 1 ? 's' : ''}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      // Ingredient list
+                      ..._currentRecipe.ingredients.asMap().entries.map((entry) {
+                        final isAvailable = pantryItemsAsync.hasValue
+                            ? ingredientAvailability[entry.value.name]
+                            : null;
+                        return IngredientItem(
+                          ingredient: entry.value,
+                          index: entry.key,
+                          isTablet: isTablet,
+                          isAvailable: isAvailable,
+                          onLinksUpdated: (amazonUrl, walmartUrl) {
+                            _handleIngredientLinkUpdate(
+                              context,
+                              ref,
+                              entry.key,
+                              amazonUrl,
+                              walmartUrl,
+                            );
+                          },
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ),

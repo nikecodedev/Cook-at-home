@@ -18,6 +18,7 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/pantry/presentation/screens/pantry_list_screen.dart';
 import '../../features/pantry/presentation/screens/pantry_edit_screen.dart';
 import '../../models/pantry_item_model.dart';
+import '../../models/product_model.dart';
 import '../../features/recipes/presentation/screens/recipe_list_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_add_screen.dart';
@@ -36,6 +37,7 @@ import '../../features/tools/presentation/screens/measurement_converter_screen.d
 import '../../features/pantry/presentation/screens/barcode_scanner_screen.dart';
 import '../../features/pantry/presentation/screens/contribute_product_screen.dart';
 import '../../features/meal_plan/presentation/screens/meal_plan_screen.dart';
+import '../../features/profile/presentation/screens/purchase_preferences_screen.dart';
 import 'admin_guard.dart';
 
 /// Route names
@@ -68,6 +70,7 @@ class Routes {
   static const String barcodeScanner = '/barcode-scanner';
   static const String contributeProduct = '/contribute-product';
   static const String mealPlan = '/meal-plan';
+  static const String purchasePreferences = '/purchase-preferences';
 }
 
 /// Perform redirect logic with proper timeout handling
@@ -395,20 +398,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.pantryEdit,
         name: 'pantry-edit',
         pageBuilder: (context, state) {
-          final extra = state.extra as PantryItem?;
+          final extra = state.extra;
+          PantryItem? item;
+          Product? productForPrefill;
+          if (extra is PantryItem) {
+            item = extra;
+          } else if (extra is Product) {
+            productForPrefill = extra;
+          }
           return MaterialPage(
             key: state.pageKey,
-            child: PantryEditScreen(item: extra),
+            child: PantryEditScreen(item: item, productForPrefill: productForPrefill),
           );
         },
       ),
       GoRoute(
         path: Routes.recipes,
         name: 'recipes',
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const RecipeListScreen(initialTabIndex: 0),
-        ),
+        pageBuilder: (context, state) {
+          final selectForMealPlan = state.extra == true ||
+              (state.extra is Map && (state.extra as Map)['selectForMealPlan'] == true);
+          return MaterialPage(
+            key: state.pageKey,
+            child: RecipeListScreen(
+              initialTabIndex: 0,
+              selectForMealPlan: selectForMealPlan,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: Routes.suggestedRecipes,
@@ -594,6 +611,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             initialDate = DateTime.tryParse(date);
           }
           return MealPlanScreen(initialDate: initialDate);
+        },
+      ),
+      // Purchase Preferences
+      GoRoute(
+        path: Routes.purchasePreferences,
+        name: 'purchase-preferences',
+        builder: (context, state) {
+          return const PurchasePreferencesScreen();
         },
       ),
     ],

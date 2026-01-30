@@ -16,14 +16,18 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import 'barcode_scanner_screen.dart';
 import '../../../../providers/phase2_providers.dart';
+import '../../../../providers/profile_provider.dart';
 import '../../../../models/product_model.dart';
 import '../../../../services/canonical_ingredient_service.dart';
+import '../../../../services/ingredient_price_service.dart';
 import 'package:uuid/uuid.dart';
 
 class PantryEditScreen extends ConsumerStatefulWidget {
   final PantryItem? item;
+  /// When opening from barcode scan on pantry list, product to prefill the form
+  final Product? productForPrefill;
 
-  const PantryEditScreen({super.key, this.item});
+  const PantryEditScreen({super.key, this.item, this.productForPrefill});
 
   @override
   ConsumerState<PantryEditScreen> createState() => _PantryEditScreenState();
@@ -37,22 +41,53 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
   late TextEditingController _categoryController;
   late TextEditingController _amazonUrlController;
   late TextEditingController _walmartUrlController;
+  late TextEditingController _priceController;
   DateTime? _expirationDate;
   String? _canonicalIngredientId; // Store canonical ingredient ID from scanned product
+  bool _priceLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.item?.name ?? '');
+    final prefillFromProduct = widget.productForPrefill;
+    final name = widget.item?.name ?? prefillFromProduct?.name ?? '';
+    final unit = widget.item?.unit ?? prefillFromProduct?.suggestedUnit ?? 'pieces';
+    final category = widget.item?.category ?? prefillFromProduct?.category ?? '';
+    _nameController = TextEditingController(text: name);
     _quantityController = TextEditingController(
       text: widget.item?.quantity.toString() ?? '1',
     );
-    _unitController = TextEditingController(text: widget.item?.unit ?? 'pieces');
-    _categoryController = TextEditingController(text: widget.item?.category ?? '');
+    _unitController = TextEditingController(text: unit);
+    _categoryController = TextEditingController(text: category);
     _amazonUrlController = TextEditingController(text: widget.item?.amazonUrl ?? '');
     _walmartUrlController = TextEditingController(text: widget.item?.walmartUrl ?? '');
+    _priceController = TextEditingController();
     _expirationDate = widget.item?.expirationDate;
-    _canonicalIngredientId = widget.item?.canonicalIngredientId;
+    _canonicalIngredientId = widget.item?.canonicalIngredientId ?? prefillFromProduct?.canonicalIngredientId;
+    if (_canonicalIngredientId != null && _canonicalIngredientId!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadUserPrice());
+    }
+  }
+
+  Future<void> _loadUserPrice() async {
+    final canonicalId = _canonicalIngredientId;
+    final userId = ref.read(currentUserIdProvider);
+    if (canonicalId == null || canonicalId.isEmpty || userId == null) return;
+    setState(() => _priceLoading = true);
+    try {
+      final priceService = ref.read(ingredientPriceServiceProvider);
+      final price = await priceService.getUserIngredientPrice(canonicalId, userId);
+      if (mounted && _canonicalIngredientId == canonicalId) {
+        final override = price?.userOverridePrice ?? price?.averagePrice;
+        if (override != null && override > 0) {
+          _priceController.text = override.toStringAsFixed(2);
+        }
+      }
+    } catch (e) {
+      Logger.error('Error loading user price', e, null, 'PantryEditScreen');
+    } finally {
+      if (mounted) setState(() => _priceLoading = false);
+    }
   }
 
   @override
@@ -63,6 +98,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     _categoryController.dispose();
     _amazonUrlController.dispose();
     _walmartUrlController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
@@ -116,7 +152,6 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
 
     try {
       if (widget.item == null) {
-        // Adding new item
         await ref.read(pantryControllerProvider.notifier).addPantryItem(item);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -125,10 +160,8 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               backgroundColor: AppColors.success,
             ),
           );
-          context.pop();
         }
       } else {
-        // Updating existing item
         await ref.read(pantryControllerProvider.notifier).updatePantryItem(item);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -137,9 +170,33 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               backgroundColor: AppColors.success,
             ),
           );
-          context.pop();
         }
       }
+      // Save user price override when canonical ingredient is set
+      final canonicalId = _canonicalIngredientId;
+      final userId = ref.read(currentUserIdProvider);
+      if (canonicalId != null && canonicalId.isNotEmpty && userId != null) {
+        final priceText = _priceController.text.trim();
+        final overridePrice = priceText.isEmpty ? null : double.tryParse(priceText);
+        try {
+          await ref.read(ingredientPriceServiceProvider).setUserOverridePrice(
+            userId: userId,
+            canonicalIngredientId: canonicalId,
+            overridePrice: overridePrice,
+          );
+        } catch (priceError) {
+          Logger.error('Failed to save price override', priceError, null, 'PantryEditScreen');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Precio no actualizado: ${priceError.toString()}'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        }
+      }
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         String errorMessage = e.toString();
@@ -417,6 +474,33 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               ),
 
               const SizedBox(height: 24),
+
+              // Price override (only when ingredient is linked to a canonical ingredient, e.g. from scan)
+              if (_canonicalIngredientId != null && _canonicalIngredientId!.isNotEmpty) ...[
+                _buildSectionTitle('Precio por unidad (opcional)'),
+                const SizedBox(height: 12),
+                if (_priceLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  CustomTextField(
+                    label: 'Precio por unidad (\$)',
+                    controller: _priceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    prefixIcon: Icons.attach_money,
+                    hint: 'ej. 2.50',
+                    validator: (value) {
+                      if (value != null && value.trim().isNotEmpty) {
+                        return Validators.validatePositiveNumber(value, 'Precio');
+                      }
+                      return null;
+                    },
+                    textInputAction: TextInputAction.next,
+                  ),
+                const SizedBox(height: 24),
+              ],
 
               // Affiliate URLs Section
               _buildSectionTitle('Enlaces de Compra (Opcional)'),
