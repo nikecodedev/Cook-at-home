@@ -23,15 +23,51 @@ class BarcodeScannerScreen extends ConsumerStatefulWidget {
 }
 
 class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  late MobileScannerController _controller;
   bool _isProcessing = false;
   String? _lastScannedBarcode;
   String? _errorMessage;
+  bool _torchEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Configure controller for optimal barcode detection
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+      torchEnabled: false,
+      // Enable all common product barcode formats
+      formats: [
+        BarcodeFormat.ean8,
+        BarcodeFormat.ean13,
+        BarcodeFormat.upcA,
+        BarcodeFormat.upcE,
+        BarcodeFormat.code128,
+        BarcodeFormat.code39,
+        BarcodeFormat.code93,
+        BarcodeFormat.codabar,
+        BarcodeFormat.itf,
+      ],
+    );
+  }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Toggle flashlight
+  void _toggleTorch() async {
+    try {
+      await _controller.toggleTorch();
+      setState(() {
+        _torchEnabled = !_torchEnabled;
+      });
+    } catch (e) {
+      Logger.error('Error toggling torch', e, null, 'BarcodeScannerScreen');
+    }
   }
 
   /// Handle barcode detection
@@ -59,7 +95,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
       // Validate barcode format (EAN/UPC should be numeric, 8-14 digits)
       if (!_isValidBarcode(barcodeValue)) {
         setState(() {
-          _errorMessage = 'Invalid barcode format. Please scan a valid EAN/UPC barcode.';
+          _errorMessage = 'Formato de código de barras inválido. Por favor escanea un código EAN/UPC válido.';
           _isProcessing = false;
         });
         return;
@@ -98,7 +134,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
       Logger.error('Error processing barcode', e, stackTrace, 'BarcodeScannerScreen');
       if (mounted) {
         setState(() {
-          _errorMessage = 'Error scanning barcode: ${e.toString()}';
+          _errorMessage = 'Error al escanear: ${e.toString()}';
           _isProcessing = false;
         });
       }
@@ -122,7 +158,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n?.scanBarcode ?? 'Scan Barcode'),
+        title: const Text('Escanear Producto'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         leading: IconButton(
@@ -140,9 +176,128 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
           MobileScanner(
             controller: _controller,
             onDetect: _handleBarcode,
+            errorBuilder: (context, error, child) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.camera_alt_outlined,
+                        size: 64,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error de cámara: ${error.errorCode.name}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Verifica los permisos de cámara en la configuración',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           
-          // Instructions overlay
+          // Scanning area overlay
+          Center(
+            child: Container(
+              width: 280,
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppColors.primary,
+                  width: 3,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Stack(
+                children: [
+                  // Corner decorations
+                  Positioned(
+                    top: -2,
+                    left: -2,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.primary, width: 5),
+                          left: BorderSide(color: AppColors.primary, width: 5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.primary, width: 5),
+                          right: BorderSide(color: AppColors.primary, width: 5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -2,
+                    left: -2,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: AppColors.primary, width: 5),
+                          left: BorderSide(color: AppColors.primary, width: 5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: AppColors.primary, width: 5),
+                          right: BorderSide(color: AppColors.primary, width: 5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Scanning line animation
+                  Center(
+                    child: Container(
+                      width: 260,
+                      height: 2,
+                      color: AppColors.primary.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Instructions overlay at top
           Positioned(
             top: 20,
             left: 20,
@@ -150,28 +305,52 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.black.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.qr_code_scanner,
-                    color: Colors.white,
-                    size: 32,
+                  const Text(
+                    'Escanear Código de Barras',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Position barcode within the frame',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    'Coloca el código de barras dentro del recuadro',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ],
+              ),
+            ),
+          ),
+          
+          // Flash toggle button
+          Positioned(
+            top: 120,
+            right: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: IconButton(
+                icon: Icon(
+                  _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                  color: _torchEnabled ? AppColors.warning : Colors.white,
+                  size: 28,
+                ),
+                onPressed: _toggleTorch,
+                tooltip: _torchEnabled ? 'Apagar flash' : 'Encender flash',
               ),
             ),
           ),
@@ -180,19 +359,20 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
           if (_isProcessing)
             Container(
               color: Colors.black54,
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(
+                    const CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Processing barcode...',
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Buscando producto...',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -240,37 +420,178 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
               ),
             ),
 
-          // Close/Cancel button at bottom
+          // Bottom buttons
           Positioned(
             bottom: _errorMessage != null ? 100 : 20,
             left: 20,
             right: 20,
-            child: ElevatedButton(
-              onPressed: () {
-                if (mounted) {
-                  context.pop(); // Close scanner and go back
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.9),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Manual entry button
+                ElevatedButton.icon(
+                  onPressed: () => _showManualEntryDialog(),
+                  icon: const Icon(Icons.keyboard, size: 20),
+                  label: const Text(
+                    'Ingresar código manualmente',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                l10n?.cancel ?? 'Cancel',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 12),
+                // Cancel button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (mounted) {
+                      context.pop(); // Close scanner and go back
+                    }
+                  },
+                  icon: const Icon(Icons.close),
+                  label: const Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.9),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// Show dialog for manual barcode entry
+  void _showManualEntryDialog() {
+    final TextEditingController barcodeController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ingresar Código de Barras'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Escribe el código de barras del producto (8-14 dígitos)',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: barcodeController,
+              keyboardType: TextInputType.number,
+              maxLength: 14,
+              decoration: InputDecoration(
+                hintText: 'Ej: 7501234567890',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: const Icon(Icons.qr_code),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final barcode = barcodeController.text.trim();
+              Navigator.pop(context);
+              if (barcode.isNotEmpty) {
+                _processManualBarcode(barcode);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: const Text(
+              'Buscar Producto',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Process manually entered barcode
+  Future<void> _processManualBarcode(String barcodeValue) async {
+    if (_isProcessing) return;
+    
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+    });
+
+    try {
+      Logger.info('Manual barcode entered: $barcodeValue', 'BarcodeScannerScreen');
+
+      // Validate barcode format
+      if (!_isValidBarcode(barcodeValue)) {
+        setState(() {
+          _errorMessage = 'Formato de código de barras inválido. Debe tener 8-14 dígitos numéricos.';
+          _isProcessing = false;
+        });
+        return;
+      }
+
+      // Check if product exists
+      final productService = ref.read(productServiceProvider);
+      final product = await productService.getProductByBarcode(barcodeValue);
+
+      if (product != null) {
+        Logger.success('Product found: ${product.name}', 'BarcodeScannerScreen');
+        if (mounted) {
+          context.pop(product);
+        }
+      } else {
+        Logger.info('Product not found, navigating to contribute screen', 'BarcodeScannerScreen');
+        if (mounted) {
+          final result = await context.push<Product?>(
+            '${Routes.contributeProduct}?barcode=$barcodeValue',
+          );
+          if (result != null && mounted) {
+            context.pop(result);
+          } else {
+            setState(() {
+              _isProcessing = false;
+            });
+          }
+        }
+      }
+    } catch (e, stackTrace) {
+      Logger.error('Error processing manual barcode', e, stackTrace, 'BarcodeScannerScreen');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al buscar: ${e.toString()}';
+          _isProcessing = false;
+        });
+      }
+    }
   }
 }
 

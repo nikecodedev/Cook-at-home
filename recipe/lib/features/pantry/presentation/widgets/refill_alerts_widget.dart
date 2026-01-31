@@ -8,6 +8,12 @@ import '../../../../providers/profile_provider.dart';
 import '../../../../models/refill_alert_model.dart';
 import '../../../../core/router/app_router.dart';
 
+/// Provider for streaming refill alerts
+final refillAlertsStreamProvider = StreamProvider.family<List<RefillAlert>, String>((ref, userId) {
+  final service = ref.watch(refillAlertServiceProvider);
+  return service.streamActiveRefillAlerts(userId);
+});
+
 /// Widget to display refill alerts
 class RefillAlertsWidget extends ConsumerWidget {
   const RefillAlertsWidget({super.key});
@@ -18,15 +24,10 @@ class RefillAlertsWidget extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     
     if (userId == null) {
-      return const SizedBox.shrink();
+      return _buildEmptyState(l10n);
     }
 
-    final refillAlertService = ref.watch(refillAlertServiceProvider);
-    final alertsAsync = ref.watch(
-      StreamProvider<List<RefillAlert>>((ref) {
-        return refillAlertService.streamActiveRefillAlerts(userId);
-      }),
-    );
+    final alertsAsync = ref.watch(refillAlertsStreamProvider(userId));
 
     return alertsAsync.when(
       data: (alerts) {
@@ -59,9 +60,9 @@ class RefillAlertsWidget extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    l10n?.refillAlerts ?? 'Alertas de Reabastecimiento',
-                    style: const TextStyle(
+                  const Text(
+                    'Alertas de Reabastecimiento',
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -103,34 +104,68 @@ class RefillAlertsWidget extends ConsumerWidget {
           ),
         );
       },
-      loading: () => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.warning.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.warning.withOpacity(0.2)),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              l10n?.refillAlerts ?? 'Alertas de Reabastecimiento',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
+      loading: () => _buildEmptyState(l10n),
+      error: (error, _) {
+        // On error, show empty state instead of hiding
+        return _buildEmptyState(l10n);
+      },
+    );
+  }
+
+  Widget _buildEmptyState(AppLocalizations? l10n) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.warning.withOpacity(0.3),
+          width: 1.5,
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.notifications_active_rounded,
+                  color: AppColors.warning,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Alertas de Reabastecimiento',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'No hay alertas en este momento. Las alertas aparecerán cuando un ingrediente esté bajo, se use con frecuencia o haya buena oferta.',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -242,11 +277,11 @@ class RefillAlertsWidget extends ConsumerWidget {
   String _getAlertReasonText(String reason, AppLocalizations? l10n) {
     switch (reason) {
       case 'depletion':
-        return l10n?.lowStock ?? 'Low Stock';
+        return l10n?.lowStock ?? 'Stock Bajo';
       case 'high_usage':
-        return l10n?.frequentlyUsed ?? 'Frequently Used';
+        return l10n?.frequentlyUsed ?? 'Uso Frecuente';
       case 'price_index':
-        return l10n?.goodPrice ?? 'Good Price';
+        return l10n?.goodPrice ?? 'Buen Precio';
       default:
         return reason;
     }

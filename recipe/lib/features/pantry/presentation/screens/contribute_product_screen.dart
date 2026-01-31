@@ -6,19 +6,16 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/phase2_providers.dart';
-import '../../../../providers/auth_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/product_model.dart';
 import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/logger.dart';
-import '../../../../core/localization/app_localizations.dart';
-import '../../../../services/canonical_ingredient_service.dart';
+import '../../../../core/utils/translations.dart';
 import '../../../../services/storage/firebase_storage_service.dart';
-import '../../../../core/constants/firebase_constants.dart';
 import 'dart:io';
 
-/// Screen for contributing a new product to the global catalog
-/// Shown when a scanned barcode doesn't exist in the database
+/// Screen for adding a new product after scanning a barcode
+/// Changed from "Contribute to Global Catalog" to local product creation
 class ContributeProductScreen extends ConsumerStatefulWidget {
   final String? barcode;
 
@@ -33,12 +30,11 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
   late TextEditingController _barcodeController;
   late TextEditingController _nameController;
   late TextEditingController _brandController;
-  late TextEditingController _ingredientNameController;
+  late TextEditingController _priceController;
   
   String? _selectedCategory;
   String? _selectedUnit;
   File? _selectedImage;
-  String? _canonicalIngredientId;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -48,7 +44,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
     _barcodeController = TextEditingController(text: widget.barcode ?? '');
     _nameController = TextEditingController();
     _brandController = TextEditingController();
-    _ingredientNameController = TextEditingController();
+    _priceController = TextEditingController();
   }
 
   @override
@@ -56,7 +52,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
     _barcodeController.dispose();
     _nameController.dispose();
     _brandController.dispose();
-    _ingredientNameController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
@@ -72,7 +68,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Choose from Gallery'),
+                title: const Text('Seleccionar de Galería'),
                 onTap: () async {
                   final image = await picker.pickImage(source: ImageSource.gallery);
                   Navigator.pop(context, image);
@@ -80,7 +76,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text('Take Photo'),
+                title: const Text('Tomar Foto'),
                 onTap: () async {
                   final image = await picker.pickImage(source: ImageSource.camera);
                   Navigator.pop(context, image);
@@ -101,7 +97,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting image: ${e.toString()}'),
+            content: Text('Error al seleccionar imagen: ${e.toString()}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -109,66 +105,9 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
     }
   }
 
-  /// Find or create canonical ingredient
-  Future<void> _findCanonicalIngredient() async {
-    final ingredientName = _ingredientNameController.text.trim();
-    if (ingredientName.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter an ingredient name';
-      });
-      return;
-    }
-
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      final canonicalService = ref.read(canonicalIngredientServiceProvider);
-      
-      // Try to find existing canonical ingredient
-      var canonical = await canonicalService.findCanonicalIngredientByName(ingredientName);
-      
-      if (canonical == null) {
-        // Create new canonical ingredient
-        final canonicalId = await canonicalService.createOrGetCanonicalIngredient(
-          name: ingredientName,
-          category: _selectedCategory,
-          defaultUnit: _selectedUnit,
-        );
-        canonical = await canonicalService.getCanonicalIngredient(canonicalId);
-      }
-
-      if (canonical != null) {
-        final canonicalId = canonical.id;
-        setState(() {
-          _canonicalIngredientId = canonicalId;
-        });
-        Logger.success('Canonical ingredient found/created: ${canonical.name}', 'ContributeProductScreen');
-      }
-    } catch (e) {
-      Logger.error('Error finding canonical ingredient', e, null, 'ContributeProductScreen');
-      setState(() {
-        _errorMessage = 'Error finding ingredient: ${e.toString()}';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  /// Save product to global catalog
+  /// Save product locally and return for pantry addition
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_canonicalIngredientId == null || _canonicalIngredientId!.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please find or create a canonical ingredient first';
-      });
       return;
     }
 
@@ -179,16 +118,39 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
 
     try {
       final productService = ref.read(productServiceProvider);
+      final canonicalService = ref.read(canonicalIngredientServiceProvider);
       final userId = ref.read(currentUserIdProvider);
+      final barcode = _barcodeController.text.trim();
+      final productName = _nameController.text.trim();
       
-      // Check if product with this barcode already exists (duplicate prevention)
-      final existing = await productService.getProductByBarcode(_barcodeController.text.trim());
+      // Check if product with this barcode already exists
+      final existing = await productService.getProductByBarcode(barcode);
       if (existing != null) {
-        setState(() {
-          _errorMessage = 'A product with this barcode already exists';
-          _isLoading = false;
-        });
+        // Product already exists, return it
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('¡Producto encontrado! Se completarán los datos automáticamente.'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          context.pop(existing);
+        }
         return;
+      }
+
+      // Create or find canonical ingredient based on product name
+      String? canonicalIngredientId;
+      try {
+        canonicalIngredientId = await canonicalService.createOrGetCanonicalIngredient(
+          name: productName,
+          category: _selectedCategory,
+          defaultUnit: _selectedUnit,
+        );
+      } catch (e) {
+        Logger.warning('Could not create canonical ingredient, continuing without', 'ContributeProductScreen');
+        // Continue without canonical ingredient - not critical
       }
 
       // Upload image if selected
@@ -197,7 +159,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
         try {
           final storageService = FirebaseStorageService();
           imageUrl = await storageService.uploadProductImage(
-            _barcodeController.text.trim(),
+            barcode,
             _selectedImage!,
           );
         } catch (e) {
@@ -206,11 +168,11 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
         }
       }
 
-      // Create product
+      // Create product in database
       final productId = await productService.createProduct(
-        barcode: _barcodeController.text.trim(),
-        name: _nameController.text.trim(),
-        canonicalIngredientId: _canonicalIngredientId!,
+        barcode: barcode,
+        name: productName,
+        canonicalIngredientId: canonicalIngredientId ?? '',
         brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
         category: _selectedCategory,
         suggestedUnit: _selectedUnit,
@@ -221,12 +183,30 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
       final product = await productService.getProductById(productId);
       
       if (product != null && mounted) {
-        Logger.success('Product contributed successfully: $productId', 'ContributeProductScreen');
+        Logger.success('Product created successfully: $productId', 'ContributeProductScreen');
+        
+        // Also save user price override if provided
+        final priceText = _priceController.text.trim();
+        if (priceText.isNotEmpty && canonicalIngredientId != null && userId != null) {
+          final price = double.tryParse(priceText);
+          if (price != null && price > 0) {
+            try {
+              await ref.read(ingredientPriceServiceProvider).setUserOverridePrice(
+                userId: userId,
+                canonicalIngredientId: canonicalIngredientId,
+                overridePrice: price,
+              );
+            } catch (e) {
+              Logger.warning('Could not save price override', 'ContributeProductScreen');
+            }
+          }
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Product contributed successfully! Thank you for your contribution.'),
+            content: Text('¡Producto guardado exitosamente!'),
             backgroundColor: AppColors.success,
-            duration: Duration(seconds: 3),
+            duration: Duration(seconds: 2),
           ),
         );
         context.pop(product);
@@ -234,7 +214,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
     } catch (e, stackTrace) {
       Logger.error('Error saving product', e, stackTrace, 'ContributeProductScreen');
       setState(() {
-        _errorMessage = 'Error saving product: ${e.toString()}';
+        _errorMessage = 'Error al guardar producto: ${e.toString()}';
       });
     } finally {
       setState(() {
@@ -245,16 +225,18 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: Text(
-          l10n?.contributeProduct ?? 'Contribute Product',
-          style: const TextStyle(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => context.pop(),
+        ),
+        title: const Text(
+          'Agregar Producto',
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
@@ -291,7 +273,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
-                        Icons.add_business,
+                        Icons.inventory_2_rounded,
                         color: AppColors.primary,
                         size: 28,
                       ),
@@ -302,16 +284,16 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Contribute to Global Catalog',
+                            'Nuevo Producto',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Help others by adding product information',
+                            'Completa los datos del producto escaneado',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.textSecondary,
@@ -324,6 +306,33 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Helper text
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: AppColors.info, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Escanea o escribe el nombre del producto para agregarlo a tu despensa',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.info,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
 
               // Error message
               if (_errorMessage != null)
@@ -350,33 +359,40 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                 ),
 
               // Barcode field
+              _buildSectionTitle('Código de Barras'),
+              const SizedBox(height: 12),
               CustomTextField(
-                label: 'Barcode (EAN/UPC)',
+                label: 'Código de Barras (EAN/UPC)',
                 controller: _barcodeController,
                 prefixIcon: Icons.qr_code,
                 keyboardType: TextInputType.number,
-                enabled: widget.barcode != null, // Disable if pre-filled from scanner
+                enabled: widget.barcode == null, // Disable if pre-filled from scanner
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Barcode is required';
+                    return 'El código de barras es requerido';
                   }
                   final barcode = value.trim();
                   if (!RegExp(r'^\d{8,14}$').hasMatch(barcode)) {
-                    return 'Invalid barcode format (must be 8-14 digits)';
+                    return 'Formato inválido (debe tener 8-14 dígitos)';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
+              // Product details section
+              _buildSectionTitle('Datos del Producto'),
+              const SizedBox(height: 12),
+              
               // Product name
               CustomTextField(
-                label: 'Product Name *',
+                label: 'Nombre del Producto *',
                 controller: _nameController,
                 prefixIcon: Icons.shopping_basket,
+                hint: 'ej. Leche Entera 1L',
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Product name is required';
+                    return 'El nombre del producto es requerido';
                   }
                   return null;
                 },
@@ -385,13 +401,14 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
 
               // Brand (optional)
               CustomTextField(
-                label: 'Brand (Optional)',
+                label: 'Marca (Opcional)',
                 controller: _brandController,
                 prefixIcon: Icons.branding_watermark,
+                hint: 'ej. Lala, Alpura',
               ),
               const SizedBox(height: 16),
 
-              // Category
+              // Category dropdown with Spanish translations
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -402,17 +419,17 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                   value: _selectedCategory,
                   isExpanded: true,
                   decoration: const InputDecoration(
-                    labelText: 'Category (Optional)',
+                    labelText: 'Categoría (Opcional)',
                     prefixIcon: Icon(Icons.category_outlined),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
+                    const DropdownMenuItem(value: null, child: Text('Seleccionar categoría')),
                     ...PantryCategories.all.map((category) {
                       return DropdownMenuItem(
                         value: category,
-                        child: Text(category),
+                        child: Text(Translations.translatePantryCategory(category)),
                       );
                     }),
                   ],
@@ -425,7 +442,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               const SizedBox(height: 16),
 
-              // Suggested unit
+              // Suggested unit dropdown with Spanish translations
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -436,17 +453,17 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                   value: _selectedUnit,
                   isExpanded: true,
                   decoration: const InputDecoration(
-                    labelText: 'Suggested Unit (Optional)',
+                    labelText: 'Unidad Sugerida (Opcional)',
                     prefixIcon: Icon(Icons.straighten),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
+                    const DropdownMenuItem(value: null, child: Text('Seleccionar unidad')),
                     ...Units.all.map((unit) {
                       return DropdownMenuItem(
                         value: unit,
-                        child: Text(unit),
+                        child: Text(Translations.translateUnit(unit)),
                       );
                     }),
                   ],
@@ -459,72 +476,43 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               const SizedBox(height: 24),
 
-              // Canonical ingredient section
-              _buildSectionTitle('Map to Ingredient'),
+              // Price section
+              _buildSectionTitle('Precio (Opcional)'),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: CustomTextField(
-                      label: 'Ingredient Name *',
-                      controller: _ingredientNameController,
-                      prefixIcon: Icons.restaurant,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Ingredient name is required';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _findCanonicalIngredient,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.search),
-                    label: const Text('Find'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    ),
-                  ),
-                ],
+              CustomTextField(
+                label: 'Precio por unidad (\$)',
+                controller: _priceController,
+                prefixIcon: Icons.attach_money,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                hint: 'ej. 25.50',
+                validator: (value) {
+                  if (value != null && value.trim().isNotEmpty) {
+                    final price = double.tryParse(value.trim());
+                    if (price == null || price < 0) {
+                      return 'Ingresa un precio válido';
+                    }
+                  }
+                  return null;
+                },
               ),
-              if (_canonicalIngredientId != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.success),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.check_circle, color: AppColors.success),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Ingredient mapped: ${_ingredientNameController.text}',
-                          style: const TextStyle(color: AppColors.success),
-                        ),
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                'Este precio se usará para calcular el costo de tus recetas y el valor de tu despensa',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
                 ),
+              ),
               const SizedBox(height: 24),
 
               // Product photo
-              _buildSectionTitle('Product Photo (Optional)'),
+              _buildSectionTitle('Foto del Producto (Opcional)'),
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  height: 200,
+                  height: 180,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -534,24 +522,49 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                     ),
                   ),
                   child: _selectedImage != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            _selectedImage!,
-                            fit: BoxFit.cover,
-                          ),
+                      ? Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                _selectedImage!,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedImage = null;
+                                  });
+                                },
+                                icon: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close, size: 18, color: AppColors.error),
+                                ),
+                              ),
+                            ),
+                          ],
                         )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.add_photo_alternate,
+                              Icons.add_photo_alternate_outlined,
                               size: 48,
                               color: AppColors.textSecondary,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap to add photo',
+                              'Toca para agregar foto',
                               style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 14,
@@ -563,12 +576,25 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               const SizedBox(height: 32),
 
-              // Save button
+              // Save button - Clear CTA
               CustomButton(
-                text: 'Contribute Product',
+                text: 'Guardar en mi Despensa',
                 onPressed: _isLoading ? null : _saveProduct,
                 isLoading: _isLoading,
-                icon: Icons.save,
+                icon: Icons.save_rounded,
+              ),
+              const SizedBox(height: 16),
+
+              // Cancel button
+              TextButton(
+                onPressed: _isLoading ? null : () => context.pop(),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
             ],

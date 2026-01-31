@@ -90,7 +90,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    l10n?.pantryAnalytics ?? 'Pantry Analytics',
+                    'Análisis de Despensa',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -107,7 +107,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                   Expanded(
                     child: _buildMetricCard(
                       context,
-                      l10n?.totalValue ?? 'Total Value',
+                      'Valor Total',
                       formatter.format(analytics.totalValue),
                       AppColors.primary,
                       Icons.attach_money_rounded,
@@ -117,7 +117,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                   Expanded(
                     child: _buildMetricCard(
                       context,
-                      l10n?.estimatedMeals ?? 'Meals Available',
+                      'Comidas Est.',
                       analytics.estimatedMealsAvailable.toString(),
                       AppColors.secondary,
                       Icons.restaurant_menu_rounded,
@@ -133,7 +133,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                   Expanded(
                     child: _buildMetricCard(
                       context,
-                      l10n?.coverage ?? 'Coverage',
+                      'Cobertura',
                       '${analytics.coveragePercentage.toStringAsFixed(0)}%',
                       _getCoverageColor(analytics.coveragePercentage),
                       Icons.check_circle_outline,
@@ -143,7 +143,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                   Expanded(
                     child: _buildMetricCard(
                       context,
-                      l10n?.efficiencyScore ?? 'Efficiency',
+                      'Eficiencia',
                       '${analytics.efficiencyScore.toStringAsFixed(0)}',
                       _getEfficiencyColor(analytics.efficiencyScore),
                       Icons.trending_up_rounded,
@@ -228,7 +228,7 @@ class PantryAnalyticsWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Efficiency Score',
+              'Puntuación de Eficiencia',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -295,14 +295,14 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                l10n?.pantryAnalytics ?? 'Análisis de Despensa',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+                const Text(
+                    'Análisis de Despensa',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
             ],
           ),
           const SizedBox(height: 16),

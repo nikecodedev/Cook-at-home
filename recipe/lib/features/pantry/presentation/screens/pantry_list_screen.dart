@@ -117,14 +117,14 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+              icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
               onPressed: () async {
                 final product = await context.push<Product?>(Routes.barcodeScanner);
                 if (product != null && context.mounted) {
                   context.push(Routes.pantryEdit, extra: product);
                 }
               },
-              tooltip: 'Escanear código de barras',
+              tooltip: 'Escanear producto',
             ),
           ),
           Container(

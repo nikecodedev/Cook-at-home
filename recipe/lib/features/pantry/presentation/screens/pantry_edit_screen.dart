@@ -302,8 +302,34 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Name Field
+              // Name Field with Scanner Button
               _buildSectionTitle('Detalles del Ingrediente'),
+              const SizedBox(height: 8),
+              // Helper text
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: AppColors.info, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Escanea o escribe el nombre del producto',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.info,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -317,21 +343,14 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Barcode Scanner Button (Phase 2)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
-                      onPressed: () async {
-                        try {
-                          final result = await context.push<Product?>(
-                            Routes.barcodeScanner,
-                          );
-                          if (result != null && mounted) {
+                  // Barcode Scanner Button (Phase 2) - More prominent
+                  InkWell(
+                    onTap: () async {
+                      try {
+                        final result = await context.push<Product?>(
+                          Routes.barcodeScanner,
+                        );
+                        if (result != null && mounted) {
                           // Product found - auto-fill fields
                           setState(() {
                             _nameController.text = result.name;
@@ -344,29 +363,49 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                             // Store canonical ingredient ID from product
                             _canonicalIngredientId = result.canonicalIngredientId;
                           });
+                          
+                          // Load price for the product
+                          if (result.canonicalIngredientId != null && 
+                              result.canonicalIngredientId!.isNotEmpty) {
+                            _loadUserPrice();
+                          }
                             
-                            // Show success message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Product loaded: ${result.name}'),
-                                backgroundColor: AppColors.success,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          Logger.error('Error scanning barcode', e, null, 'PantryEditScreen');
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error scanning barcode: ${e.toString()}'),
-                                backgroundColor: AppColors.error,
-                              ),
-                            );
-                          }
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Producto cargado: ${result.name}'),
+                              backgroundColor: AppColors.success,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         }
-                      },
-                      tooltip: AppLocalizations.of(context)?.scanBarcode ?? 'Scan Barcode',
+                      } catch (e) {
+                        Logger.error('Error scanning barcode', e, null, 'PantryEditScreen');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error al escanear: ${e.toString()}'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
                     ),
                   ),
                 ],
@@ -475,32 +514,39 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
 
               const SizedBox(height: 24),
 
-              // Price override (only when ingredient is linked to a canonical ingredient, e.g. from scan)
-              if (_canonicalIngredientId != null && _canonicalIngredientId!.isNotEmpty) ...[
-                _buildSectionTitle('Precio por unidad (opcional)'),
-                const SizedBox(height: 12),
-                if (_priceLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else
-                  CustomTextField(
-                    label: 'Precio por unidad (\$)',
-                    controller: _priceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    prefixIcon: Icons.attach_money,
-                    hint: 'ej. 2.50',
-                    validator: (value) {
-                      if (value != null && value.trim().isNotEmpty) {
-                        return Validators.validatePositiveNumber(value, 'Precio');
-                      }
-                      return null;
-                    },
-                    textInputAction: TextInputAction.next,
-                  ),
-                const SizedBox(height: 24),
-              ],
+              // Price section - Always visible for cost tracking
+              _buildSectionTitle('Precio (Opcional)'),
+              const SizedBox(height: 12),
+              if (_priceLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                CustomTextField(
+                  label: 'Precio por unidad (\$)',
+                  controller: _priceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixIcon: Icons.attach_money,
+                  hint: 'ej. 25.50',
+                  validator: (value) {
+                    if (value != null && value.trim().isNotEmpty) {
+                      return Validators.validatePositiveNumber(value, 'Precio');
+                    }
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
+                ),
+              const SizedBox(height: 8),
+              Text(
+                'Este precio se usará para calcular el costo de tus recetas y el valor de tu despensa',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // Affiliate URLs Section
               _buildSectionTitle('Enlaces de Compra (Opcional)'),

@@ -409,30 +409,40 @@ class RefillAlertService {
   }
 
   /// Stream active refill alerts
+  /// Uses a simple query to avoid composite index requirements
   Stream<List<RefillAlert>> streamActiveRefillAlerts(String userId) {
-    return _firestore
-        .collection(FirebaseCollections.users)
-        .doc(userId)
-        .collection(FirebaseCollections.refillAlerts)
-        .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) {
-            try {
-              return RefillAlert.fromFirestore(doc);
-            } catch (e) {
-              Logger.error('Failed to parse refill alert', e, null, 'RefillAlertService');
-              return null;
-            }
-          })
-          .whereType<RefillAlert>()
-          .toList();
-    }).handleError((error) {
-      Logger.error('Error in refill alerts stream', error, null, 'RefillAlertService');
-      return <RefillAlert>[];
-    });
+    try {
+      return _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.refillAlerts)
+          .where('isActive', isEqualTo: true)
+          .snapshots()
+          .map((snapshot) {
+        final alerts = snapshot.docs
+            .map((doc) {
+              try {
+                return RefillAlert.fromFirestore(doc);
+              } catch (e) {
+                Logger.error('Failed to parse refill alert', e, null, 'RefillAlertService');
+                return null;
+              }
+            })
+            .whereType<RefillAlert>()
+            .toList();
+        
+        // Sort in memory to avoid composite index requirement
+        alerts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return alerts;
+      }).handleError((error) {
+        Logger.error('Error in refill alerts stream', error, null, 'RefillAlertService');
+        return <RefillAlert>[];
+      });
+    } catch (e) {
+      Logger.error('Failed to create refill alerts stream', e, null, 'RefillAlertService');
+      // Return empty stream on error
+      return Stream.value(<RefillAlert>[]);
+    }
   }
 }
 
