@@ -26,7 +26,7 @@ class AdminRecipesScreen extends ConsumerWidget {
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'Manage Recipes',
+          'Gestionar Recetas',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -52,7 +52,7 @@ class AdminRecipesScreen extends ConsumerWidget {
                   const Icon(Icons.restaurant_menu_outlined, size: 64, color: AppColors.textSecondary),
                   const SizedBox(height: 16),
                   const Text(
-                    'No Recipes Found',
+                    'No Se Encontraron Recetas',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -79,22 +79,8 @@ class AdminRecipesScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.restaurant_menu_outlined, size: 64, color: AppColors.textSecondary),
-              const SizedBox(height: 16),
-              const Text(
-                'No Recipes Found',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
         ),
         error: (error, stack) => Center(
           child: Column(
@@ -106,7 +92,7 @@ class AdminRecipesScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(allRecipesStreamProvider),
-                child: const Text('Retry'),
+                child: const Text('Reintentar'),
               ),
             ],
           ),
@@ -159,7 +145,7 @@ class AdminRecipesScreen extends ConsumerWidget {
                             context.push(Routes.recipeEdit, extra: recipe);
                           },
                     icon: const Icon(Icons.edit_rounded, size: 18),
-                    label: const Text('Edit'),
+                    label: const Text('Editar'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -177,7 +163,7 @@ class AdminRecipesScreen extends ConsumerWidget {
                         ? null
                         : () => _showDeleteDialog(context, ref, recipe),
                     icon: const Icon(Icons.delete_rounded, size: 18),
-                    label: const Text('Delete'),
+                    label: const Text('Eliminar'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.error,
                       foregroundColor: Colors.white,

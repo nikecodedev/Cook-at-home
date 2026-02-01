@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'user_store_model.dart';
 
 /// Shopping list item model
 class ShoppingListItem {
@@ -10,6 +11,7 @@ class ShoppingListItem {
   final bool isChecked;
   final String? amazonLink;
   final String? walmartLink;
+  final List<CustomStoreLink> customStores; // User's custom store links
   final DateTime addedAt;
 
   ShoppingListItem({
@@ -21,6 +23,7 @@ class ShoppingListItem {
     this.isChecked = false,
     this.amazonLink,
     this.walmartLink,
+    this.customStores = const [],
     required this.addedAt,
   });
 
@@ -35,6 +38,10 @@ class ShoppingListItem {
       isChecked: data['isChecked'] ?? false,
       amazonLink: data['amazonLink'],
       walmartLink: data['walmartLink'],
+      customStores: (data['customStores'] as List<dynamic>?)
+              ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       addedAt: (data['addedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -49,6 +56,10 @@ class ShoppingListItem {
       isChecked: data['isChecked'] ?? false,
       amazonLink: data['amazonLink'],
       walmartLink: data['walmartLink'],
+      customStores: (data['customStores'] as List<dynamic>?)
+              ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       addedAt: data['addedAt'] is Timestamp
           ? (data['addedAt'] as Timestamp).toDate()
           : DateTime.parse(data['addedAt'].toString()),
@@ -65,6 +76,7 @@ class ShoppingListItem {
       // Only save links if they are non-null and non-empty
       if (amazonLink != null && amazonLink!.isNotEmpty) 'amazonLink': amazonLink,
       if (walmartLink != null && walmartLink!.isNotEmpty) 'walmartLink': walmartLink,
+      'customStores': customStores.map((e) => e.toMap()).toList(),
       'addedAt': Timestamp.fromDate(addedAt),
     };
   }
@@ -78,6 +90,7 @@ class ShoppingListItem {
     bool? isChecked,
     String? amazonLink,
     String? walmartLink,
+    List<CustomStoreLink>? customStores,
     DateTime? addedAt,
   }) {
     return ShoppingListItem(
@@ -89,6 +102,7 @@ class ShoppingListItem {
       isChecked: isChecked ?? this.isChecked,
       amazonLink: amazonLink ?? this.amazonLink,
       walmartLink: walmartLink ?? this.walmartLink,
+      customStores: customStores ?? this.customStores,
       addedAt: addedAt ?? this.addedAt,
     );
   }
@@ -107,6 +121,8 @@ class ShoppingList {
   final String? recipeTitle;
   final String? source; // Phase 2: 'recipe', 'meal_plan', or null
   final List<ShoppingListItem> items;
+  final bool isArchived; // Whether this list is archived
+  final String? weekLabel; // Optional week grouping label (e.g., "Semana 1 - Enero")
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -117,6 +133,8 @@ class ShoppingList {
     this.recipeTitle,
     this.source,
     required this.items,
+    this.isArchived = false,
+    this.weekLabel,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -138,6 +156,8 @@ class ShoppingList {
       recipeTitle: data['recipeTitle'],
       source: data['source'] as String?,
       items: items,
+      isArchived: data['isArchived'] ?? false,
+      weekLabel: data['weekLabel'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -151,6 +171,8 @@ class ShoppingList {
       recipeTitle: data['recipeTitle'],
       source: data['source'] as String?,
       items: [], // Items loaded separately
+      isArchived: data['isArchived'] ?? false,
+      weekLabel: data['weekLabel'] as String?,
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -166,6 +188,8 @@ class ShoppingList {
       'recipeId': recipeId,
       'recipeTitle': recipeTitle,
       'source': source,
+      'isArchived': isArchived,
+      'weekLabel': weekLabel,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -178,6 +202,8 @@ class ShoppingList {
     String? recipeTitle,
     String? source,
     List<ShoppingListItem>? items,
+    bool? isArchived,
+    String? weekLabel,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -188,6 +214,8 @@ class ShoppingList {
       recipeTitle: recipeTitle ?? this.recipeTitle,
       source: source ?? this.source,
       items: items ?? this.items,
+      isArchived: isArchived ?? this.isArchived,
+      weekLabel: weekLabel ?? this.weekLabel,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

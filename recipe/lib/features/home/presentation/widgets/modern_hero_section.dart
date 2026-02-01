@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 
-/// Modern hero section with headline, subtext, buttons, and illustration
+/// Sección hero moderna con título, subtexto, botones e ilustración
 class ModernHeroSection extends StatefulWidget {
   const ModernHeroSection({super.key});
 
@@ -100,9 +100,9 @@ class _ModernHeroSectionState extends State<ModernHeroSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Headline
+        // Título
         Text(
-          'Cook Smarter With\nWhat You Already Have.',
+          'Cocina Más Inteligente Con\nLo Que Ya Tienes.',
           style: TextStyle(
             fontSize: isTablet ? 48 : (isMobile ? 28 : 36),
             fontWeight: FontWeight.bold,
@@ -114,9 +114,9 @@ class _ModernHeroSectionState extends State<ModernHeroSection>
 
         SizedBox(height: isMobile ? 16 : 24),
 
-        // Subtext
+        // Subtexto
         Text(
-          'Discover recipes based on your ingredients and save money instantly.',
+          'Descubre recetas basadas en tus ingredientes y ahorra dinero al instante.',
           style: TextStyle(
             fontSize: isTablet ? 20 : (isMobile ? 14 : 16),
             fontWeight: FontWeight.w400,
@@ -128,20 +128,20 @@ class _ModernHeroSectionState extends State<ModernHeroSection>
 
         SizedBox(height: isMobile ? 32 : 40),
 
-        // Buttons
+        // Botones
         isMobile
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _PrimaryButton(
-                    text: 'Get Started',
+                    text: 'Comenzar',
                     onPressed: () => context.push(Routes.register),
                     isTablet: isTablet,
                     isMobile: isMobile,
                   ),
                   const SizedBox(height: 12),
                   _SecondaryButton(
-                    text: 'Explore Recipes',
+                    text: 'Explorar Recetas',
                     onPressed: () => context.push(Routes.recipes),
                     isTablet: isTablet,
                     isMobile: isMobile,
@@ -153,13 +153,13 @@ class _ModernHeroSectionState extends State<ModernHeroSection>
                 runSpacing: 16,
                 children: [
                   _PrimaryButton(
-                    text: 'Get Started',
+                    text: 'Comenzar',
                     onPressed: () => context.push(Routes.register),
                     isTablet: isTablet,
                     isMobile: isMobile,
                   ),
                   _SecondaryButton(
-                    text: 'Explore Recipes',
+                    text: 'Explorar Recetas',
                     onPressed: () => context.push(Routes.recipes),
                     isTablet: isTablet,
                     isMobile: isMobile,
@@ -197,7 +197,7 @@ class _ModernHeroSectionState extends State<ModernHeroSection>
   }
 }
 
-/// Primary button with scale animation
+/// Botón principal con animación de escala
 class _PrimaryButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;
@@ -296,7 +296,7 @@ class _PrimaryButtonState extends State<_PrimaryButton>
   }
 }
 
-/// Secondary outlined button with scale animation
+/// Botón secundario con borde y animación de escala
 class _SecondaryButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;

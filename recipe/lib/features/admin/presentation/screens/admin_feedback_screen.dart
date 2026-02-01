@@ -28,7 +28,7 @@ class AdminFeedbackScreen extends ConsumerWidget {
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'User Feedback',
+          'Comentarios de Usuarios',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -66,7 +66,7 @@ class AdminFeedbackScreen extends ConsumerWidget {
                   const Icon(Icons.feedback_outlined, size: 64, color: AppColors.textSecondary),
                   const SizedBox(height: 16),
                   const Text(
-                    'No Feedback Yet',
+                    'Sin Comentarios Aún',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -199,7 +199,7 @@ class AdminFeedbackScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'User ID: ${feedback.userId.substring(0, 12)}...',
+                  'ID de Usuario: ${feedback.userId.substring(0, 12)}...',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,

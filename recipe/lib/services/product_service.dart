@@ -55,6 +55,8 @@ class ProductService {
     String? brand,
     String? category,
     String? suggestedUnit,
+    double? packageContent,
+    String? packageUnit,
     String? imageUrl,
     String? contributorId,
   }) async {
@@ -82,6 +84,8 @@ class ProductService {
         brand: brand?.trim(),
         category: category,
         suggestedUnit: suggestedUnit,
+        packageContent: packageContent,
+        packageUnit: packageUnit,
         imageUrl: imageUrl,
         canonicalIngredientId: canonicalIngredientId,
         contributorId: contributorId,

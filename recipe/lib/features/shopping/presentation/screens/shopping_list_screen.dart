@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/standard_app_bar.dart';
 import '../../../../providers/shopping_list_provider.dart';
 import '../../../../providers/phase2_providers.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/shopping_list_model.dart';
+import '../../../../models/user_store_model.dart';
 import '../../../../core/utils/translations.dart';
 import '../../../../core/widgets/smart_purchase_button.dart';
 import '../../../../core/utils/validators.dart';
@@ -445,14 +447,30 @@ class ShoppingListScreen extends ConsumerWidget {
               const Divider(height: 1, thickness: 1),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: SmartPurchaseButton(
-                  itemName: item.name,
-                  amazonLink: item.amazonLink,
-                  walmartLink: item.walmartLink,
-                  size: SmartPurchaseButtonSize.medium,
-                  onLinksUpdated: (amazonUrl, walmartUrl) {
-                    _handleLinkUpdate(context, ref, item, amazonUrl, walmartUrl);
-                  },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SmartPurchaseButton(
+                      itemName: item.name,
+                      amazonLink: item.amazonLink,
+                      walmartLink: item.walmartLink,
+                      size: SmartPurchaseButtonSize.medium,
+                      onLinksUpdated: (amazonUrl, walmartUrl) {
+                        _handleLinkUpdate(context, ref, item, amazonUrl, walmartUrl);
+                      },
+                    ),
+                    // Custom stores - display if any exist
+                    if (item.customStores.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: item.customStores.map((store) {
+                          return _buildCustomStoreChip(context, store);
+                        }).toList(),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -460,6 +478,89 @@ class ShoppingListScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Build a custom store chip button
+  Widget _buildCustomStoreChip(BuildContext context, CustomStoreLink store) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _launchCustomStoreUrl(context, store.url),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.secondary.withOpacity(0.15),
+                AppColors.secondary.withOpacity(0.08),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.secondary.withOpacity(0.4),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.storefront_outlined,
+                size: 16,
+                color: AppColors.secondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                store.storeName,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.secondary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.open_in_new,
+                size: 12,
+                color: AppColors.secondary.withOpacity(0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Launch custom store URL
+  Future<void> _launchCustomStoreUrl(BuildContext context, String url) async {
+    try {
+      final uri = Uri.parse(url);
+      final canLaunch = await canLaunchUrl(uri);
+      if (canLaunch) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No se pudo abrir el enlace'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al abrir enlace: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   /// Handle link updates from SmartPurchaseButton
@@ -533,6 +634,9 @@ class ShoppingListScreen extends ConsumerWidget {
     final amazonController = TextEditingController(text: item.amazonLink ?? '');
     final walmartController = TextEditingController(text: item.walmartLink ?? '');
     final formKey = GlobalKey<FormState>();
+    
+    // Custom stores state
+    List<CustomStoreLink> customStores = List.from(item.customStores);
 
     showDialog(
       context: context,
@@ -816,6 +920,161 @@ class ShoppingListScreen extends ConsumerWidget {
                   setState(() {});
                 },
               ),
+              
+              const SizedBox(height: 24),
+              
+              // My Stores Section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.secondary.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.storefront_outlined,
+                          size: 16,
+                          color: AppColors.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Mis Tiendas',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Agrega enlaces a tus tiendas favoritas',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Display existing custom stores
+              if (customStores.isNotEmpty) ...[
+                ...customStores.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final store = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.gray50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.gray200),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.store_outlined,
+                            size: 16,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                store.storeName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                store.url,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            setState(() {
+                              customStores.removeAt(index);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+              
+              // Add custom store button
+              OutlinedButton.icon(
+                onPressed: () => _showAddCustomStoreDialog(
+                  context,
+                  (storeName, url) {
+                    setState(() {
+                      customStores.add(CustomStoreLink(
+                        storeName: storeName,
+                        url: url,
+                      ));
+                    });
+                  },
+                ),
+                icon: Icon(
+                  Icons.add_business_outlined,
+                  size: 18,
+                  color: AppColors.secondary,
+                ),
+                label: const Text(
+                  'Agregar mi tienda',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.secondary,
+                  side: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -900,6 +1159,7 @@ class ShoppingListScreen extends ConsumerWidget {
                         walmartLink: walmartController.text.trim().isEmpty
                             ? null
                             : walmartController.text.trim(),
+                        customStores: customStores,
                       );
 
                   if (context.mounted) {
@@ -925,7 +1185,7 @@ class ShoppingListScreen extends ConsumerWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Error updating item: $e'),
+                        content: Text('Error al actualizar artículo: $e'),
                         backgroundColor: AppColors.error,
                       ),
                     );
@@ -952,6 +1212,151 @@ class ShoppingListScreen extends ConsumerWidget {
         ],
       ),
         ),
+      ),
+    );
+  }
+
+  /// Show dialog to add a custom store
+  void _showAddCustomStoreDialog(
+    BuildContext context,
+    Function(String storeName, String url) onAdd,
+  ) {
+    final storeNameController = TextEditingController();
+    final urlController = TextEditingController();
+    final addStoreFormKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.add_business_outlined,
+                color: AppColors.secondary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Agregar Mi Tienda',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: addStoreFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: storeNameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Nombre de la tienda *',
+                  hintText: 'ej., Mi Tienda Local',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  prefixIcon: const Icon(Icons.store_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.secondary, width: 2),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El nombre de la tienda es requerido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: urlController,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  labelText: 'URL del producto *',
+                  hintText: 'https://mitienda.com/producto',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  prefixIcon: const Icon(Icons.link_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.secondary, width: 2),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'La URL es requerida';
+                  }
+                  final urlError = Validators.validateOptionalUrl(value.trim());
+                  if (urlError != null) {
+                    return urlError;
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (addStoreFormKey.currentState!.validate()) {
+                onAdd(
+                  storeNameController.text.trim(),
+                  urlController.text.trim(),
+                );
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Agregar'),
+          ),
+        ],
       ),
     );
   }
@@ -1032,7 +1437,7 @@ class ShoppingListScreen extends ConsumerWidget {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Item removed'),
+                      content: Text('Artículo eliminado'),
                       backgroundColor: AppColors.success,
                       duration: Duration(seconds: 2),
                     ),
@@ -1043,7 +1448,7 @@ class ShoppingListScreen extends ConsumerWidget {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error removing item: ${e.toString()}'),
+                      content: Text('Error al eliminar artículo: ${e.toString()}'),
                       backgroundColor: AppColors.error,
                       duration: const Duration(seconds: 3),
                     ),
@@ -1151,7 +1556,7 @@ class ShoppingListScreen extends ConsumerWidget {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error deleting shopping list: ${e.toString()}'),
+                      content: Text('Error al eliminar lista de compras: ${e.toString()}'),
                       backgroundColor: AppColors.error,
                       duration: const Duration(seconds: 4),
                     ),

@@ -29,7 +29,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Category "$category" added'),
+          content: Text('Categoría "$category" agregada'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -43,7 +43,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Category "$category" removed'),
+          content: Text('Categoría "$category" eliminada'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -60,7 +60,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'Manage Categories',
+          'Gestionar Categorías',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -95,7 +95,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Add New Category',
+                    'Agregar Nueva Categoría',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -122,7 +122,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
                       ElevatedButton.icon(
                         onPressed: _addCategory,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Add'),
+                        label: const Text('Agregar'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -141,7 +141,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
 
             // Categories List
             const Text(
-              'Available Categories',
+              'Categorías Disponibles',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -236,7 +236,7 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Default categories cannot be removed. Custom categories are stored locally and will be available for pantry items.',
+                      'Las categorías predeterminadas no se pueden eliminar. Las categorías personalizadas se almacenan localmente y estarán disponibles para los artículos de despensa.',
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,

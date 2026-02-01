@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/firestore/firestore_service.dart';
 import '../models/shopping_list_model.dart';
+import '../models/user_store_model.dart';
 import '../models/recipe_model.dart';
 import '../models/pantry_item_model.dart';
 import 'profile_provider.dart';
@@ -141,6 +142,7 @@ class ShoppingListController extends StateNotifier<AsyncValue<void>> {
     required String unit,
     String? amazonLink,
     String? walmartLink,
+    List<CustomStoreLink>? customStores,
   }) async {
     final userId = _ref.read(currentUserIdProvider);
     if (userId == null) {
@@ -160,6 +162,7 @@ class ShoppingListController extends StateNotifier<AsyncValue<void>> {
         unit: unit,
         amazonLink: amazonLink,
         walmartLink: walmartLink,
+        customStores: customStores,
       );
 
       state = const AsyncValue.data(null);
@@ -210,6 +213,34 @@ class ShoppingListController extends StateNotifier<AsyncValue<void>> {
 
     try {
       await _firestoreService.deleteShoppingList(userId, listId);
+      state = const AsyncValue.data(null);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      _ref.read(shoppingListErrorProvider.notifier).state = e.toString();
+      rethrow;
+    }
+  }
+
+  /// Archive or unarchive shopping list
+  Future<void> archiveShoppingList({
+    required String listId,
+    required bool isArchived,
+  }) async {
+    final userId = _ref.read(currentUserIdProvider);
+    if (userId == null) {
+      throw Exception('No hay usuario conectado');
+    }
+
+    state = const AsyncValue.loading();
+    _ref.read(shoppingListErrorProvider.notifier).state = null;
+
+    try {
+      await _firestoreService.archiveShoppingList(
+        userId: userId,
+        listId: listId,
+        isArchived: isArchived,
+      );
+
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);

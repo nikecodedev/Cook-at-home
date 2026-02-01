@@ -31,9 +31,11 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
   late TextEditingController _nameController;
   late TextEditingController _brandController;
   late TextEditingController _priceController;
+  late TextEditingController _packageContentController;
   
   String? _selectedCategory;
   String? _selectedUnit;
+  String? _selectedPackageUnit;
   File? _selectedImage;
   bool _isLoading = false;
   String? _errorMessage;
@@ -45,6 +47,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
     _nameController = TextEditingController();
     _brandController = TextEditingController();
     _priceController = TextEditingController();
+    _packageContentController = TextEditingController();
   }
 
   @override
@@ -53,6 +56,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
     _nameController.dispose();
     _brandController.dispose();
     _priceController.dispose();
+    _packageContentController.dispose();
     super.dispose();
   }
 
@@ -168,6 +172,12 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
         }
       }
 
+      // Parse package content
+      final packageContentText = _packageContentController.text.trim();
+      final packageContent = packageContentText.isNotEmpty 
+          ? double.tryParse(packageContentText) 
+          : null;
+
       // Create product in database
       final productId = await productService.createProduct(
         barcode: barcode,
@@ -176,6 +186,8 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
         brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
         category: _selectedCategory,
         suggestedUnit: _selectedUnit,
+        packageContent: packageContent,
+        packageUnit: _selectedPackageUnit,
         imageUrl: imageUrl,
         contributorId: userId,
       );
@@ -472,6 +484,88 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                       _selectedUnit = value;
                     });
                   },
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Package Content Section
+              _buildSectionTitle('Contenido del Paquete *'),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Package content amount
+                  Expanded(
+                    flex: 2,
+                    child: CustomTextField(
+                      label: 'Cantidad',
+                      controller: _packageContentController,
+                      prefixIcon: Icons.inventory_2_outlined,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      hint: 'ej. 500, 1, 12',
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Requerido';
+                        }
+                        final content = double.tryParse(value.trim());
+                        if (content == null || content <= 0) {
+                          return 'Ingresa un número válido';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Package unit dropdown
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.gray300),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedPackageUnit,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Unidad',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Requerido';
+                          }
+                          return null;
+                        },
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('Seleccionar')),
+                          DropdownMenuItem(value: 'g', child: Text('g (gramos)')),
+                          DropdownMenuItem(value: 'kg', child: Text('kg (kilos)')),
+                          DropdownMenuItem(value: 'ml', child: Text('ml (mililitros)')),
+                          DropdownMenuItem(value: 'L', child: Text('L (litros)')),
+                          DropdownMenuItem(value: 'pzas', child: Text('pzas (piezas)')),
+                          DropdownMenuItem(value: 'oz', child: Text('oz (onzas)')),
+                          DropdownMenuItem(value: 'lb', child: Text('lb (libras)')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPackageUnit = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Indica el contenido del paquete (ej. 500 g, 1 L, 12 pzas). Esto es necesario para calcular costos de recetas y valor de despensa.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
               const SizedBox(height: 24),

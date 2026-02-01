@@ -108,7 +108,7 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
                 )
               : null,
       title: Padding(
-        padding: const EdgeInsets.only(left: 16),
+        padding: const EdgeInsets.only(left: 8),
         child: subtitle != null
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,27 +116,33 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   Text(
                     subtitle!,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.white.withOpacity(0.9),
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ],
               )
             : Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
       ),
       actions: actions != null

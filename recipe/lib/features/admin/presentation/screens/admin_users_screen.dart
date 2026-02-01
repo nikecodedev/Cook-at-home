@@ -19,7 +19,7 @@ class AdminUsersScreen extends ConsumerWidget {
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'Manage Users',
+          'Gestionar Usuarios',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -39,7 +39,7 @@ class AdminUsersScreen extends ConsumerWidget {
         data: (users) {
           if (users.isEmpty) {
             return const Center(
-              child: Text('No users found'),
+              child: Text('No se encontraron usuarios'),
             );
           }
 
@@ -69,7 +69,7 @@ class AdminUsersScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(allUsersProvider),
-                child: const Text('Retry'),
+                child: const Text('Reintentar'),
               ),
             ],
           ),
@@ -182,7 +182,7 @@ class AdminUsersScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'User ID: ${user.userId.substring(0, 12)}...',
+                    'ID de Usuario: ${user.userId.substring(0, 12)}...',
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textSecondary,
@@ -212,7 +212,7 @@ class AdminUsersScreen extends ConsumerWidget {
                         color: AppColors.primary,
                       ),
                       const SizedBox(width: 12),
-                      Text(user.isAdmin ? 'Remove Admin' : 'Make Admin'),
+                      Text(user.isAdmin ? 'Quitar Admin' : 'Hacer Admin'),
                     ],
                   ),
                 ),
@@ -222,7 +222,7 @@ class AdminUsersScreen extends ConsumerWidget {
                     children: [
                       Icon(Icons.delete, size: 20, color: AppColors.error),
                       SizedBox(width: 12),
-                      Text('Delete User', style: TextStyle(color: AppColors.error)),
+                      Text('Eliminar Usuario', style: TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),
@@ -238,16 +238,16 @@ class AdminUsersScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(user.isAdmin ? 'Remove Admin Role' : 'Grant Admin Role'),
+        title: Text(user.isAdmin ? 'Quitar Rol de Admin' : 'Otorgar Rol de Admin'),
         content: Text(
           user.isAdmin
-              ? 'Are you sure you want to remove admin privileges from ${user.displayName}?'
-              : 'Are you sure you want to grant admin privileges to ${user.displayName}?',
+              ? '¿Estás seguro de que deseas quitar los privilegios de administrador a ${user.displayName}?'
+              : '¿Estás seguro de que deseas otorgar privilegios de administrador a ${user.displayName}?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -261,8 +261,8 @@ class AdminUsersScreen extends ConsumerWidget {
                     SnackBar(
                       content: Text(
                         user.isAdmin
-                            ? 'Admin role removed successfully'
-                            : 'Admin role granted successfully',
+                            ? 'Rol de admin eliminado exitosamente'
+                            : 'Rol de admin otorgado exitosamente',
                       ),
                       backgroundColor: AppColors.success,
                     ),
@@ -273,7 +273,7 @@ class AdminUsersScreen extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to update role: $e'),
+                      content: Text('Error al actualizar rol: $e'),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -284,7 +284,7 @@ class AdminUsersScreen extends ConsumerWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Confirm'),
+            child: const Text('Confirmar'),
           ),
         ],
       ),
@@ -295,20 +295,20 @@ class AdminUsersScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete User'),
+        title: const Text('Eliminar Usuario'),
         content: Text(
-          'Are you sure you want to delete user "${user.displayName}"?\n\n'
-          'This will permanently delete:\n'
-          '- User profile\n'
-          '- All pantry items\n'
-          '- All shopping lists\n'
-          '- All user data\n\n'
-          'This action cannot be undone.',
+          '¿Estás seguro de que deseas eliminar al usuario "${user.displayName}"?\n\n'
+          'Esto eliminará permanentemente:\n'
+          '- Perfil del usuario\n'
+          '- Todos los artículos de despensa\n'
+          '- Todas las listas de compras\n'
+          '- Todos los datos del usuario\n\n'
+          'Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -318,7 +318,7 @@ class AdminUsersScreen extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('User deleted successfully'),
+                      content: Text('Usuario eliminado exitosamente'),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -328,7 +328,7 @@ class AdminUsersScreen extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to delete user: $e'),
+                      content: Text('Error al eliminar usuario: $e'),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -339,7 +339,7 @@ class AdminUsersScreen extends ConsumerWidget {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: const Text('Eliminar'),
           ),
         ],
       ),

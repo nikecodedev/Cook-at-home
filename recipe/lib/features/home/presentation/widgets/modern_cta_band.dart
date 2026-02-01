@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 
-/// Mini CTA band with gradient and button
+/// Banda CTA mini con gradiente y botón
 class ModernCTABand extends StatelessWidget {
   const ModernCTABand({super.key});
 
@@ -35,7 +35,7 @@ class ModernCTABand extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Start cooking smarter today — it\'s free.',
+                  'Empieza a cocinar más inteligente hoy — es gratis.',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -64,7 +64,7 @@ class ModernCTABand extends StatelessWidget {
                       ],
                     ),
                     child: Text(
-                      'Create Account',
+                      'Crear Cuenta',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -82,7 +82,7 @@ class ModernCTABand extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Start cooking smarter today — it\'s free.',
+                    'Empieza a cocinar más inteligente hoy — es gratis.',
                     style: TextStyle(
                       fontSize: isTablet ? 20 : 18,
                       fontWeight: FontWeight.w600,
@@ -111,7 +111,7 @@ class ModernCTABand extends StatelessWidget {
                       ],
                     ),
                     child: Text(
-                      'Create Account',
+                      'Crear Cuenta',
                       style: TextStyle(
                         fontSize: isTablet ? 15 : 14,
                         fontWeight: FontWeight.w600,

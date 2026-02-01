@@ -8,6 +8,8 @@ class Product {
   final String? brand; // Optional brand
   final String? category; // Optional category
   final String? suggestedUnit; // Suggested unit for this product
+  final double? packageContent; // Package content amount (e.g., 500 for 500g)
+  final String? packageUnit; // Package content unit (e.g., 'g', 'ml', 'pcs')
   final String? imageUrl; // Optional product photo
   final String canonicalIngredientId; // Maps to canonical ingredient
   final String? contributorId; // User who contributed this product
@@ -21,12 +23,23 @@ class Product {
     this.brand,
     this.category,
     this.suggestedUnit,
+    this.packageContent,
+    this.packageUnit,
     this.imageUrl,
     required this.canonicalIngredientId,
     this.contributorId,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Get formatted package content string (e.g., "500 g", "1 L", "12 pcs")
+  String? get formattedPackageContent {
+    if (packageContent == null || packageUnit == null) return null;
+    final contentStr = packageContent! % 1 == 0 
+        ? packageContent!.toInt().toString() 
+        : packageContent!.toString();
+    return '$contentStr $packageUnit';
+  }
 
   /// Create Product from Firestore document
   factory Product.fromFirestore(DocumentSnapshot doc) {
@@ -38,6 +51,8 @@ class Product {
       brand: data['brand'] as String?,
       category: data['category'] as String?,
       suggestedUnit: data['suggestedUnit'] as String?,
+      packageContent: (data['packageContent'] as num?)?.toDouble(),
+      packageUnit: data['packageUnit'] as String?,
       imageUrl: data['imageUrl'] as String?,
       canonicalIngredientId: (data['canonicalIngredientId'] as String?)?.trim() ?? '',
       contributorId: data['contributorId'] as String?,
@@ -55,6 +70,8 @@ class Product {
       brand: data['brand'] as String?,
       category: data['category'] as String?,
       suggestedUnit: data['suggestedUnit'] as String?,
+      packageContent: (data['packageContent'] as num?)?.toDouble(),
+      packageUnit: data['packageUnit'] as String?,
       imageUrl: data['imageUrl'] as String?,
       canonicalIngredientId: (data['canonicalIngredientId'] as String?)?.trim() ?? '',
       contributorId: data['contributorId'] as String?,
@@ -75,6 +92,8 @@ class Product {
       'brand': brand,
       'category': category,
       'suggestedUnit': suggestedUnit,
+      'packageContent': packageContent,
+      'packageUnit': packageUnit,
       'imageUrl': imageUrl,
       'canonicalIngredientId': canonicalIngredientId,
       'contributorId': contributorId,
@@ -91,6 +110,8 @@ class Product {
     String? brand,
     String? category,
     String? suggestedUnit,
+    double? packageContent,
+    String? packageUnit,
     String? imageUrl,
     String? canonicalIngredientId,
     String? contributorId,
@@ -104,6 +125,8 @@ class Product {
       brand: brand ?? this.brand,
       category: category ?? this.category,
       suggestedUnit: suggestedUnit ?? this.suggestedUnit,
+      packageContent: packageContent ?? this.packageContent,
+      packageUnit: packageUnit ?? this.packageUnit,
       imageUrl: imageUrl ?? this.imageUrl,
       canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
       contributorId: contributorId ?? this.contributorId,

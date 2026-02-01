@@ -11,6 +11,7 @@ import '../../models/recipe_model.dart';
 import '../../models/meal_plan_model.dart';
 import '../storage/firebase_storage_service.dart';
 import '../../models/shopping_list_model.dart';
+import '../../models/user_store_model.dart';
 import '../../models/feedback_model.dart';
 import '../../models/user_model.dart';
 import '../../core/utils/logger.dart';
@@ -1070,6 +1071,7 @@ class FirestoreService {
     String? canonicalIngredientId,
     String? amazonLink,
     String? walmartLink,
+    List<CustomStoreLink>? customStores,
   }) async {
     try {
       final updateData = <String, dynamic>{
@@ -1086,6 +1088,9 @@ class FirestoreService {
       }
       if (walmartLink != null) {
         updateData['walmartLink'] = walmartLink;
+      }
+      if (customStores != null) {
+        updateData['customStores'] = customStores.map((e) => e.toMap()).toList();
       }
 
       await _firestore
@@ -1183,6 +1188,30 @@ class FirestoreService {
       Logger.success('Shopping list updated: $listId', 'FirestoreService');
     } catch (e) {
       Logger.error('Failed to update shopping list', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Archive or unarchive a shopping list
+  Future<void> archiveShoppingList({
+    required String userId,
+    required String listId,
+    required bool isArchived,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .update({
+        'isArchived': isArchived,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      Logger.success('Shopping list ${isArchived ? 'archived' : 'unarchived'}: $listId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to archive shopping list', e, null, 'FirestoreService');
       rethrow;
     }
   }

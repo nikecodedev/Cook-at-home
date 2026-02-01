@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,20 +29,40 @@ class PantryListScreen extends ConsumerStatefulWidget {
   ConsumerState<PantryListScreen> createState() => _PantryListScreenState();
 }
 
-class _PantryListScreenState extends ConsumerState<PantryListScreen> {
+class _PantryListScreenState extends ConsumerState<PantryListScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   PantryFilter _filter = PantryFilter();
-  bool _showFilters = false;
+  bool _showAdvancedFilters = false;
+  Timer? _debounceTimer;
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounceTimer?.cancel();
+    _shimmerController.dispose();
     super.dispose();
   }
 
   void _updateFilter(PantryFilter newFilter) {
     setState(() {
       _filter = newFilter;
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _updateFilter(_filter.copyWith(searchQuery: value.isEmpty ? null : value));
     });
   }
 
@@ -98,7 +119,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
               ),
               onPressed: () {
                 setState(() {
-                  _showFilters = !_showFilters;
+                  _showAdvancedFilters = !_showAdvancedFilters;
                 });
               },
             ),
@@ -106,25 +127,50 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withOpacity(0.8),
+                  AppColors.primaryDark.withOpacity(0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: IconButton(
-              icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
-              onPressed: () async {
-                final product = await context.push<Product?>(Routes.barcodeScanner);
-                if (product != null && context.mounted) {
-                  context.push(Routes.pantryEdit, extra: product);
-                }
-              },
-              tooltip: 'Escanear producto',
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () async {
+                  final product = await context.push<Product?>(Routes.barcodeScanner);
+                  if (product != null && context.mounted) {
+                    context.push(Routes.pantryEdit, extra: product);
+                  }
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 18),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Escanear',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           Container(
@@ -194,25 +240,30 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
                   ),
                 ),
 
-                // Search Bar
+                // Search Bar with predictive search
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                   sliver: SliverToBoxAdapter(
                     child: SearchBarWidget(
                       controller: _searchController,
                       hintText: 'Buscar ingredientes de despensa...',
-                      onChanged: (value) {
-                        _updateFilter(_filter.copyWith(searchQuery: value.isEmpty ? null : value));
-                      },
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                 ),
-                // Filter Chips
-                if (_showFilters)
+                // Sort/Filter Header - Always visible
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  sliver: SliverToBoxAdapter(
+                    child: _buildSortFilterHeader(items),
+                  ),
+                ),
+                // Advanced Filter Section
+                if (_showAdvancedFilters)
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     sliver: SliverToBoxAdapter(
-                      child: _buildFilterSection(items),
+                      child: _buildAdvancedFilterSection(items),
                     ),
                   ),
                 if (expiredItems.isNotEmpty) ...[
@@ -281,7 +332,7 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
             ),
           );
         },
-        loading: () => _buildEmptyState(context),
+        loading: () => _buildSkeletonLoading(context),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -312,7 +363,281 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
     );
   }
 
-  Widget _buildFilterSection(List<PantryItem> allItems) {
+  /// Build always-visible sort/filter header with dropdown and quick filters
+  Widget _buildSortFilterHeader(List<PantryItem> allItems) {
+    final categories = getPantryCategories(allItems);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Sort Dropdown Row
+        Row(
+          children: [
+            // Sort Dropdown
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.gray200),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.gray200.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<PantrySortOption>(
+                  value: _filter.sortOption,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                  isDense: true,
+                  borderRadius: BorderRadius.circular(12),
+                  items: [
+                    DropdownMenuItem(
+                      value: PantrySortOption.expiringSoon,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer_outlined, size: 16, color: AppColors.warning),
+                          const SizedBox(width: 8),
+                          const Text('Por vencer pronto', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: PantrySortOption.mostUsed,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.trending_up_rounded, size: 16, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          const Text('Más usado', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: PantrySortOption.recentlyAdded,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.schedule_rounded, size: 16, color: AppColors.info),
+                          const SizedBox(width: 8),
+                          const Text('Recién agregado', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: PantrySortOption.alphabetical,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.sort_by_alpha_rounded, size: 16, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          const Text('A-Z', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: PantrySortOption.category,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.category_rounded, size: 16, color: AppColors.oliveGreen),
+                          const SizedBox(width: 8),
+                          const Text('Por categoría', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      _updateFilter(_filter.copyWith(sortOption: value));
+                    }
+                  },
+                ),
+              ),
+            ),
+            const Spacer(),
+            // Clear filters button
+            if (_filter.hasActiveFilters)
+              TextButton.icon(
+                onPressed: _clearFilters,
+                icon: const Icon(Icons.clear_all, size: 18),
+                label: const Text('Limpiar', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+            // Filter toggle button
+            Container(
+              decoration: BoxDecoration(
+                color: _showAdvancedFilters ? AppColors.primary.withOpacity(0.1) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _showAdvancedFilters ? AppColors.primary : AppColors.gray200,
+                ),
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.filter_list_rounded,
+                  color: _showAdvancedFilters ? AppColors.primary : AppColors.textSecondary,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _showAdvancedFilters = !_showAdvancedFilters;
+                  });
+                },
+                tooltip: 'Más filtros',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Quick Filter Chips - Always visible
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              // Expiration quick filters
+              _buildQuickFilterChip(
+                label: 'Vencidos',
+                icon: Icons.warning_rounded,
+                isSelected: _filter.expirationStatus == ExpirationFilter.expired,
+                color: AppColors.error,
+                onTap: () {
+                  if (_filter.expirationStatus == ExpirationFilter.expired) {
+                    _updateFilter(_filter.copyWith(expirationStatus: ExpirationFilter.all));
+                  } else {
+                    _updateFilter(_filter.copyWith(expirationStatus: ExpirationFilter.expired));
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+              _buildQuickFilterChip(
+                label: 'Por vencer',
+                icon: Icons.schedule_rounded,
+                isSelected: _filter.expirationStatus == ExpirationFilter.expiringSoon,
+                color: AppColors.warning,
+                onTap: () {
+                  if (_filter.expirationStatus == ExpirationFilter.expiringSoon) {
+                    _updateFilter(_filter.copyWith(expirationStatus: ExpirationFilter.all));
+                  } else {
+                    _updateFilter(_filter.copyWith(expirationStatus: ExpirationFilter.expiringSoon));
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+              _buildQuickFilterChip(
+                label: 'Frecuentes',
+                icon: Icons.local_fire_department_rounded,
+                isSelected: _filter.frequencyFilter == FrequencyFilter.frequentlyUsed,
+                color: AppColors.primary,
+                onTap: () {
+                  if (_filter.frequencyFilter == FrequencyFilter.frequentlyUsed) {
+                    _updateFilter(_filter.copyWith(clearFrequencyFilter: true));
+                  } else {
+                    _updateFilter(_filter.copyWith(frequencyFilter: FrequencyFilter.frequentlyUsed));
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+              _buildQuickFilterChip(
+                label: 'Sin usar',
+                icon: Icons.hourglass_empty_rounded,
+                isSelected: _filter.frequencyFilter == FrequencyFilter.neverUsed,
+                color: AppColors.textSecondary,
+                onTap: () {
+                  if (_filter.frequencyFilter == FrequencyFilter.neverUsed) {
+                    _updateFilter(_filter.copyWith(clearFrequencyFilter: true));
+                  } else {
+                    _updateFilter(_filter.copyWith(frequencyFilter: FrequencyFilter.neverUsed));
+                  }
+                },
+              ),
+              // Category chips if available
+              if (categories.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  height: 24,
+                  width: 1,
+                  color: AppColors.gray200,
+                ),
+                const SizedBox(width: 8),
+                ...categories.take(3).map((category) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _buildQuickFilterChip(
+                    label: Translations.translatePantryCategory(category),
+                    icon: Icons.category_outlined,
+                    isSelected: _filter.category == category,
+                    color: AppColors.oliveGreen,
+                    onTap: () {
+                      if (_filter.category == category) {
+                        _updateFilter(_filter.copyWith(clearCategory: true));
+                      } else {
+                        _updateFilter(_filter.copyWith(category: category));
+                      }
+                    },
+                  ),
+                )),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build a quick filter chip with custom styling
+  Widget _buildQuickFilterChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.15) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? color : AppColors.gray200,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: isSelected ? color : AppColors.textSecondary),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? color : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build advanced filter section (expanded view)
+  Widget _buildAdvancedFilterSection(List<PantryItem> allItems) {
     final categories = getPantryCategories(allItems);
 
     return Container(
@@ -339,28 +664,24 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Filtros',
+                'Filtros Avanzados',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
               ),
-              if (_filter.hasActiveFilters)
-                TextButton(
-                  onPressed: _clearFilters,
-                  child: const Text(
-                    'Limpiar Todo',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => setState(() => _showAdvancedFilters = false),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          // Expiration Status Filter
+          
+          // Estado de Vencimiento
           const Text(
             'Estado de Vencimiento',
             style: TextStyle(
@@ -400,6 +721,48 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          
+          // Frecuencia de Uso
+          const Text(
+            'Frecuencia de Uso',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChipWidget(
+                label: 'Todos',
+                isSelected: _filter.frequencyFilter == null || _filter.frequencyFilter == FrequencyFilter.all,
+                onTap: () => _updateFilter(_filter.copyWith(clearFrequencyFilter: true)),
+                icon: Icons.all_inclusive,
+              ),
+              FilterChipWidget(
+                label: 'Frecuentes (5+)',
+                isSelected: _filter.frequencyFilter == FrequencyFilter.frequentlyUsed,
+                onTap: () => _updateFilter(_filter.copyWith(frequencyFilter: FrequencyFilter.frequentlyUsed)),
+                icon: Icons.local_fire_department_rounded,
+              ),
+              FilterChipWidget(
+                label: 'Ocasional (1-4)',
+                isSelected: _filter.frequencyFilter == FrequencyFilter.occasionallyUsed,
+                onTap: () => _updateFilter(_filter.copyWith(frequencyFilter: FrequencyFilter.occasionallyUsed)),
+                icon: Icons.trending_flat_rounded,
+              ),
+              FilterChipWidget(
+                label: 'Sin usar',
+                isSelected: _filter.frequencyFilter == FrequencyFilter.neverUsed,
+                onTap: () => _updateFilter(_filter.copyWith(frequencyFilter: FrequencyFilter.neverUsed)),
+                icon: Icons.hourglass_empty_rounded,
+              ),
+            ],
+          ),
           if (categories.isNotEmpty) ...[
             const SizedBox(height: 20),
             const Text(
@@ -416,9 +779,9 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
               runSpacing: 8,
               children: [
                 FilterChipWidget(
-                  label: 'Todas las Categorías',
+                  label: 'Todas',
                   isSelected: _filter.category == null,
-                  onTap: () => _updateFilter(_filter.copyWith(category: null)),
+                  onTap: () => _updateFilter(_filter.copyWith(clearCategory: true)),
                 ),
                 ...categories.map((category) => FilterChipWidget(
                       label: Translations.translatePantryCategory(category),
@@ -430,6 +793,198 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// Build skeleton loading state with shimmer animation
+  Widget _buildSkeletonLoading(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Skeleton for analytics widget
+          _buildShimmerContainer(height: 100, width: double.infinity),
+          const SizedBox(height: 16),
+          // Skeleton for search bar
+          _buildShimmerContainer(height: 50, width: double.infinity),
+          const SizedBox(height: 16),
+          // Skeleton for sort/filter header
+          Row(
+            children: [
+              _buildShimmerContainer(height: 40, width: 180),
+              const Spacer(),
+              _buildShimmerContainer(height: 36, width: 36),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Skeleton for quick filter chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(4, (index) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _buildShimmerContainer(height: 32, width: 90),
+              )),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Skeleton for section header
+          _buildShimmerContainer(height: 24, width: 150),
+          const SizedBox(height: 16),
+          // Skeleton for pantry items
+          ...List.generate(5, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildSkeletonItemCard(),
+          )),
+        ],
+      ),
+    );
+  }
+
+  /// Build shimmer container with animation
+  Widget _buildShimmerContainer({required double height, required double width}) {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          height: height,
+          width: width,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(height > 40 ? 16 : 12),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                AppColors.gray100,
+                AppColors.gray200.withOpacity(0.8),
+                AppColors.gray100,
+              ],
+              stops: [
+                0.0,
+                _shimmerController.value,
+                1.0,
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSkeletonItemCard() {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.gray200),
+          ),
+          child: Row(
+            children: [
+              // Icon placeholder with shimmer
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      AppColors.gray100,
+                      AppColors.gray200.withOpacity(0.8),
+                      AppColors.gray100,
+                    ],
+                    stops: [
+                      0.0,
+                      _shimmerController.value,
+                      1.0,
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Content placeholder with shimmer
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.gray200,
+                            AppColors.gray300.withOpacity(0.6),
+                            AppColors.gray200,
+                          ],
+                          stops: [
+                            0.0,
+                            _shimmerController.value,
+                            1.0,
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 120,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.gray100,
+                            AppColors.gray200.withOpacity(0.6),
+                            AppColors.gray100,
+                          ],
+                          stops: [
+                            0.0,
+                            _shimmerController.value,
+                            1.0,
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 80,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.gray100,
+                            AppColors.gray200.withOpacity(0.6),
+                            AppColors.gray100,
+                          ],
+                          stops: [
+                            0.0,
+                            _shimmerController.value,
+                            1.0,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

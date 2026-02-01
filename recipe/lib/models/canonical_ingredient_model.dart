@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Canonical ingredient model - represents a standardized ingredient
-/// All pantry items, recipes, and shopping lists reference canonical ingredients
+/// Modelo de ingrediente canónico - representa un ingrediente estandarizado
+/// Todos los artículos de despensa, recetas y listas de compras hacen referencia a ingredientes canónicos
 class CanonicalIngredient {
   final String id;
-  final String name; // Primary name (normalized)
-  final List<String> synonyms; // Alternative names and spellings
-  final String? category; // Optional category
-  final String? defaultUnit; // Suggested unit for this ingredient
+  final String name; // Nombre principal (normalizado)
+  final List<String> synonyms; // Nombres alternativos y variaciones de escritura
+  final String? category; // Categoría opcional
+  final String? defaultUnit; // Unidad sugerida para este ingrediente
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,7 +21,7 @@ class CanonicalIngredient {
     required this.updatedAt,
   });
 
-  /// Create CanonicalIngredient from Firestore document
+  /// Crear CanonicalIngredient desde documento de Firestore
   factory CanonicalIngredient.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     return CanonicalIngredient(
@@ -38,7 +38,7 @@ class CanonicalIngredient {
     );
   }
 
-  /// Create CanonicalIngredient from Map
+  /// Crear CanonicalIngredient desde Map
   factory CanonicalIngredient.fromMap(Map<String, dynamic> data, String id) {
     return CanonicalIngredient(
       id: id,
@@ -58,7 +58,7 @@ class CanonicalIngredient {
     );
   }
 
-  /// Convert CanonicalIngredient to Map for Firestore
+  /// Convertir CanonicalIngredient a Map para Firestore
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -70,7 +70,7 @@ class CanonicalIngredient {
     };
   }
 
-  /// Create a copy with updated fields
+  /// Crear una copia con campos actualizados
   CanonicalIngredient copyWith({
     String? id,
     String? name,
@@ -91,22 +91,22 @@ class CanonicalIngredient {
     );
   }
 
-  /// Get all possible names (name + synonyms) for matching
+  /// Obtener todos los nombres posibles (nombre + sinónimos) para coincidencia
   List<String> get allNames {
     return [name, ...synonyms];
   }
 
-  /// Normalize a string for matching (lowercase, trim, remove accents)
-  /// Removes diacritics (accents) from characters for better matching
+  /// Normalizar una cadena para coincidencia (minúsculas, recortar, eliminar acentos)
+  /// Elimina diacríticos (acentos) de caracteres para mejor coincidencia
   static String normalize(String input) {
     return _removeAccents(input
         .toLowerCase()
         .trim()
-        .replaceAll(RegExp(r'\s+'), ' ')); // Normalize whitespace
+        .replaceAll(RegExp(r'\s+'), ' ')); // Normalizar espacios en blanco
   }
 
-  /// Remove accents/diacritics from a string
-  /// Converts accented characters to their base form (e.g., é -> e, ñ -> n)
+  /// Eliminar acentos/diacríticos de una cadena
+  /// Convierte caracteres acentuados a su forma base (ej., é -> e, ñ -> n)
   static String _removeAccents(String input) {
     const Map<String, String> accentMap = {
       'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'å': 'a',
@@ -132,7 +132,7 @@ class CanonicalIngredient {
     return result;
   }
 
-  /// Check if this ingredient matches a given name (case-insensitive, handles synonyms)
+  /// Verificar si este ingrediente coincide con un nombre dado (sin distinción de mayúsculas/minúsculas, maneja sinónimos)
   bool matches(String ingredientName) {
     final normalized = normalize(ingredientName);
     return allNames.any((name) => normalize(name) == normalized);

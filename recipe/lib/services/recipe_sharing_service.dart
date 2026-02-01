@@ -1,11 +1,22 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe_model.dart';
 import '../core/utils/logger.dart';
 import '../core/router/app_router.dart';
+
+/// Enum for supported social platforms
+enum SocialPlatform {
+  whatsapp,
+  instagram,
+  tiktok,
+  facebook,
+  native, // Native share sheet
+}
 
 /// Service for sharing recipes with native Android share sheet
 class RecipeSharingService {
@@ -52,6 +63,99 @@ class RecipeSharingService {
       Logger.error('Failed to share recipe', e, null, 'RecipeSharingService');
       rethrow;
     }
+  }
+
+  /// Share to a specific social platform
+  Future<bool> shareToSocialPlatform(Recipe recipe, SocialPlatform platform) async {
+    try {
+      final shareText = _buildShareText(recipe);
+      final webLink = '$webBaseUrl/recipe/${recipe.id}';
+      final encodedText = Uri.encodeComponent(shareText);
+      final encodedLink = Uri.encodeComponent(webLink);
+      
+      String? url;
+      
+      switch (platform) {
+        case SocialPlatform.whatsapp:
+          url = 'whatsapp://send?text=$encodedText';
+          break;
+        case SocialPlatform.facebook:
+          url = 'https://www.facebook.com/sharer/sharer.php?u=$encodedLink&quote=$encodedText';
+          break;
+        case SocialPlatform.instagram:
+          // Instagram doesn't support direct URL sharing, use native share
+          await shareRecipe(recipe);
+          return true;
+        case SocialPlatform.tiktok:
+          // TikTok doesn't support direct URL sharing, use native share
+          await shareRecipe(recipe);
+          return true;
+        case SocialPlatform.native:
+          await shareRecipe(recipe);
+          return true;
+      }
+      
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          Logger.success('Recipe shared to ${platform.name}: ${recipe.id}', 'RecipeSharingService');
+          return true;
+        } else {
+          // Fallback to native share if app not installed
+          Logger.warning('${platform.name} not available, using native share', 'RecipeSharingService');
+          await shareRecipe(recipe);
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      Logger.error('Failed to share to ${platform.name}', e, null, 'RecipeSharingService');
+      // Fallback to native share
+      await shareRecipe(recipe);
+      return true;
+    }
+  }
+
+  /// Copy recipe link to clipboard
+  Future<void> copyRecipeLink(Recipe recipe) async {
+    try {
+      final webLink = '$webBaseUrl/recipe/${recipe.id}';
+      await Clipboard.setData(ClipboardData(text: webLink));
+      Logger.success('Recipe link copied: ${recipe.id}', 'RecipeSharingService');
+    } catch (e) {
+      Logger.error('Failed to copy recipe link', e, null, 'RecipeSharingService');
+      rethrow;
+    }
+  }
+
+  /// Get the shareable web link for a recipe
+  String getRecipeWebLink(Recipe recipe) {
+    return '$webBaseUrl/recipe/${recipe.id}';
+  }
+
+  /// Build short share text optimized for social media virality
+  String buildViralShareText(Recipe recipe) {
+    final buffer = StringBuffer();
+    
+    buffer.writeln('🍳 ${recipe.title}');
+    buffer.writeln();
+    
+    if (recipe.cookTime > 0) {
+      buffer.write('⏱️ ${recipe.formattedCookTime} ');
+    }
+    
+    if (recipe.numberOfServings != null) {
+      buffer.write('| 🍽️ ${recipe.numberOfServings} porciones ');
+    }
+    
+    buffer.writeln();
+    buffer.writeln();
+    buffer.writeln('✨ ¡Descubre la receta completa en Cocina en tu Casa!');
+    buffer.writeln('$webBaseUrl/recipe/${recipe.id}');
+    
+    return buffer.toString();
   }
 
   /// Download image from URL to temporary file for sharing
@@ -131,17 +235,17 @@ class RecipeSharingService {
     }
     
     if (recipe.numberOfServings != null) {
-      buffer.writeln('🍽️ ${recipe.numberOfServings} servings');
+      buffer.writeln('🍽️ ${recipe.numberOfServings} porciones');
     }
     
     if (recipe.ingredients.isNotEmpty) {
-      buffer.writeln('📋 ${recipe.ingredients.length} ingredients');
+      buffer.writeln('📋 ${recipe.ingredients.length} ingredientes');
     }
     
     buffer.writeln();
     
     // Deep link
-    buffer.writeln('📱 View full recipe:');
+    buffer.writeln('📱 Ver receta completa:');
     buffer.writeln(_generateDeepLink(recipe));
     
     return buffer.toString();

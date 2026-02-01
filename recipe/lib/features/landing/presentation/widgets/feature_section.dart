@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'feature_card.dart';
 
-/// Features section with three aesthetic cards
+/// Sección de características con tres tarjetas estéticas
 class FeatureSection extends StatelessWidget {
   const FeatureSection({super.key});
 
@@ -14,21 +14,21 @@ class FeatureSection extends StatelessWidget {
     final features = [
       {
         'icon': Icons.kitchen_rounded,
-        'title': 'Smart Pantry Management',
+        'title': 'Gestión Inteligente de Despensa',
         'description':
-            'Keep track of your ingredients effortlessly. Know what you have, what you need, and when items expire.',
+            'Mantén el control de tus ingredientes sin esfuerzo. Sabe qué tienes, qué necesitas y cuándo caducan los productos.',
       },
       {
         'icon': Icons.restaurant_menu_rounded,
-        'title': 'Recipe Recommendations',
+        'title': 'Recomendaciones de Recetas',
         'description':
-            'Get personalized recipe suggestions based on your pantry items. Cook smarter with AI-powered meal planning.',
+            'Obtén sugerencias de recetas personalizadas basadas en los ingredientes de tu despensa. Cocina más inteligente con planificación de comidas.',
       },
       {
         'icon': Icons.shopping_cart_rounded,
-        'title': 'Intelligent Shopping Lists',
+        'title': 'Listas de Compras Inteligentes',
         'description':
-            'Generate shopping lists from recipes automatically. Never forget an ingredient again with smart list management.',
+            'Genera listas de compras desde recetas automáticamente. Nunca olvides un ingrediente con gestión inteligente de listas.',
       },
     ];
 
@@ -43,9 +43,9 @@ class FeatureSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title
+          // Título de Sección
           Text(
-            'Everything you need',
+            'Todo lo que necesitas',
             style: TextStyle(
               fontSize: isTablet ? 40 : isMobile ? 28 : 36,
               fontWeight: FontWeight.bold,

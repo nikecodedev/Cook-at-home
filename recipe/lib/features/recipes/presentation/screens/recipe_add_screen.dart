@@ -451,7 +451,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
             if (errorMessage.contains('image') || errorMessage.contains('upload') || errorMessage.contains('Storage')) {
               userMessage = 'Receta guardada, pero falló la carga de la imagen. La receta se creó sin imagen.';
             } else {
-              userMessage = 'Failed to save recipe: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}';
+              userMessage = 'Error al guardar receta: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}';
             }
             
             ScaffoldMessenger.of(context).showSnackBar(
@@ -2071,7 +2071,7 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'Save',
+                                'Guardar',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

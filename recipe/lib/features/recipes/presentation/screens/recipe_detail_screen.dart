@@ -17,6 +17,7 @@ import '../widgets/instruction_step_card.dart';
 import '../widgets/recipe_cost_widget.dart';
 import '../../../../providers/pantry_provider.dart';
 import '../../../../services/recipe_recommendation_service.dart';
+import '../../../../services/recipe_sharing_service.dart';
 
 /// Modern, minimal recipe detail page with Notion-style design
 class RecipeDetailScreen extends ConsumerStatefulWidget {
@@ -578,6 +579,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   Widget _buildShareButton(BuildContext context, WidgetRef ref, bool isTablet) {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -590,48 +592,189 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _shareRecipe(context, ref),
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 32 : 24,
-              vertical: isTablet ? 20 : 18,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.share_rounded,
-                    color: AppColors.primary,
-                    size: 22,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  AppLocalizations.of(context)?.shareRecipe ?? 'Share Recipe',
-                  style: TextStyle(
-                    fontSize: isTablet ? 17 : 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: 0.2,
-                  ),
+                child: const Icon(
+                  Icons.share_rounded,
+                  color: AppColors.primary,
+                  size: 20,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Compartir Receta',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 16),
+          // Social media buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildSocialButton(
+                context,
+                ref,
+                icon: Icons.message_rounded,
+                label: 'WhatsApp',
+                color: const Color(0xFF25D366),
+                onTap: () => _shareToSocial(context, ref, SocialPlatform.whatsapp),
+              ),
+              _buildSocialButton(
+                context,
+                ref,
+                icon: Icons.camera_alt_rounded,
+                label: 'Instagram',
+                color: const Color(0xFFE4405F),
+                onTap: () => _shareToSocial(context, ref, SocialPlatform.instagram),
+              ),
+              _buildSocialButton(
+                context,
+                ref,
+                icon: Icons.music_note_rounded,
+                label: 'TikTok',
+                color: const Color(0xFF000000),
+                onTap: () => _shareToSocial(context, ref, SocialPlatform.tiktok),
+              ),
+              _buildSocialButton(
+                context,
+                ref,
+                icon: Icons.facebook_rounded,
+                label: 'Facebook',
+                color: const Color(0xFF1877F2),
+                onTap: () => _shareToSocial(context, ref, SocialPlatform.facebook),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Copy link and native share buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _copyRecipeLink(context, ref),
+                  icon: const Icon(Icons.link_rounded, size: 18),
+                  label: const Text('Copiar enlace'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textPrimary,
+                    side: BorderSide(color: AppColors.gray300),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _shareRecipe(context, ref),
+                  icon: const Icon(Icons.ios_share_rounded, size: 18),
+                  label: const Text('Más opciones'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildSocialButton(
+    BuildContext context,
+    WidgetRef ref, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _shareToSocial(BuildContext context, WidgetRef ref, SocialPlatform platform) async {
+    try {
+      final sharingService = ref.read(recipeSharingServiceProvider);
+      await sharingService.shareToSocialPlatform(_currentRecipe, platform);
+    } catch (e) {
+      if (context.mounted) {
+        ModernSnackbar.showError(
+          context,
+          message: 'Error al compartir: ${e.toString()}',
+        );
+      }
+    }
+  }
+
+  Future<void> _copyRecipeLink(BuildContext context, WidgetRef ref) async {
+    try {
+      final sharingService = ref.read(recipeSharingServiceProvider);
+      await sharingService.copyRecipeLink(_currentRecipe);
+      
+      if (context.mounted) {
+        ModernSnackbar.showSuccess(
+          context,
+          message: 'Enlace copiado al portapapeles',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ModernSnackbar.showError(
+          context,
+          message: 'Error al copiar enlace: ${e.toString()}',
+        );
+      }
+    }
   }
 
   Future<void> _shareRecipe(BuildContext context, WidgetRef ref) async {

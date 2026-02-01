@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'user_store_model.dart';
 
 /// Pantry item model representing an item in the user's pantry
 class PantryItem {
@@ -12,6 +13,8 @@ class PantryItem {
   final DateTime addedAt;
   final String? amazonUrl;
   final String? walmartUrl;
+  final List<CustomStoreLink> customStores; // User's custom store links
+  final int usageCount; // Track how often this item is used
 
   PantryItem({
     required this.id,
@@ -24,6 +27,8 @@ class PantryItem {
     required this.addedAt,
     this.amazonUrl,
     this.walmartUrl,
+    this.customStores = const [],
+    this.usageCount = 0,
   });
 
   /// Create PantryItem from Firestore document
@@ -42,6 +47,11 @@ class PantryItem {
       addedAt: (data['addedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       amazonUrl: data['amazonUrl'] as String?,
       walmartUrl: data['walmartUrl'] as String?,
+      customStores: (data['customStores'] as List<dynamic>?)
+              ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      usageCount: (data['usageCount'] as int?) ?? 0,
     );
   }
 
@@ -64,6 +74,11 @@ class PantryItem {
           : DateTime.parse(data['addedAt'].toString()),
       amazonUrl: data['amazonUrl'] as String?,
       walmartUrl: data['walmartUrl'] as String?,
+      customStores: (data['customStores'] as List<dynamic>?)
+              ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      usageCount: (data['usageCount'] as int?) ?? 0,
     );
   }
 
@@ -81,6 +96,8 @@ class PantryItem {
       'addedAt': Timestamp.fromDate(addedAt),
       'amazonUrl': amazonUrl,
       'walmartUrl': walmartUrl,
+      'customStores': customStores.map((e) => e.toMap()).toList(),
+      'usageCount': usageCount,
     };
   }
 
@@ -96,6 +113,8 @@ class PantryItem {
     DateTime? addedAt,
     String? amazonUrl,
     String? walmartUrl,
+    List<CustomStoreLink>? customStores,
+    int? usageCount,
   }) {
     return PantryItem(
       id: id ?? this.id,
@@ -108,6 +127,8 @@ class PantryItem {
       addedAt: addedAt ?? this.addedAt,
       amazonUrl: amazonUrl ?? this.amazonUrl,
       walmartUrl: walmartUrl ?? this.walmartUrl,
+      customStores: customStores ?? this.customStores,
+      usageCount: usageCount ?? this.usageCount,
     );
   }
 

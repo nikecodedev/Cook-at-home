@@ -7,6 +7,7 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/pantry_provider.dart';
 import '../../../../models/pantry_item_model.dart';
+import '../../../../models/user_store_model.dart';
 import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/translations.dart';
@@ -45,6 +46,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
   DateTime? _expirationDate;
   String? _canonicalIngredientId; // Store canonical ingredient ID from scanned product
   bool _priceLoading = false;
+  late List<CustomStoreLink> _customStores;
 
   @override
   void initState() {
@@ -64,6 +66,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     _priceController = TextEditingController();
     _expirationDate = widget.item?.expirationDate;
     _canonicalIngredientId = widget.item?.canonicalIngredientId ?? prefillFromProduct?.canonicalIngredientId;
+    _customStores = List.from(widget.item?.customStores ?? []);
     if (_canonicalIngredientId != null && _canonicalIngredientId!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadUserPrice());
     }
@@ -148,6 +151,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
       walmartUrl: _walmartUrlController.text.trim().isEmpty 
           ? null 
           : _walmartUrlController.text.trim(),
+      customStores: _customStores,
     );
 
     try {
@@ -583,6 +587,158 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
 
               const SizedBox(height: 24),
 
+              // My Stores Section
+              _buildSectionTitle('Mis Tiendas (Opcional)'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.secondary.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.storefront_outlined,
+                          size: 16,
+                          color: AppColors.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tus tiendas favoritas',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Agrega enlaces a tiendas donde compras este producto',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Display existing custom stores
+              if (_customStores.isNotEmpty) ...[
+                ..._customStores.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final store = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.gray200),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.store_outlined,
+                            size: 18,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                store.storeName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                store.url,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: AppColors.error,
+                              size: 16,
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _customStores.removeAt(index);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+              
+              // Add custom store button
+              OutlinedButton.icon(
+                onPressed: _showAddCustomStoreDialog,
+                icon: Icon(
+                  Icons.add_business_outlined,
+                  size: 20,
+                  color: AppColors.secondary,
+                ),
+                label: const Text(
+                  'Agregar mi tienda',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.secondary,
+                  side: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Expiration Date Section
               _buildSectionTitle('Fecha de Vencimiento'),
               const SizedBox(height: 12),
@@ -724,6 +880,150 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Show dialog to add a custom store
+  void _showAddCustomStoreDialog() {
+    final storeNameController = TextEditingController();
+    final urlController = TextEditingController();
+    final addStoreFormKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.add_business_outlined,
+                color: AppColors.secondary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Agregar Mi Tienda',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: addStoreFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: storeNameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Nombre de la tienda *',
+                  hintText: 'ej., Costco, HEB, Mi Tienda Local',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  prefixIcon: const Icon(Icons.store_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.secondary, width: 2),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El nombre de la tienda es requerido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: urlController,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  labelText: 'URL del producto *',
+                  hintText: 'https://tienda.com/producto',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  prefixIcon: const Icon(Icons.link_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.secondary, width: 2),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'La URL es requerida';
+                  }
+                  final url = value.trim();
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    return 'La URL debe comenzar con http:// o https://';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (addStoreFormKey.currentState!.validate()) {
+                setState(() {
+                  _customStores.add(CustomStoreLink(
+                    storeName: storeNameController.text.trim(),
+                    url: urlController.text.trim(),
+                  ));
+                });
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Agregar'),
+          ),
+        ],
+      ),
     );
   }
 }

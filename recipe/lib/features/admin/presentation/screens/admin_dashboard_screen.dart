@@ -19,7 +19,7 @@ class AdminDashboardScreen extends ConsumerWidget {
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'Admin Dashboard',
+          'Panel de Administración',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -48,7 +48,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(adminStatisticsProvider),
-                child: const Text('Retry'),
+                child: const Text('Reintentar'),
               ),
             ],
           ),
@@ -101,7 +101,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Admin Control Panel',
+                        'Panel de Control Admin',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -110,7 +110,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Manage recipes, users, and app content',
+                        'Gestiona recetas, usuarios y contenido de la app',
                         style: TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -126,7 +126,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
           // Statistics Cards
           const Text(
-            'Statistics',
+            'Estadísticas',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -143,31 +143,31 @@ class AdminDashboardScreen extends ConsumerWidget {
             childAspectRatio: 1.5,
             children: [
               _buildStatCard(
-                'Total Users',
+                'Total Usuarios',
                 stats['totalUsers']?.toString() ?? '0',
                 Icons.people_rounded,
                 AppColors.primary,
               ),
               _buildStatCard(
-                'Total Recipes',
+                'Total Recetas',
                 stats['totalRecipes']?.toString() ?? '0',
                 Icons.restaurant_menu_rounded,
                 AppColors.secondary,
               ),
               _buildStatCard(
-                'Pantry Items',
+                'Artículos Despensa',
                 stats['totalPantryItems']?.toString() ?? '0',
                 Icons.kitchen_rounded,
                 AppColors.success,
               ),
               _buildStatCard(
-                'Shopping Lists',
+                'Listas de Compras',
                 stats['totalShoppingLists']?.toString() ?? '0',
                 Icons.shopping_cart_rounded,
                 AppColors.warning,
               ),
               _buildStatCard(
-                'Feedback',
+                'Comentarios',
                 stats['totalFeedback']?.toString() ?? '0',
                 Icons.feedback_rounded,
                 AppColors.secondary,
@@ -184,7 +184,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
           // Quick Actions
           const Text(
-            'Quick Actions',
+            'Acciones Rápidas',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -194,8 +194,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildActionCard(
             context,
-            'Manage Recipes',
-            'View, edit, and delete all recipes',
+            'Gestionar Recetas',
+            'Ver, editar y eliminar todas las recetas',
             Icons.restaurant_menu_rounded,
             AppColors.secondary,
             () => context.push(Routes.adminRecipes),
@@ -203,8 +203,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           _buildActionCard(
             context,
-            'Manage Users',
-            'View, edit roles, and manage users',
+            'Gestionar Usuarios',
+            'Ver, editar roles y gestionar usuarios',
             Icons.people_rounded,
             AppColors.primary,
             () => context.push(Routes.adminUsers),
@@ -212,8 +212,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           _buildActionCard(
             context,
-            'Manage Categories',
-            'Manage ingredient categories',
+            'Gestionar Categorías',
+            'Gestionar categorías de ingredientes',
             Icons.category_rounded,
             AppColors.success,
             () => context.push(Routes.adminCategories),
@@ -221,8 +221,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           _buildActionCard(
             context,
-            'View Feedback',
-            'Review user feedback and suggestions',
+            'Ver Comentarios',
+            'Revisar comentarios y sugerencias de usuarios',
             Icons.feedback_rounded,
             AppColors.warning,
             () => context.push(Routes.adminFeedback),

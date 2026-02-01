@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Minimalist footer with links
+/// Pie de página minimalista con enlaces
 class ModernFooter extends StatelessWidget {
   const ModernFooter({super.key});
 
@@ -28,10 +28,10 @@ class ModernFooter extends StatelessWidget {
         runSpacing: isMobile ? 12 : 16,
         alignment: WrapAlignment.center,
         children: [
-          _FooterLink(text: 'About', onTap: () {}),
-          _FooterLink(text: 'Privacy Policy', onTap: () {}),
-          _FooterLink(text: 'Terms', onTap: () {}),
-          _FooterLink(text: 'Contact', onTap: () {}),
+          _FooterLink(text: 'Acerca de', onTap: () {}),
+          _FooterLink(text: 'Política de Privacidad', onTap: () {}),
+          _FooterLink(text: 'Términos', onTap: () {}),
+          _FooterLink(text: 'Contacto', onTap: () {}),
         ],
       ),
     );

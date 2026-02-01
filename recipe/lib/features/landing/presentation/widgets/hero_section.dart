@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 
-/// Hero section with headline, subheadline, CTAs, and illustration placeholder
+/// Sección hero con título, subtítulo, CTAs e ilustración de marcador de posición
 class HeroSection extends StatelessWidget {
   const HeroSection({super.key});
 
@@ -40,9 +40,9 @@ class HeroSection extends StatelessWidget {
             ),
           ),
 
-          // Bold Headline
+          // Título Principal
           Text(
-            'Cook Smarter,\nNot Harder',
+            'Cocina Más Inteligente,\nNo Más Difícil',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: isTablet ? 56 : isMobile ? 36 : 48,
@@ -55,9 +55,9 @@ class HeroSection extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Soft Subheadline
+          // Subtítulo
           Text(
-            'Transform your kitchen into a culinary haven with smart recipe management, pantry tracking, and personalized meal suggestions.',
+            'Transforma tu cocina en un paraíso culinario con gestión inteligente de recetas, seguimiento de despensa y sugerencias de comidas personalizadas.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: isTablet ? 20 : 16,
@@ -78,17 +78,17 @@ class HeroSection extends StatelessWidget {
             runSpacing: 16,
             alignment: WrapAlignment.center,
             children: [
-              // Primary Filled Button
+              // Botón Principal
               _PrimaryCTAButton(
-                text: 'Get Started',
+                text: 'Comenzar',
                 onPressed: () => context.push(Routes.register),
               ),
 
-              // Secondary Outlined Button
+              // Botón Secundario
               _SecondaryCTAButton(
-                text: 'View Demo',
+                text: 'Ver Demo',
                 onPressed: () {
-                  // Handle demo action
+                  // Manejar acción demo
                 },
               ),
             ],
@@ -99,7 +99,7 @@ class HeroSection extends StatelessWidget {
   }
 }
 
-/// Primary filled CTA button
+/// Botón CTA principal
 class _PrimaryCTAButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;
@@ -190,7 +190,7 @@ class _PrimaryCTAButtonState extends State<_PrimaryCTAButton>
   }
 }
 
-/// Secondary outlined CTA button
+/// Botón CTA secundario con borde
 class _SecondaryCTAButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;

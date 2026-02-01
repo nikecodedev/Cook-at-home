@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// App localization delegate
+/// Delegado de localización de la aplicación
 class AppLocalizations {
   final Locale locale;
 
@@ -18,108 +18,108 @@ class AppLocalizations {
     Locale('es', 'ES'),
   ];
 
-  // Common strings
+  // Cadenas comunes
   String get appName => _localizedValues[locale.languageCode]?['appName'] ?? 'Cocina en tu Casa';
   
-  // Phase 2 strings
-  String get scanBarcode => _localizedValues[locale.languageCode]?['scanBarcode'] ?? 'Scan Barcode';
-  String get contributeProduct => _localizedValues[locale.languageCode]?['contributeProduct'] ?? 'Contribute Product';
-  String get productName => _localizedValues[locale.languageCode]?['productName'] ?? 'Product Name';
-  String get brand => _localizedValues[locale.languageCode]?['brand'] ?? 'Brand';
-  String get category => _localizedValues[locale.languageCode]?['category'] ?? 'Category';
-  String get suggestedUnit => _localizedValues[locale.languageCode]?['suggestedUnit'] ?? 'Suggested Unit';
-  String get productPhoto => _localizedValues[locale.languageCode]?['productPhoto'] ?? 'Product Photo';
-  String get recipeCost => _localizedValues[locale.languageCode]?['recipeCost'] ?? 'Recipe Cost';
-  String get totalCost => _localizedValues[locale.languageCode]?['totalCost'] ?? 'Total Cost';
-  String get costPerPortion => _localizedValues[locale.languageCode]?['costPerPortion'] ?? 'Cost per Portion';
-  String get costTier => _localizedValues[locale.languageCode]?['costTier'] ?? 'Cost Tier';
-  String get low => _localizedValues[locale.languageCode]?['low'] ?? 'Low';
-  String get medium => _localizedValues[locale.languageCode]?['medium'] ?? 'Medium';
-  String get high => _localizedValues[locale.languageCode]?['high'] ?? 'High';
-  String get pantryValue => _localizedValues[locale.languageCode]?['pantryValue'] ?? 'Pantry Value';
-  String get totalValue => _localizedValues[locale.languageCode]?['totalValue'] ?? 'Total Value';
-  String get pantryAnalytics => _localizedValues[locale.languageCode]?['pantryAnalytics'] ?? 'Pantry Analytics';
-  String get coveragePercentage => _localizedValues[locale.languageCode]?['coveragePercentage'] ?? 'Coverage';
-  String get coverage => _localizedValues[locale.languageCode]?['coverage'] ?? 'Coverage';
-  String get estimatedMeals => _localizedValues[locale.languageCode]?['estimatedMeals'] ?? 'Estimated Meals';
-  String get efficiencyScore => _localizedValues[locale.languageCode]?['efficiencyScore'] ?? 'Efficiency';
-  String get missingIngredients => _localizedValues[locale.languageCode]?['missingIngredients'] ?? 'Missing Ingredients';
-  String get weeklyMealPlan => _localizedValues[locale.languageCode]?['weeklyMealPlan'] ?? 'Weekly Meal Plan';
-  String get weeklyCost => _localizedValues[locale.languageCode]?['weeklyCost'] ?? 'Weekly Cost';
-  String get costPerDay => _localizedValues[locale.languageCode]?['costPerDay'] ?? 'Cost per Day';
-  String get refillAlerts => _localizedValues[locale.languageCode]?['refillAlerts'] ?? 'Refill Alerts';
-  String get shareRecipe => _localizedValues[locale.languageCode]?['shareRecipe'] ?? 'Share Recipe';
-  String get recipeYield => _localizedValues[locale.languageCode]?['recipeYield'] ?? 'Recipe Yield';
-  String get yieldValue => _localizedValues[locale.languageCode]?['yieldValue'] ?? 'Yield Value';
-  String get yieldUnit => _localizedValues[locale.languageCode]?['yieldUnit'] ?? 'Yield Unit';
-  String get standardPortionSize => _localizedValues[locale.languageCode]?['standardPortionSize'] ?? 'Standard Portion Size';
-  String get numberOfServings => _localizedValues[locale.languageCode]?['numberOfServings'] ?? 'Number of Servings';
-  String get ingredientPrice => _localizedValues[locale.languageCode]?['ingredientPrice'] ?? 'Ingredient Price';
-  String get overridePrice => _localizedValues[locale.languageCode]?['overridePrice'] ?? 'Override Price';
-  String get canonicalIngredient => _localizedValues[locale.languageCode]?['canonicalIngredient'] ?? 'Canonical Ingredient';
-  String get save => _localizedValues[locale.languageCode]?['save'] ?? 'Save';
-  String get cancel => _localizedValues[locale.languageCode]?['cancel'] ?? 'Cancel';
-  String get required => _localizedValues[locale.languageCode]?['required'] ?? 'Required';
-  String get optional => _localizedValues[locale.languageCode]?['optional'] ?? 'Optional';
-  String get lowStock => _localizedValues[locale.languageCode]?['lowStock'] ?? 'Low Stock';
-  String get frequentlyUsed => _localizedValues[locale.languageCode]?['frequentlyUsed'] ?? 'Frequently Used';
-  String get goodPrice => _localizedValues[locale.languageCode]?['goodPrice'] ?? 'Good Price';
-  String get language => _localizedValues[locale.languageCode]?['language'] ?? 'Language';
-  String get languageDescription => _localizedValues[locale.languageCode]?['languageDescription'] ?? 'Select your preferred language for the app interface';
-  String get languageNote => _localizedValues[locale.languageCode]?['languageNote'] ?? 'Note: User-generated content (recipes, ingredients) will not be translated.';
-  String get languageChanged => _localizedValues[locale.languageCode]?['languageChanged'] ?? 'Language changed';
-  String get languageChangeError => _localizedValues[locale.languageCode]?['languageChangeError'] ?? 'Error changing language';
+  // Cadenas de Fase 2
+  String get scanBarcode => _localizedValues[locale.languageCode]?['scanBarcode'] ?? 'Escanear Código de Barras';
+  String get contributeProduct => _localizedValues[locale.languageCode]?['contributeProduct'] ?? 'Contribuir Producto';
+  String get productName => _localizedValues[locale.languageCode]?['productName'] ?? 'Nombre del Producto';
+  String get brand => _localizedValues[locale.languageCode]?['brand'] ?? 'Marca';
+  String get category => _localizedValues[locale.languageCode]?['category'] ?? 'Categoría';
+  String get suggestedUnit => _localizedValues[locale.languageCode]?['suggestedUnit'] ?? 'Unidad Sugerida';
+  String get productPhoto => _localizedValues[locale.languageCode]?['productPhoto'] ?? 'Foto del Producto';
+  String get recipeCost => _localizedValues[locale.languageCode]?['recipeCost'] ?? 'Costo de la Receta';
+  String get totalCost => _localizedValues[locale.languageCode]?['totalCost'] ?? 'Costo Total';
+  String get costPerPortion => _localizedValues[locale.languageCode]?['costPerPortion'] ?? 'Costo por Porción';
+  String get costTier => _localizedValues[locale.languageCode]?['costTier'] ?? 'Nivel de Costo';
+  String get low => _localizedValues[locale.languageCode]?['low'] ?? 'Bajo';
+  String get medium => _localizedValues[locale.languageCode]?['medium'] ?? 'Medio';
+  String get high => _localizedValues[locale.languageCode]?['high'] ?? 'Alto';
+  String get pantryValue => _localizedValues[locale.languageCode]?['pantryValue'] ?? 'Valor de la Despensa';
+  String get totalValue => _localizedValues[locale.languageCode]?['totalValue'] ?? 'Valor Total';
+  String get pantryAnalytics => _localizedValues[locale.languageCode]?['pantryAnalytics'] ?? 'Análisis de Despensa';
+  String get coveragePercentage => _localizedValues[locale.languageCode]?['coveragePercentage'] ?? 'Cobertura';
+  String get coverage => _localizedValues[locale.languageCode]?['coverage'] ?? 'Cobertura';
+  String get estimatedMeals => _localizedValues[locale.languageCode]?['estimatedMeals'] ?? 'Comidas Estimadas';
+  String get efficiencyScore => _localizedValues[locale.languageCode]?['efficiencyScore'] ?? 'Eficiencia';
+  String get missingIngredients => _localizedValues[locale.languageCode]?['missingIngredients'] ?? 'Ingredientes Faltantes';
+  String get weeklyMealPlan => _localizedValues[locale.languageCode]?['weeklyMealPlan'] ?? 'Plan de Comidas Semanal';
+  String get weeklyCost => _localizedValues[locale.languageCode]?['weeklyCost'] ?? 'Costo Semanal';
+  String get costPerDay => _localizedValues[locale.languageCode]?['costPerDay'] ?? 'Costo por Día';
+  String get refillAlerts => _localizedValues[locale.languageCode]?['refillAlerts'] ?? 'Alertas de Reabastecimiento';
+  String get shareRecipe => _localizedValues[locale.languageCode]?['shareRecipe'] ?? 'Compartir Receta';
+  String get recipeYield => _localizedValues[locale.languageCode]?['recipeYield'] ?? 'Rendimiento de la Receta';
+  String get yieldValue => _localizedValues[locale.languageCode]?['yieldValue'] ?? 'Valor de Rendimiento';
+  String get yieldUnit => _localizedValues[locale.languageCode]?['yieldUnit'] ?? 'Unidad de Rendimiento';
+  String get standardPortionSize => _localizedValues[locale.languageCode]?['standardPortionSize'] ?? 'Tamaño de Porción Estándar';
+  String get numberOfServings => _localizedValues[locale.languageCode]?['numberOfServings'] ?? 'Número de Porciones';
+  String get ingredientPrice => _localizedValues[locale.languageCode]?['ingredientPrice'] ?? 'Precio del Ingrediente';
+  String get overridePrice => _localizedValues[locale.languageCode]?['overridePrice'] ?? 'Precio Personalizado';
+  String get canonicalIngredient => _localizedValues[locale.languageCode]?['canonicalIngredient'] ?? 'Ingrediente Canónico';
+  String get save => _localizedValues[locale.languageCode]?['save'] ?? 'Guardar';
+  String get cancel => _localizedValues[locale.languageCode]?['cancel'] ?? 'Cancelar';
+  String get required => _localizedValues[locale.languageCode]?['required'] ?? 'Requerido';
+  String get optional => _localizedValues[locale.languageCode]?['optional'] ?? 'Opcional';
+  String get lowStock => _localizedValues[locale.languageCode]?['lowStock'] ?? 'Stock Bajo';
+  String get frequentlyUsed => _localizedValues[locale.languageCode]?['frequentlyUsed'] ?? 'Uso Frecuente';
+  String get goodPrice => _localizedValues[locale.languageCode]?['goodPrice'] ?? 'Buen Precio';
+  String get language => _localizedValues[locale.languageCode]?['language'] ?? 'Idioma';
+  String get languageDescription => _localizedValues[locale.languageCode]?['languageDescription'] ?? 'Selecciona tu idioma preferido para la interfaz de la aplicación';
+  String get languageNote => _localizedValues[locale.languageCode]?['languageNote'] ?? 'Nota: El contenido generado por usuarios (recetas, ingredientes) no se traducirá.';
+  String get languageChanged => _localizedValues[locale.languageCode]?['languageChanged'] ?? 'Idioma cambiado';
+  String get languageChangeError => _localizedValues[locale.languageCode]?['languageChangeError'] ?? 'Error al cambiar el idioma';
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'appName': 'Cocina en tu Casa',
-      'scanBarcode': 'Scan Barcode',
-      'contributeProduct': 'Contribute Product',
-      'productName': 'Product Name',
-      'brand': 'Brand',
-      'category': 'Category',
-      'suggestedUnit': 'Suggested Unit',
-      'productPhoto': 'Product Photo',
-      'recipeCost': 'Recipe Cost',
-      'totalCost': 'Total Cost',
-      'costPerPortion': 'Cost per Portion',
-      'costTier': 'Cost Tier',
-      'low': 'Low',
-      'medium': 'Medium',
-      'high': 'High',
-      'pantryValue': 'Pantry Value',
-      'totalValue': 'Total Value',
-      'pantryAnalytics': 'Pantry Analytics',
-      'coveragePercentage': 'Coverage',
-      'coverage': 'Coverage',
-      'estimatedMeals': 'Estimated Meals',
-      'efficiencyScore': 'Efficiency',
-      'missingIngredients': 'Missing Ingredients',
-      'weeklyMealPlan': 'Weekly Meal Plan',
-      'weeklyCost': 'Weekly Cost',
-      'costPerDay': 'Cost per Day',
-      'refillAlerts': 'Refill Alerts',
-      'shareRecipe': 'Share Recipe',
-      'recipeYield': 'Recipe Yield',
-      'yieldValue': 'Yield Value',
-      'yieldUnit': 'Yield Unit',
-      'standardPortionSize': 'Standard Portion Size',
-      'numberOfServings': 'Number of Servings',
-      'ingredientPrice': 'Ingredient Price',
-      'overridePrice': 'Override Price',
-      'canonicalIngredient': 'Canonical Ingredient',
-      'save': 'Save',
-      'cancel': 'Cancel',
-      'required': 'Required',
-      'optional': 'Optional',
-      'lowStock': 'Low Stock',
-      'frequentlyUsed': 'Frequently Used',
-      'goodPrice': 'Good Price',
-      'language': 'Language',
-      'languageDescription': 'Select your preferred language for the app interface',
-      'languageNote': 'Note: User-generated content (recipes, ingredients) will not be translated.',
-      'languageChanged': 'Language changed',
-      'languageChangeError': 'Error changing language',
+      'scanBarcode': 'Escanear Código de Barras',
+      'contributeProduct': 'Contribuir Producto',
+      'productName': 'Nombre del Producto',
+      'brand': 'Marca',
+      'category': 'Categoría',
+      'suggestedUnit': 'Unidad Sugerida',
+      'productPhoto': 'Foto del Producto',
+      'recipeCost': 'Costo de la Receta',
+      'totalCost': 'Costo Total',
+      'costPerPortion': 'Costo por Porción',
+      'costTier': 'Nivel de Costo',
+      'low': 'Bajo',
+      'medium': 'Medio',
+      'high': 'Alto',
+      'pantryValue': 'Valor de la Despensa',
+      'totalValue': 'Valor Total',
+      'pantryAnalytics': 'Análisis de Despensa',
+      'coveragePercentage': 'Cobertura',
+      'coverage': 'Cobertura',
+      'estimatedMeals': 'Comidas Estimadas',
+      'efficiencyScore': 'Eficiencia',
+      'missingIngredients': 'Ingredientes Faltantes',
+      'weeklyMealPlan': 'Plan de Comidas Semanal',
+      'weeklyCost': 'Costo Semanal',
+      'costPerDay': 'Costo por Día',
+      'refillAlerts': 'Alertas de Reabastecimiento',
+      'shareRecipe': 'Compartir Receta',
+      'recipeYield': 'Rendimiento de la Receta',
+      'yieldValue': 'Valor de Rendimiento',
+      'yieldUnit': 'Unidad de Rendimiento',
+      'standardPortionSize': 'Tamaño de Porción Estándar',
+      'numberOfServings': 'Número de Porciones',
+      'ingredientPrice': 'Precio del Ingrediente',
+      'overridePrice': 'Precio Personalizado',
+      'canonicalIngredient': 'Ingrediente Canónico',
+      'save': 'Guardar',
+      'cancel': 'Cancelar',
+      'required': 'Requerido',
+      'optional': 'Opcional',
+      'lowStock': 'Stock Bajo',
+      'frequentlyUsed': 'Uso Frecuente',
+      'goodPrice': 'Buen Precio',
+      'language': 'Idioma',
+      'languageDescription': 'Selecciona tu idioma preferido para la interfaz de la aplicación',
+      'languageNote': 'Nota: El contenido generado por usuarios (recetas, ingredientes) no se traducirá.',
+      'languageChanged': 'Idioma cambiado',
+      'languageChangeError': 'Error al cambiar el idioma',
     },
     'es': {
       'appName': 'Cocina en tu Casa',
