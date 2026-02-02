@@ -20,8 +20,8 @@ enum SocialPlatform {
 
 /// Service for sharing recipes with native Android share sheet
 class RecipeSharingService {
-  /// Base URL for web deep links (update when web app is deployed)
-  static const String webBaseUrl = 'https://cocinaentucasa.app'; // Placeholder
+  /// Base URL for web deep links - using client's actual domain
+  static const String webBaseUrl = 'https://cocinaentucasa.com';
   
   /// App deep link scheme
   static const String appScheme = 'cocinaentucasa';

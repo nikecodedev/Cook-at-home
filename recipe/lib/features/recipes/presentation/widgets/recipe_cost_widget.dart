@@ -58,9 +58,61 @@ class RecipeCostWidget extends ConsumerWidget {
   Widget _buildCostDisplay(BuildContext context, RecipeCostCalculation calculation) {
     final l10n = AppLocalizations.of(context);
 
-    // Don't show if no cost data
+    // Show helpful message if no cost data available
     if (calculation.totalCost == 0) {
-      return const SizedBox.shrink();
+      return Container(
+        padding: EdgeInsets.all(isTablet ? 24 : 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.gray200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.price_change_outlined,
+                    color: AppColors.warning,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n?.recipeCost ?? 'Costo de la Receta',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Agrega precios a los ingredientes para ver el costo',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
     }
 
     return Container(
