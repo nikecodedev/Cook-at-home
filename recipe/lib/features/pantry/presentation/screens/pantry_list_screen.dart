@@ -129,14 +129,14 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> with Single
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withOpacity(0.8),
-                  AppColors.primaryDark.withOpacity(0.8),
+                  AppColors.primary.withOpacity(0.9),
+                  AppColors.primaryDark.withOpacity(0.9),
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: AppColors.primary.withOpacity(0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -151,19 +151,19 @@ class _PantryListScreenState extends ConsumerState<PantryListScreen> with Single
                     context.push(Routes.pantryEdit, extra: product);
                   }
                 },
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(22),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 18),
-                      const SizedBox(width: 4),
+                      const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: 6),
                       const Text(
-                        'Escanear',
+                        'Escanear producto',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

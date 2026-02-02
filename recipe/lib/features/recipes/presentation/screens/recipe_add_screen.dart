@@ -12,7 +12,9 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/profile_provider.dart';
+import '../../../../providers/pantry_provider.dart';
 import '../../../../models/recipe_model.dart';
+import '../../../../models/pantry_item_model.dart';
 import '../../../../core/constants/firebase_constants.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/logger.dart';
@@ -1543,7 +1545,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
   }
 }
 
-class _AddIngredientDialog extends StatefulWidget {
+class _AddIngredientDialog extends ConsumerStatefulWidget {
   final RecipeIngredient? initialIngredient;
   final Function(RecipeIngredient) onSave;
 
@@ -1553,16 +1555,18 @@ class _AddIngredientDialog extends StatefulWidget {
   });
 
   @override
-  State<_AddIngredientDialog> createState() => _AddIngredientDialogState();
+  ConsumerState<_AddIngredientDialog> createState() => _AddIngredientDialogState();
 }
 
-class _AddIngredientDialogState extends State<_AddIngredientDialog> {
+class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
   late TextEditingController _unitController;
   late TextEditingController _amazonLinkController;
   late TextEditingController _walmartLinkController;
+  bool _linksInherited = false;
+  String? _inheritedFromPantry;
 
   @override
   void initState() {
@@ -1592,6 +1596,64 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
     _amazonLinkController.dispose();
     _walmartLinkController.dispose();
     super.dispose();
+  }
+
+  /// Look up pantry item by ingredient name and inherit retailer links
+  void _lookupAndInheritFromPantry() {
+    final pantryAsync = ref.read(pantryItemsStreamProvider);
+    pantryAsync.whenData((pantryItems) {
+      final ingredientName = _nameController.text.trim().toLowerCase();
+      if (ingredientName.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Primero ingresa el nombre del ingrediente'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+        return;
+      }
+
+      // Find matching pantry item
+      final matchingItem = pantryItems.firstWhere(
+        (item) => item.name.toLowerCase().contains(ingredientName) ||
+            ingredientName.contains(item.name.toLowerCase()),
+        orElse: () => PantryItem(
+          id: '',
+          name: '',
+          quantity: 0,
+          unit: '',
+          category: '',
+          addedAt: DateTime.now(),
+        ),
+      );
+
+      if (matchingItem.id.isNotEmpty) {
+        setState(() {
+          // Inherit retailer links from pantry item
+          if (matchingItem.amazonUrl != null && matchingItem.amazonUrl!.isNotEmpty) {
+            _amazonLinkController.text = matchingItem.amazonUrl!;
+          }
+          if (matchingItem.walmartUrl != null && matchingItem.walmartUrl!.isNotEmpty) {
+            _walmartLinkController.text = matchingItem.walmartUrl!;
+          }
+          _linksInherited = true;
+          _inheritedFromPantry = matchingItem.name;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Enlaces heredados de "${matchingItem.name}" en tu despensa'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se encontró este ingrediente en tu despensa'),
+            backgroundColor: AppColors.textSecondary,
+          ),
+        );
+      }
+    });
   }
 
   void _save() {
@@ -1717,12 +1779,36 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
                           color: AppColors.primary,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          'Enlaces de Compra (Opcional)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                        Expanded(
+                          child: Text(
+                            'Enlaces de Compra (Opcional)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        // Button to inherit links from pantry
+                        TextButton.icon(
+                          onPressed: _lookupAndInheritFromPantry,
+                          icon: Icon(
+                            Icons.download_outlined,
+                            size: 16,
+                            color: AppColors.secondary,
+                          ),
+                          label: Text(
+                            'Usar de Despensa',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
                       ],
@@ -1735,6 +1821,35 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
                         color: AppColors.textSecondary,
                       ),
                     ),
+                    if (_linksInherited && _inheritedFromPantry != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 14,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Heredado de "$_inheritedFromPantry"',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

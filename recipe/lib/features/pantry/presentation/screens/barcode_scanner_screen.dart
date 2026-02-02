@@ -311,23 +311,61 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Escanear Código de Barras',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.qr_code_scanner_rounded,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Escanear Producto',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
-                    'Coloca el código de barras dentro del recuadro',
+                    'Coloca el código de barras dentro del recuadro para agregar el producto a tu despensa',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 14,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Escanea o escribe el nombre del producto',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -428,10 +466,33 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Manual entry button
+                // Search product button (manual entry)
                 ElevatedButton.icon(
                   onPressed: () => _showManualEntryDialog(),
-                  icon: const Icon(Icons.keyboard, size: 20),
+                  icon: const Icon(Icons.search_rounded, size: 20),
+                  label: const Text(
+                    'Buscar producto',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Manual barcode entry
+                OutlinedButton.icon(
+                  onPressed: () => _showBarcodeEntryDialog(),
+                  icon: const Icon(Icons.dialpad_rounded, size: 18),
                   label: const Text(
                     'Ingresar código manualmente',
                     style: TextStyle(
@@ -439,10 +500,11 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                  style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.5), width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -450,27 +512,23 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Cancel button
-                ElevatedButton.icon(
+                TextButton.icon(
                   onPressed: () {
                     if (mounted) {
                       context.pop(); // Close scanner and go back
                     }
                   },
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, size: 18),
                   label: const Text(
                     'Cancelar',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.9),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white.withOpacity(0.8),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ],
@@ -481,20 +539,149 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
     );
   }
 
-  /// Show dialog for manual barcode entry
+  /// Show dialog for product search (by name)
   void _showManualEntryDialog() {
+    final TextEditingController searchController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.search_rounded, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Buscar Producto',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Escribe el nombre del producto que deseas agregar',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: searchController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Ej: Leche, Huevos, Arroz...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                filled: true,
+                fillColor: AppColors.gray50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+                ),
+                prefixIcon: Icon(Icons.inventory_2_outlined, color: AppColors.primary),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              autofocus: true,
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  Navigator.pop(dialogContext);
+                  _navigateToAddProduct(value.trim());
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              final productName = searchController.text.trim();
+              Navigator.pop(dialogContext);
+              if (productName.isNotEmpty) {
+                _navigateToAddProduct(productName);
+              }
+            },
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Agregar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Navigate to add product screen with pre-filled name
+  void _navigateToAddProduct(String productName) {
+    if (mounted) {
+      // Navigate to pantry edit screen (no barcode, just name)
+      context.pop(); // Close scanner first
+      context.push(Routes.pantryEdit, extra: Product(
+        id: '', // Will be generated
+        barcode: '',
+        name: productName,
+        canonicalIngredientId: '', // Will be resolved later
+        imageUrl: null,
+        category: null,
+        brand: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+    }
+  }
+
+  /// Show dialog for manual barcode entry
+  void _showBarcodeEntryDialog() {
     final TextEditingController barcodeController = TextEditingController();
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ingresar Código de Barras'),
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.dialpad_rounded, color: AppColors.secondary, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Ingresar Código de Barras',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Escribe el código de barras del producto (8-14 dígitos)',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -503,34 +690,51 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
               maxLength: 14,
               decoration: InputDecoration(
                 hintText: 'Ej: 7501234567890',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                filled: true,
+                fillColor: AppColors.gray50,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
-                prefixIcon: const Icon(Icons.qr_code),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.secondary, width: 2),
+                ),
+                prefixIcon: Icon(Icons.qr_code, color: AppColors.secondary),
+                counterText: '',
               ),
               autofocus: true,
+              onSubmitted: (value) {
+                final barcode = value.trim();
+                Navigator.pop(dialogContext);
+                if (barcode.isNotEmpty) {
+                  _processManualBarcode(barcode);
+                }
+              },
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey[600])),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () {
               final barcode = barcodeController.text.trim();
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               if (barcode.isNotEmpty) {
                 _processManualBarcode(barcode);
               }
             },
+            icon: const Icon(Icons.search_rounded, size: 18),
+            label: const Text('Buscar'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
-            child: const Text(
-              'Buscar Producto',
-              style: TextStyle(color: Colors.white),
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
         ],

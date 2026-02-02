@@ -209,16 +209,13 @@ class RecipeSharingService {
   }
 
   /// Generate deep link for recipe
-  /// Returns app deep link (preferred) or web link (fallback)
+  /// Returns web link for sharing (app deep links not yet supported)
   String _generateDeepLink(Recipe recipe) {
-    // App deep link format: cocinaentucasa://recipe/{recipeId}
-    final appDeepLink = '$appScheme://recipe/${recipe.id}';
-    
-    // Web deep link format: https://cocinaentucasa.app/recipe/{recipeId}
+    // Web deep link format: https://cocinaentucasa.com/recipe/{recipeId}
     final webDeepLink = '$webBaseUrl/recipe/${recipe.id}';
     
-    // Return both (user can choose, or app can handle app link)
-    return '$appDeepLink\n$webDeepLink';
+    // Only return the web link - app deep links require app configuration
+    return webDeepLink;
   }
 
   /// Build short, predefined share text for recipe

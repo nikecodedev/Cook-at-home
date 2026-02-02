@@ -420,21 +420,50 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               const SizedBox(height: 16),
 
-              // Category dropdown with Spanish translations
+              // Category dropdown with Spanish translations - styled to match CustomTextField
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.gray300),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.gray200.withOpacity(0.5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(
+                  icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Categoría (Opcional)',
-                    prefixIcon: Icon(Icons.category_outlined),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    labelStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    prefixIcon: Icon(Icons.category_outlined, color: AppColors.primary, size: 22),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    ),
                   ),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('Seleccionar categoría')),
@@ -454,21 +483,50 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               const SizedBox(height: 16),
 
-              // Suggested unit dropdown with Spanish translations
+              // Suggested unit dropdown with Spanish translations - styled to match CustomTextField
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.gray300),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.gray200.withOpacity(0.5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: DropdownButtonFormField<String>(
                   value: _selectedUnit,
                   isExpanded: true,
-                  decoration: const InputDecoration(
+                  icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Unidad Sugerida (Opcional)',
-                    prefixIcon: Icon(Icons.straighten),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    labelStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    prefixIcon: Icon(Icons.straighten, color: AppColors.primary, size: 22),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    ),
                   ),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('Seleccionar unidad')),
@@ -516,22 +574,60 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Package unit dropdown
+                  // Package unit dropdown - styled to match CustomTextField
                   Expanded(
                     flex: 2,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.gray300),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.gray200.withOpacity(0.5),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: DropdownButtonFormField<String>(
                         value: _selectedPackageUnit,
                         isExpanded: true,
-                        decoration: const InputDecoration(
+                        icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
                           labelText: 'Unidad',
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                          labelStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          prefixIcon: Icon(Icons.straighten_rounded, color: AppColors.primary, size: 22),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.primary, width: 2),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.error, width: 1.5),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.error, width: 2),
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
