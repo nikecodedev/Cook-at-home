@@ -30,6 +30,8 @@ class RefillAlertsWidget extends ConsumerWidget {
     final alertsAsync = ref.watch(refillAlertsStreamProvider(userId));
 
     return alertsAsync.when(
+      loading: () => _buildLoadingSkeleton(),
+      error: (error, _) => _buildEmptyState(l10n),
       data: (alerts) {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -104,11 +106,65 @@ class RefillAlertsWidget extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildEmptyState(l10n),
-      error: (error, _) {
-        // On error, show empty state instead of hiding
-        return _buildEmptyState(l10n);
-      },
+    );
+  }
+
+  Widget _buildLoadingSkeleton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.warning.withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppColors.gray200,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 160,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.gray200,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.gray100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 200,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.gray100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

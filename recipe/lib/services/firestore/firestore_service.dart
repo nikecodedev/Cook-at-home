@@ -599,8 +599,20 @@ class FirestoreService {
         'FirestoreService',
       );
 
+      // Always create a shopping list. If all ingredients are in pantry, include all
+      // recipe ingredients so the user still gets a checklist (never block the flow).
+      final ingredientsToAdd = missingIngredients.isEmpty
+          ? recipe.ingredients
+          : missingIngredients;
+      final matchedForLinks = missingIngredients.isEmpty
+          ? <RecipeIngredient, PantryItem?>{}
+          : matchedPantryItems;
+
       if (missingIngredients.isEmpty) {
-        throw Exception('¡Todos los ingredientes ya están en tu despensa!');
+        Logger.info(
+          'All ingredients in pantry - creating list with full recipe as checklist',
+          'FirestoreService',
+        );
       }
 
       // Create shopping list document
@@ -622,14 +634,14 @@ class FirestoreService {
       // Add items to subcollection
       // Log detailed info about what's being added
       Logger.info(
-        'Adding ${missingIngredients.length} items to shopping list (${recipe.ingredients.length - missingIngredients.length} already in pantry)',
+        'Adding ${ingredientsToAdd.length} items to shopping list',
         'FirestoreService',
       );
 
       // Log each ingredient being added
-      for (int i = 0; i < missingIngredients.length; i++) {
+      for (int i = 0; i < ingredientsToAdd.length; i++) {
         Logger.info(
-          'Item ${i + 1}/${missingIngredients.length}: "${missingIngredients[i].name}" (${missingIngredients[i].quantity} ${missingIngredients[i].unit})',
+          'Item ${i + 1}/${ingredientsToAdd.length}: "${ingredientsToAdd[i].name}" (${ingredientsToAdd[i].quantity} ${ingredientsToAdd[i].unit})',
           'FirestoreService',
         );
       }
@@ -644,15 +656,15 @@ class FirestoreService {
           .collection(FirebaseCollections.shoppingListItems);
 
       int addedCount = 0;
-      for (final ingredient in missingIngredients) {
+      for (final ingredient in ingredientsToAdd) {
         try {
           final itemId = itemsRef.doc().id;
 
           // Determine purchase links with priority:
           // 1. Recipe ingredient links (if available)
-          // 2. Matched pantry item links (if ingredient matches a pantry item but is still missing)
+          // 2. Matched pantry item links (if ingredient matches a pantry item)
           // 3. Generated search links
-          final matchedPantryItem = matchedPantryItems[ingredient];
+          final matchedPantryItem = matchedForLinks[ingredient];
           
           String? amazonLink;
           String? walmartLink;
@@ -713,12 +725,12 @@ class FirestoreService {
       }
 
       Logger.info(
-        'Finished adding items: $addedCount/${missingIngredients.length} successful',
+        'Finished adding items: $addedCount/${ingredientsToAdd.length} successful',
         'FirestoreService',
       );
 
       Logger.success(
-        'Shopping list generated: $listId with ${missingIngredients.length} items',
+        'Shopping list generated: $listId with ${ingredientsToAdd.length} items',
         'FirestoreService',
       );
       return listId;
@@ -814,8 +826,16 @@ class FirestoreService {
         }
       }
 
+      // Always create a shopping list. If all in pantry, include all ingredients as checklist.
+      final ingredientsToAddFromPlan = missingIngredients.isEmpty
+          ? aggregatedIngredients.values.toList()
+          : missingIngredients;
+
       if (missingIngredients.isEmpty) {
-        throw Exception('¡Todos los ingredientes ya están en tu despensa!');
+        Logger.info(
+          'All meal plan ingredients in pantry - creating list with full checklist',
+          'FirestoreService',
+        );
       }
 
       // Create shopping list document
@@ -845,7 +865,7 @@ class FirestoreService {
           .collection(FirebaseCollections.shoppingListItems);
 
       int addedCount = 0;
-      for (final ingredient in missingIngredients) {
+      for (final ingredient in ingredientsToAddFromPlan) {
         try {
           final itemId = itemsRef.doc().id;
           final amazonLink = ingredient.amazonLink?.isNotEmpty == true

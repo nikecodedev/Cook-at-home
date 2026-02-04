@@ -705,10 +705,39 @@ class _StoreButton extends StatelessWidget {
   Future<void> _launchUrl(BuildContext context, String url) async {
     try {
       String finalUrl = url.trim();
+      if (finalUrl.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No hay enlace para abrir'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
 
       // Add scheme if missing
       if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
         finalUrl = 'https://$finalUrl';
+      }
+
+      // Do not open app/share routes (recipe deep links) as retailer links
+      final uriParsed = Uri.tryParse(finalUrl);
+      if (uriParsed != null &&
+          (uriParsed.host.contains('cocinaentucasa.com') ||
+              uriParsed.host.contains('cocinaencasa.com')) &&
+          uriParsed.pathSegments.isNotEmpty &&
+          uriParsed.pathSegments.first == 'recipe') {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Este enlace es para compartir la receta, no para comprar. Agrega un enlace de Amazon o Walmart.'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
       }
 
       // Process through affiliate service if it's a store URL

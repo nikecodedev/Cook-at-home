@@ -764,7 +764,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       if (context.mounted) {
         ModernSnackbar.showSuccess(
           context,
-          message: 'Enlace copiado al portapapeles',
+          message: 'Enlace copiado. El enlace abrirá la receta cuando la página web esté publicada.',
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {

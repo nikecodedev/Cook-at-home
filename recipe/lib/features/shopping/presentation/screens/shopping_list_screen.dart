@@ -534,18 +534,57 @@ class ShoppingListScreen extends ConsumerWidget {
     );
   }
 
-  /// Launch custom store URL
+  /// Launch custom store URL (only valid http/https retailer links)
   Future<void> _launchCustomStoreUrl(BuildContext context, String url) async {
     try {
-      final uri = Uri.parse(url);
+      final trimmed = url.trim();
+      if (trimmed.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No hay enlace para abrir'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
+      String finalUrl = trimmed;
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://$finalUrl';
+      }
+      final uri = Uri.tryParse(finalUrl);
+      if (uri == null || !uri.hasScheme || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Enlace no válido'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
+      // Do not open app recipe share links as store links
+      if (uri.host.contains('cocinaentucasa.com') || uri.host.contains('cocinaencasa.com')) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Este enlace es para compartir, no para comprar. Agrega un enlace de tienda.'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
       final canLaunch = await canLaunchUrl(uri);
       if (canLaunch) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('No se pudo abrir el enlace'),
+            const SnackBar(
+              content: Text('No se pudo abrir el enlace'),
               backgroundColor: AppColors.error,
             ),
           );
