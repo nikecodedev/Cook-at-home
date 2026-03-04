@@ -45,18 +45,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.gray200.withOpacity(0.5),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextFormField(
+    return TextFormField(
         controller: widget.controller,
         validator: widget.validator,
         keyboardType: widget.keyboardType,
@@ -113,31 +102,30 @@ class _CustomTextFieldState extends State<CustomTextField> {
             vertical: 18,
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.gray200, width: 1),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.gray300, width: 1.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.gray200, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.primary, width: 2),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.error, width: 1.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.error, width: 1),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.error, width: 2),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.error, width: 1.5),
           ),
           disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.gray200, width: 1.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.gray200, width: 1),
           ),
         ),
-      ),
     );
   }
 }

@@ -28,12 +28,13 @@ class IngredientPriceService {
   }
 
   /// Get price for a canonical ingredient (user-specific override)
+  /// Checks user's ingredient_prices first, then falls back to global
   Future<IngredientPrice?> getUserIngredientPrice(
     String canonicalIngredientId,
     String userId,
   ) async {
     try {
-      // First check user-specific override
+      // First check user-specific price (override or user-entered)
       final userPriceDoc = await _firestore
           .collection(FirebaseCollections.users)
           .doc(userId)
@@ -43,12 +44,27 @@ class IngredientPriceService {
 
       if (userPriceDoc.exists && userPriceDoc.data() != null) {
         final data = userPriceDoc.data()!;
+        final userPrice = (data['userOverridePrice'] as num?)?.toDouble();
+        final userPriceUnit = data['priceUnit'] as String?;
         // Get base price to merge with
         final basePrice = await getIngredientPrice(canonicalIngredientId);
         
         if (basePrice != null) {
           return basePrice.copyWith(
-            userOverridePrice: (data['userOverridePrice'] as num?)?.toDouble(),
+            userOverridePrice: userPrice,
+          );
+        }
+        // User has price but no global base - build synthetic IngredientPrice from user doc
+        if (userPrice != null && userPrice > 0) {
+          final now = DateTime.now();
+          return IngredientPrice(
+            id: userPriceDoc.id,
+            canonicalIngredientId: canonicalIngredientId,
+            averagePrice: userPrice,
+            priceUnit: userPriceUnit ?? 'pieces',
+            userOverridePrice: userPrice,
+            updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? now,
+            createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? now,
           );
         }
       }
@@ -106,10 +122,12 @@ class IngredientPriceService {
   }
 
   /// Set user override price
+  /// [priceUnit] - when provided, enables price sync when no global base exists
   Future<void> setUserOverridePrice({
     required String userId,
     required String canonicalIngredientId,
     required double? overridePrice, // null to remove override
+    String? priceUnit, // Required for Recipe/Shopping List sync when no base price
   }) async {
     try {
       if (overridePrice == null) {
@@ -121,22 +139,54 @@ class IngredientPriceService {
             .doc(canonicalIngredientId)
             .delete();
       } else {
-        // Set override
+        // Set override (with priceUnit for sync across Pantry → Recipe → Shopping List)
+        final data = <String, dynamic>{
+          'canonicalIngredientId': canonicalIngredientId,
+          'userOverridePrice': overridePrice,
+          'updatedAt': Timestamp.now(),
+        };
+        if (priceUnit != null && priceUnit.isNotEmpty) {
+          data['priceUnit'] = priceUnit;
+        }
         await _firestore
             .collection(FirebaseCollections.users)
             .doc(userId)
             .collection('ingredient_prices')
             .doc(canonicalIngredientId)
-            .set({
-              'canonicalIngredientId': canonicalIngredientId,
-              'userOverridePrice': overridePrice,
-              'updatedAt': Timestamp.now(),
-            }, SetOptions(merge: true));
+            .set(data, SetOptions(merge: true));
       }
 
       Logger.success('User override price set for ingredient: $canonicalIngredientId', 'IngredientPriceService');
     } catch (e) {
       Logger.error('Failed to set user override price', e, null, 'IngredientPriceService');
+      rethrow;
+    }
+  }
+
+  /// Set or update user ingredient price (unit price for cost calculations)
+  /// Ensures price sync: Pantry → Recipe → Shopping List
+  Future<void> setUserIngredientPrice({
+    required String userId,
+    required String canonicalIngredientId,
+    required double unitPrice,
+    required String priceUnit, // g, kg, ml, L, pcs
+  }) async {
+    try {
+      // Create/update global base so Recipe/Shopping List can use it
+      await setIngredientPrice(
+        canonicalIngredientId: canonicalIngredientId,
+        averagePrice: unitPrice,
+        priceUnit: priceUnit,
+      );
+      // Also set user override so user's prices take precedence
+      await setUserOverridePrice(
+        userId: userId,
+        canonicalIngredientId: canonicalIngredientId,
+        overridePrice: unitPrice,
+        priceUnit: priceUnit,
+      );
+    } catch (e) {
+      Logger.error('Failed to set user ingredient price', e, null, 'IngredientPriceService');
       rethrow;
     }
   }

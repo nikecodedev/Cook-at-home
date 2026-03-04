@@ -46,7 +46,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
   DateTime? _expirationDate;
   String? _canonicalIngredientId; // Store canonical ingredient ID from scanned product
   bool _priceLoading = false;
+  String _priceUnit = Units.pieces; // price unit (separate from quantity unit)
   late List<CustomStoreLink> _customStores;
+
+  static const _priceUnitOptions = [Units.grams, Units.kilograms, Units.milliliters, Units.liters, Units.pieces];
 
   @override
   void initState() {
@@ -67,6 +70,9 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     _expirationDate = widget.item?.expirationDate;
     _canonicalIngredientId = widget.item?.canonicalIngredientId ?? prefillFromProduct?.canonicalIngredientId;
     _customStores = List.from(widget.item?.customStores ?? []);
+    // Default price unit to quantity unit, clamped to MVP options
+    final initialUnit = widget.item?.unit ?? prefillFromProduct?.suggestedUnit ?? Units.pieces;
+    _priceUnit = _priceUnitOptions.contains(initialUnit) ? initialUnit : Units.pieces;
     if (_canonicalIngredientId != null && _canonicalIngredientId!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadUserPrice());
     }
@@ -84,6 +90,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         final override = price?.userOverridePrice ?? price?.averagePrice;
         if (override != null && override > 0) {
           _priceController.text = override.toStringAsFixed(2);
+        }
+        // Restore saved price unit
+        if (price?.priceUnit != null && _priceUnitOptions.contains(price!.priceUnit)) {
+          setState(() => _priceUnit = price.priceUnit);
         }
       }
     } catch (e) {
@@ -136,10 +146,20 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
       _nameController.text.trim(),
     );
 
+    // Resolve canonical ingredient by name when not set (manual add without barcode)
+    var canonicalId = _canonicalIngredientId;
+    if ((canonicalId == null || canonicalId.isEmpty) && formattedName.isNotEmpty) {
+      final canonicalService = ref.read(canonicalIngredientServiceProvider);
+      canonicalId = await canonicalService.createOrGetCanonicalIngredient(
+        name: formattedName,
+        defaultUnit: _unitController.text.trim(),
+      );
+    }
+
     final item = PantryItem(
       id: widget.item?.id ?? const Uuid().v4(),
       name: formattedName,
-      canonicalIngredientId: _canonicalIngredientId, // Include canonical ingredient ID
+      canonicalIngredientId: canonicalId, // For price sync: Pantry → Recipe → Shopping List
       quantity: quantity,
       unit: _unitController.text.trim(),
       category: _categoryController.text.trim(),
@@ -176,20 +196,28 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
           );
         }
       }
-      // Save user price override when canonical ingredient is set
-      final canonicalId = _canonicalIngredientId;
+      // Save price for sync: Pantry → Recipe → Shopping List
       final userId = ref.read(currentUserIdProvider);
-      if (canonicalId != null && canonicalId.isNotEmpty && userId != null) {
+      if (userId != null && canonicalId != null && canonicalId.isNotEmpty) {
         final priceText = _priceController.text.trim();
-        final overridePrice = priceText.isEmpty ? null : double.tryParse(priceText);
+        final unitPrice = priceText.isEmpty ? null : double.tryParse(priceText);
         try {
-          await ref.read(ingredientPriceServiceProvider).setUserOverridePrice(
-            userId: userId,
-            canonicalIngredientId: canonicalId,
-            overridePrice: overridePrice,
-          );
+          if (unitPrice != null && unitPrice > 0) {
+            await ref.read(ingredientPriceServiceProvider).setUserIngredientPrice(
+              userId: userId,
+              canonicalIngredientId: canonicalId!,
+              unitPrice: unitPrice,
+              priceUnit: _priceUnit,
+            );
+          } else {
+            await ref.read(ingredientPriceServiceProvider).setUserOverridePrice(
+              userId: userId,
+              canonicalIngredientId: canonicalId!,
+              overridePrice: null,
+            );
+          }
         } catch (priceError) {
-          Logger.error('Failed to save price override', priceError, null, 'PantryEditScreen');
+          Logger.error('Failed to save price', priceError, null, 'PantryEditScreen');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -251,19 +279,13 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header Card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.1),
-                      AppColors.secondary.withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.gray200, width: 1),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
                 child: Row(
                   children: [
                     Container(
@@ -527,19 +549,57 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else
-                CustomTextField(
-                  label: 'Precio por unidad (\$)',
-                  controller: _priceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  prefixIcon: Icons.attach_money,
-                  hint: 'ej. 25.50',
-                  validator: (value) {
-                    if (value != null && value.trim().isNotEmpty) {
-                      return Validators.validatePositiveNumber(value, 'Precio');
-                    }
-                    return null;
-                  },
-                  textInputAction: TextInputAction.next,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: CustomTextField(
+                        label: 'Precio (MXN)',
+                        controller: _priceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        prefixIcon: Icons.attach_money,
+                        hint: 'ej. 25.50',
+                        validator: (value) {
+                          if (value != null && value.trim().isNotEmpty) {
+                            return Validators.validatePositiveNumber(value, 'Precio');
+                          }
+                          return null;
+                        },
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.gray300),
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: _priceUnitOptions.contains(_priceUnit) ? _priceUnit : Units.pieces,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'MXN por',
+                            prefixIcon: Icon(Icons.straighten, size: 20),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          ),
+                          items: _priceUnitOptions.map((u) {
+                            return DropdownMenuItem(
+                              value: u,
+                              child: Text(Translations.translateUnit(u), overflow: TextOverflow.ellipsis),
+                            );
+                          }).toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _priceUnit = v);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               const SizedBox(height: 8),
               Text(

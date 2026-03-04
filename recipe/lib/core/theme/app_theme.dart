@@ -4,9 +4,8 @@ import 'app_colors.dart';
 
 /// Application theme configuration
 /// Brand: Cocina en tu Casa
-/// Style: Clean, uncluttered, rounded cards, soft shadows, warm colors
+/// Style: Clean, modern, minimal – clear hierarchy, subtle depth
 class AppTheme {
-  // Primary font: Poppins (UI + Logo) - clean, friendly, modern
   static TextStyle _poppins({
     double? fontSize,
     FontWeight? fontWeight,
@@ -97,13 +96,13 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Rounded buttons (8-12px radius)
+            borderRadius: BorderRadius.circular(14),
           ),
-          elevation: 0, // Flat design with soft shadows
+          elevation: 0,
           textStyle: _poppins(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -134,20 +133,20 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.gray50,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.gray300),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.gray200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.gray300),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.gray200, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -172,11 +171,11 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 2, // Soft shadows for depth
-        shadowColor: AppColors.shadow,
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16), // Rounded cards
-          side: BorderSide.none, // No border, use shadow instead
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide.none,
         ),
         margin: const EdgeInsets.all(8),
       ),

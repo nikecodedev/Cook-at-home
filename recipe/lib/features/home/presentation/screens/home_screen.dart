@@ -62,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             borderRadius: BorderRadius.circular(12),
           ),
           indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
           labelStyle: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -133,19 +134,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
       ),
       padding: EdgeInsets.all(isMobile ? 24 : 28),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            AppColors.primary.withOpacity(0.03),
-            AppColors.primary.withOpacity(0.01),
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(28),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.08),
+          color: AppColors.gray200,
           width: 1,
         ),
         boxShadow: [
@@ -168,20 +160,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primary, AppColors.primaryLight],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                  spreadRadius: 0,
-                ),
-              ],
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
               Icons.waving_hand_rounded,

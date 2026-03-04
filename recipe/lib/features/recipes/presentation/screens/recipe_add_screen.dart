@@ -13,6 +13,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/recipe_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../providers/pantry_provider.dart';
+import '../../../../providers/phase2_providers.dart';
 import '../../../../models/recipe_model.dart';
 import '../../../../models/pantry_item_model.dart';
 import '../../../../core/constants/firebase_constants.dart';
@@ -185,6 +186,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
     showDialog(
       context: context,
       builder: (context) => _AddIngredientDialog(
+        ref: ref,
         onSave: (ingredient) {
           setState(() {
             _ingredients.add(ingredient);
@@ -199,6 +201,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
     showDialog(
       context: context,
       builder: (context) => _AddIngredientDialog(
+        ref: ref,
         initialIngredient: ingredient,
         onSave: (updatedIngredient) {
           setState(() {
@@ -514,22 +517,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.15),
-                      AppColors.secondary.withOpacity(0.08),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.gray200, width: 1),
                 ),
                 child: Column(
                   children: [
@@ -538,15 +528,8 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: const Icon(
                             Icons.restaurant_menu_rounded,
@@ -784,68 +767,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (_ingredients.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: AppColors.gray50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.gray200,
-                      width: 2,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.shopping_basket_outlined,
-                          size: 40,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aún no hay ingredientes',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Agrega ingredientes a tu receta',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _addIngredient,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Agregar Primer Ingrediente'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
+              if (_ingredients.isNotEmpty)
                 ..._ingredients.asMap().entries.map((entry) {
                   final index = entry.key;
                   final ingredient = entry.value;
@@ -854,17 +776,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.gray200,
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.gray200.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.gray200, width: 1),
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -1037,68 +949,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (_instructions.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: AppColors.gray50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.gray200,
-                      width: 2,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.list_alt_rounded,
-                          size: 40,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aún no hay instrucciones',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Agrega instrucciones paso a paso para cocinar',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _addInstruction,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Agregar Primer Paso'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
+              if (_instructions.isNotEmpty)
                 ..._instructions.asMap().entries.map((entry) {
                   final index = entry.key;
                   final instruction = entry.value;
@@ -1107,17 +958,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.gray200,
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.gray200.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.gray200, width: 1),
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -1227,27 +1068,21 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               // Save Button
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary,
-                      AppColors.primaryDark,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  color: AppColors.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+                      color: AppColors.primary.withOpacity(0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isLoading 
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: isLoading 
                         ? () {
                             Logger.warning('Button tapped but isLoading is true', 'RecipeAddScreen');
                           }
@@ -1255,8 +1090,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                             Logger.info('Button tapped, calling _saveRecipe', 'RecipeAddScreen');
                             _saveRecipe();
                           },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
+                        child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1546,10 +1380,12 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
 }
 
 class _AddIngredientDialog extends ConsumerStatefulWidget {
+  final WidgetRef ref;
   final RecipeIngredient? initialIngredient;
   final Function(RecipeIngredient) onSave;
 
   const _AddIngredientDialog({
+    required this.ref,
     this.initialIngredient,
     required this.onSave,
   });
@@ -1563,10 +1399,15 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
   late TextEditingController _unitController;
+  late TextEditingController _unitPriceController;
+  String _priceUnit = Units.pieces; // MXN per g/kg/ml/L/pc
   late TextEditingController _amazonLinkController;
   late TextEditingController _walmartLinkController;
   bool _linksInherited = false;
   String? _inheritedFromPantry;
+  bool _priceLoading = false;
+
+  static const _priceUnitOptions = [Units.grams, Units.kilograms, Units.milliliters, Units.liters, Units.pieces];
 
   @override
   void initState() {
@@ -1580,12 +1421,45 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     _unitController = TextEditingController(
       text: widget.initialIngredient?.unit ?? 'pieces',
     );
+    _priceUnit = widget.initialIngredient != null &&
+            _priceUnitOptions.contains(widget.initialIngredient!.unit)
+        ? widget.initialIngredient!.unit
+        : Units.pieces;
+    _unitPriceController = TextEditingController();
     _amazonLinkController = TextEditingController(
       text: widget.initialIngredient?.amazonLink ?? '',
     );
     _walmartLinkController = TextEditingController(
       text: widget.initialIngredient?.walmartLink ?? '',
     );
+    // Pre-load existing price when editing an ingredient
+    final canonicalId = widget.initialIngredient?.canonicalIngredientId;
+    if (canonicalId != null && canonicalId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadExistingPrice(canonicalId));
+    }
+  }
+
+  Future<void> _loadExistingPrice(String canonicalId) async {
+    final userId = widget.ref.read(currentUserIdProvider);
+    if (userId == null) return;
+    if (mounted) setState(() => _priceLoading = true);
+    try {
+      final priceService = widget.ref.read(ingredientPriceServiceProvider);
+      final price = await priceService.getUserIngredientPrice(canonicalId, userId);
+      if (mounted) {
+        final effectivePrice = price?.userOverridePrice ?? price?.averagePrice;
+        if (effectivePrice != null && effectivePrice > 0) {
+          _unitPriceController.text = effectivePrice.toStringAsFixed(2);
+        }
+        if (price?.priceUnit != null && _priceUnitOptions.contains(price!.priceUnit)) {
+          setState(() => _priceUnit = price.priceUnit);
+        }
+      }
+    } catch (e) {
+      Logger.warning('Failed to load existing ingredient price', 'AddIngredientDialog');
+    } finally {
+      if (mounted) setState(() => _priceLoading = false);
+    }
   }
 
   @override
@@ -1593,6 +1467,7 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     _nameController.dispose();
     _quantityController.dispose();
     _unitController.dispose();
+    _unitPriceController.dispose();
     _amazonLinkController.dispose();
     _walmartLinkController.dispose();
     super.dispose();
@@ -1656,7 +1531,7 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -1666,8 +1541,34 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
       _nameController.text.trim(),
     );
 
+    // Resolve/create canonical ingredient for price sync
+    String? canonicalId;
+    final canonicalService = widget.ref.read(canonicalIngredientServiceProvider);
+    canonicalId = await canonicalService.createOrGetCanonicalIngredient(
+      name: formattedName,
+      defaultUnit: _unitController.text.trim(),
+    );
+
+    // Save unit price if provided (for Recipe/Shopping List cost)
+    final userId = widget.ref.read(currentUserIdProvider);
+    final priceText = _unitPriceController.text.trim();
+    final unitPrice = priceText.isEmpty ? null : double.tryParse(priceText);
+    if (userId != null && canonicalId.isNotEmpty && unitPrice != null && unitPrice > 0) {
+      try {
+        await widget.ref.read(ingredientPriceServiceProvider).setUserIngredientPrice(
+          userId: userId,
+          canonicalIngredientId: canonicalId,
+          unitPrice: unitPrice,
+          priceUnit: _priceUnit,
+        );
+      } catch (_) {
+        // Non-critical - ingredient still saves
+      }
+    }
+
     final ingredient = RecipeIngredient(
       name: formattedName,
+      canonicalIngredientId: canonicalId,
       quantity: double.tryParse(_quantityController.text) ?? 1.0,
       unit: _unitController.text.trim(),
       amazonLink: _amazonLinkController.text.trim().isEmpty
@@ -1678,8 +1579,10 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
           : _walmartLinkController.text.trim(),
     );
 
-    widget.onSave(ingredient);
-    Navigator.of(context).pop();
+    if (mounted) {
+      widget.onSave(ingredient);
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -1730,18 +1633,19 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
                       ),
                       child: DropdownButtonFormField<String>(
                         value: _unitController.text,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Unidad',
-                          prefixIcon: Icon(Icons.straighten),
+                          prefixIcon: Icon(Icons.straighten, size: 20),
                           border: InputBorder.none,
                           contentPadding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         ),
                         items: Units.all.map((unit) {
                           final translatedUnit = Translations.translateUnit(unit);
                           return DropdownMenuItem(
-                            value: unit, // Store English value
-                            child: Text(translatedUnit), // Display Spanish translation
+                            value: unit,
+                            child: Text(translatedUnit, overflow: TextOverflow.ellipsis),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -1755,6 +1659,98 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              // Unit Price (for recipe cost calculation)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.attach_money_rounded, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Precio por unidad (opcional)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Costo = cantidad × precio unitario. Se usa en Receta y Lista de Compras.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_priceLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    else
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: CustomTextField(
+                            label: 'Precio (MXN)',
+                            controller: _unitPriceController,
+                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                            prefixIcon: Icons.payments_outlined,
+                            hint: 'ej. 25.50',
+                            validator: (value) {
+                              if (value != null && value.trim().isNotEmpty) {
+                                return Validators.validatePositiveNumber(value, 'Precio');
+                              }
+                              return null;
+                            },
+                            textInputAction: TextInputAction.next,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.gray300),
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              value: _priceUnitOptions.contains(_priceUnit) ? _priceUnit : Units.pieces,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'MXN por',
+                                prefixIcon: Icon(Icons.straighten, size: 20),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              ),
+                              items: _priceUnitOptions.map((u) {
+                                return DropdownMenuItem(
+                                  value: u,
+                                  child: Text(Translations.translateUnit(u), overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
+                              onChanged: (v) {
+                                if (v != null) setState(() => _priceUnit = v);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
               // Purchase Links Section

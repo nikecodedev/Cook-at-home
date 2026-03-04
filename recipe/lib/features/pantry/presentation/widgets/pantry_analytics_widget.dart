@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 
 /// Widget to display comprehensive pantry analytics
 /// Shows: total value, estimated meals, coverage %, and efficiency score
-class PantryAnalyticsWidget extends ConsumerWidget {
+class PantryAnalyticsWidget extends ConsumerStatefulWidget {
   final List<PantryItem> pantryItems;
 
   const PantryAnalyticsWidget({
@@ -19,18 +19,38 @@ class PantryAnalyticsWidget extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PantryAnalyticsWidget> createState() => _PantryAnalyticsWidgetState();
+}
+
+class _PantryAnalyticsWidgetState extends ConsumerState<PantryAnalyticsWidget> {
+  Future<PantryAnalytics>? _analyticsFuture;
+  List<PantryItem>? _lastItems;
+  String? _lastUserId;
+
+  void _refreshIfNeeded(PantryAnalyticsService service, String? userId) {
+    final itemsChanged = widget.pantryItems != _lastItems;
+    final userChanged = userId != _lastUserId;
+    if (_analyticsFuture == null || itemsChanged || userChanged) {
+      _lastItems = widget.pantryItems;
+      _lastUserId = userId;
+      _analyticsFuture = service.calculateComprehensiveAnalytics(widget.pantryItems, userId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final userId = ref.watch(currentUserIdProvider);
     final analyticsService = ref.watch(pantryAnalyticsServiceProvider);
 
-    // Empty state: always show a card so Phase 2 section is visible
-    if (pantryItems.isEmpty) {
+    if (widget.pantryItems.isEmpty) {
       return _buildEmptyState(context, l10n);
     }
 
+    _refreshIfNeeded(analyticsService, userId);
+
     return FutureBuilder<PantryAnalytics>(
-      future: analyticsService.calculateComprehensiveAnalytics(pantryItems, userId),
+      future: _analyticsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
@@ -295,14 +315,14 @@ class PantryAnalyticsWidget extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 12),
-                const Text(
-                    'Análisis de Despensa',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+              const Text(
+                'Análisis de Despensa',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -331,4 +351,3 @@ class PantryAnalyticsWidget extends ConsumerWidget {
     return AppColors.error;
   }
 }
-

@@ -42,18 +42,13 @@ class ModernRecipeCard extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gray200.withOpacity(0.6), width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
-          ),
-          BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -61,7 +56,7 @@ class ModernRecipeCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

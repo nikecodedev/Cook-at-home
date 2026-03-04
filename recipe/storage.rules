@@ -1,0 +1,27 @@
+rules_version = '2';
+// Firebase Storage rules for Cook-at-home / Cocina
+// Required for recipe photos, profile images, pantry images to save and display
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Recipe images: recipes/{recipeId}/{filename}
+    match /recipes/{recipeId}/{fileName} {
+      allow read: if true;  // Public read for recipe photos
+      allow write: if request.auth != null;
+    }
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Pantry item images
+    match /pantry/{userId}/{itemId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Product images
+    match /products/{barcode}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

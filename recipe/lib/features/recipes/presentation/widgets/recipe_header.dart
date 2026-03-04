@@ -25,27 +25,9 @@ class RecipeHeader extends StatelessWidget {
           width: double.infinity,
           height: isTablet ? 380 : 280,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary.withOpacity(0.1),
-                AppColors.secondary.withOpacity(0.05),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.15),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-                spreadRadius: 0,
-              ),
-            ],
+            color: AppColors.gray100,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.gray200, width: 1),
           ),
           clipBehavior: Clip.antiAlias,
           child: (recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty)
@@ -53,16 +35,9 @@ class RecipeHeader extends StatelessWidget {
                   imageUrl: recipe.imageUrl!,
                   height: isTablet ? 380 : 280,
                   placeholder: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFFF7F7F7),
-                          const Color(0xFFEDEDED),
-                        ],
-                      ),
-                    ),
+            decoration: BoxDecoration(
+              color: AppColors.gray100,
+            ),
                     child: const Icon(
                       Icons.restaurant_menu_rounded,
                       size: 80,
@@ -71,16 +46,9 @@ class RecipeHeader extends StatelessWidget {
                   ),
                 )
               : Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFFF7F7F7),
-                        const Color(0xFFEDEDED),
-                      ],
-                    ),
-                  ),
+            decoration: BoxDecoration(
+              color: AppColors.gray100,
+            ),
                   child: const Icon(
                     Icons.restaurant_menu_rounded,
                     size: 80,

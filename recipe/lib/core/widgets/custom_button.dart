@@ -28,9 +28,9 @@ class CustomButton extends StatelessWidget {
       width: isFullWidth ? double.infinity : null,
       height: 56,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         gradient: (backgroundColor == null && !isLoading && onPressed != null)
-            ? LinearGradient(
+            ? const LinearGradient(
                 colors: [AppColors.primary, AppColors.primaryDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -43,10 +43,9 @@ class CustomButton extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color: (backgroundColor ?? AppColors.primary).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                  spreadRadius: 0,
+                  color: (backgroundColor ?? AppColors.primary).withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
       ),
@@ -54,7 +53,7 @@ class CustomButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: Container(
             alignment: Alignment.center,
             child: isLoading
@@ -115,10 +114,10 @@ class CustomOutlinedButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: borderColor ?? AppColors.primary,
-          width: 2,
+          width: 1.5,
         ),
         color: Colors.transparent,
       ),
@@ -126,7 +125,7 @@ class CustomOutlinedButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: Container(
             alignment: Alignment.center,
             child: Row(

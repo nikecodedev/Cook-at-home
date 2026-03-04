@@ -11,6 +11,7 @@ import '../../../../models/user_store_model.dart';
 import '../../../../core/utils/translations.dart';
 import '../../../../core/widgets/smart_purchase_button.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../services/measurement_converter_service.dart';
 
 class ShoppingListScreen extends ConsumerWidget {
   final ShoppingList shoppingList;
@@ -212,9 +213,22 @@ class ShoppingListScreen extends ConsumerWidget {
             item.canonicalIngredientId!,
             userId,
           );
-          if (price != null) {
-            // Simple cost calculation: price * quantity
-            totalCost += price.effectivePrice * item.quantity;
+          if (price != null && price.effectivePrice > 0) {
+            // Unit price costing: convert quantity to price unit, then multiply
+            double cost = 0;
+            if (item.unit == price.priceUnit) {
+              cost = item.quantity * price.effectivePrice;
+            } else {
+              final converted = MeasurementConverterService.convert(
+                value: item.quantity,
+                fromUnit: item.unit,
+                toUnit: price.priceUnit,
+              );
+              if (converted != null) {
+                cost = converted.value * price.effectivePrice;
+              }
+            }
+            totalCost += cost;
           }
         } catch (e) {
           // Ignore errors for individual items

@@ -29,32 +29,14 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       elevation: 0,
       backgroundColor: AppColors.primary,
+      surfaceTintColor: Colors.transparent,
       titleSpacing: 0,
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary,
-              AppColors.primaryDark,
-            ],
-          ),
-        ),
-      ),
       leading: showBackButton
           ? Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: IconButton(
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
@@ -73,15 +55,8 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
                     return Container(
                       margin: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.menu_rounded, color: Colors.white),
@@ -147,20 +122,12 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: actions != null
           ? actions!.map((action) {
-              // Wrap IconButton in styled container
               if (action is IconButton) {
                 return Container(
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: action,
                 );

@@ -219,8 +219,9 @@ class RecipeController extends StateNotifier<AsyncValue<void>> {
         if (newImageUrl != null && newImageUrl.isNotEmpty) {
           imageUrl = newImageUrl;
         } else {
-          // Upload failed - keep existing image URL or null
-          Logger.warning('Image upload failed during recipe update - keeping existing image', 'RecipeController');
+          // Upload failed - fall back to old image URL so we don't lose it
+          imageUrl = oldImageUrl;
+          Logger.warning('Image upload failed during recipe update - reverting to old image URL', 'RecipeController');
         }
       }
 
