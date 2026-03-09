@@ -21,6 +21,7 @@ import '../../../../providers/profile_provider.dart';
 import '../../../../models/product_model.dart';
 import '../../../../services/canonical_ingredient_service.dart';
 import '../../../../services/ingredient_price_service.dart';
+import '../../../../models/ingredient_price_model.dart';
 import 'package:uuid/uuid.dart';
 
 class PantryEditScreen extends ConsumerStatefulWidget {
@@ -47,6 +48,8 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
   String? _canonicalIngredientId; // Store canonical ingredient ID from scanned product
   bool _priceLoading = false;
   String _priceUnit = Units.pieces; // price unit (separate from quantity unit)
+  PricingType _pricingType = PricingType.perUnit;
+  late TextEditingController _packageSizeController;
   late List<CustomStoreLink> _customStores;
 
   static const _priceUnitOptions = [Units.grams, Units.kilograms, Units.milliliters, Units.liters, Units.pieces];
@@ -67,6 +70,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     _amazonUrlController = TextEditingController(text: widget.item?.amazonUrl ?? '');
     _walmartUrlController = TextEditingController(text: widget.item?.walmartUrl ?? '');
     _priceController = TextEditingController();
+    _packageSizeController = TextEditingController();
     _expirationDate = widget.item?.expirationDate;
     _canonicalIngredientId = widget.item?.canonicalIngredientId ?? prefillFromProduct?.canonicalIngredientId;
     _customStores = List.from(widget.item?.customStores ?? []);
@@ -93,8 +97,14 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         }
         // Restore saved price unit
         if (price?.priceUnit != null && _priceUnitOptions.contains(price!.priceUnit)) {
-          setState(() => _priceUnit = price.priceUnit);
+          _priceUnit = price.priceUnit;
         }
+        // Restore pricing type and package size
+        _pricingType = price?.pricingType ?? PricingType.perUnit;
+        if (price?.packageSize != null && price!.packageSize! > 0) {
+          _packageSizeController.text = price.packageSize!.toStringAsFixed(0);
+        }
+        setState(() {});
       }
     } catch (e) {
       Logger.error('Error loading user price', e, null, 'PantryEditScreen');
@@ -112,6 +122,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
     _amazonUrlController.dispose();
     _walmartUrlController.dispose();
     _priceController.dispose();
+    _packageSizeController.dispose();
     super.dispose();
   }
 
@@ -203,11 +214,17 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         final unitPrice = priceText.isEmpty ? null : double.tryParse(priceText);
         try {
           if (unitPrice != null && unitPrice > 0) {
+            final packageSize = _pricingType == PricingType.perPackage
+                ? double.tryParse(_packageSizeController.text.trim())
+                : null;
             await ref.read(ingredientPriceServiceProvider).setUserIngredientPrice(
               userId: userId,
               canonicalIngredientId: canonicalId!,
               unitPrice: unitPrice,
               priceUnit: _priceUnit,
+              pricingType: _pricingType,
+              packageSize: packageSize,
+              packageUnit: _pricingType == PricingType.perPackage ? _priceUnit : null,
             );
           } else {
             await ref.read(ingredientPriceServiceProvider).setUserOverridePrice(
@@ -601,9 +618,60 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                     ),
                   ],
                 ),
+              const SizedBox(height: 12),
+              // Pricing type selector
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.gray300),
+                ),
+                child: DropdownButtonFormField<PricingType>(
+                  value: _pricingType,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo de precio',
+                    prefixIcon: Icon(Icons.sell_outlined, size: 20),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  ),
+                  items: PricingType.values.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(type.displayName, overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _pricingType = v);
+                  },
+                ),
+              ),
+              // Package size input (only for perPackage pricing type)
+              if (_pricingType == PricingType.perPackage) ...[
+                const SizedBox(height: 12),
+                CustomTextField(
+                  label: 'Cantidad por paquete',
+                  controller: _packageSizeController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixIcon: Icons.inventory_2_outlined,
+                  hint: 'ej. 8 (bolillos por paquete)',
+                  validator: (value) {
+                    if (_pricingType == PricingType.perPackage) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Requerido para precio por paquete';
+                      }
+                      return Validators.validatePositiveNumber(value, 'Cantidad');
+                    }
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
-                'Este precio se usará para calcular el costo de tus recetas y el valor de tu despensa',
+                _pricingType == PricingType.perPackage
+                    ? 'Ej: Paquete de 8 bolillos a \$49 → costo por bolillo = \$6.13'
+                    : 'Este precio se usará para calcular el costo de tus recetas y el valor de tu despensa',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

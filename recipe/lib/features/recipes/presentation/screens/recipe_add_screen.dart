@@ -21,6 +21,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/translations.dart';
 import '../../../../services/recipe_recommendation_service.dart';
+import '../../../../models/ingredient_price_model.dart';
 import 'package:uuid/uuid.dart';
 
 class RecipeAddScreen extends ConsumerStatefulWidget {
@@ -1401,6 +1402,8 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
   late TextEditingController _unitController;
   late TextEditingController _unitPriceController;
   String _priceUnit = Units.pieces; // MXN per g/kg/ml/L/pc
+  PricingType _pricingType = PricingType.perUnit;
+  late TextEditingController _packageSizeController;
   late TextEditingController _amazonLinkController;
   late TextEditingController _walmartLinkController;
   bool _linksInherited = false;
@@ -1426,6 +1429,7 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
         ? widget.initialIngredient!.unit
         : Units.pieces;
     _unitPriceController = TextEditingController();
+    _packageSizeController = TextEditingController();
     _amazonLinkController = TextEditingController(
       text: widget.initialIngredient?.amazonLink ?? '',
     );
@@ -1452,8 +1456,14 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
           _unitPriceController.text = effectivePrice.toStringAsFixed(2);
         }
         if (price?.priceUnit != null && _priceUnitOptions.contains(price!.priceUnit)) {
-          setState(() => _priceUnit = price.priceUnit);
+          _priceUnit = price.priceUnit;
         }
+        // Restore pricing type and package size
+        _pricingType = price?.pricingType ?? PricingType.perUnit;
+        if (price?.packageSize != null && price!.packageSize! > 0) {
+          _packageSizeController.text = price.packageSize!.toStringAsFixed(0);
+        }
+        setState(() {});
       }
     } catch (e) {
       Logger.warning('Failed to load existing ingredient price', 'AddIngredientDialog');
@@ -1468,6 +1478,7 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     _quantityController.dispose();
     _unitController.dispose();
     _unitPriceController.dispose();
+    _packageSizeController.dispose();
     _amazonLinkController.dispose();
     _walmartLinkController.dispose();
     super.dispose();
@@ -1555,11 +1566,17 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     final unitPrice = priceText.isEmpty ? null : double.tryParse(priceText);
     if (userId != null && canonicalId.isNotEmpty && unitPrice != null && unitPrice > 0) {
       try {
+        final packageSize = _pricingType == PricingType.perPackage
+            ? double.tryParse(_packageSizeController.text.trim())
+            : null;
         await widget.ref.read(ingredientPriceServiceProvider).setUserIngredientPrice(
           userId: userId,
           canonicalIngredientId: canonicalId,
           unitPrice: unitPrice,
           priceUnit: _priceUnit,
+          pricingType: _pricingType,
+          packageSize: packageSize,
+          packageUnit: _pricingType == PricingType.perPackage ? _priceUnit : null,
         );
       } catch (_) {
         // Non-critical - ingredient still saves
@@ -1749,6 +1766,59 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    // Pricing type selector
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.gray300),
+                      ),
+                      child: DropdownButtonFormField<PricingType>(
+                        value: _pricingType,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Tipo de precio',
+                          prefixIcon: Icon(Icons.sell_outlined, size: 20),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        ),
+                        items: PricingType.values.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type.displayName, overflow: TextOverflow.ellipsis),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v != null) setState(() => _pricingType = v);
+                        },
+                      ),
+                    ),
+                    if (_pricingType == PricingType.perPackage) ...[
+                      const SizedBox(height: 12),
+                      CustomTextField(
+                        label: 'Cantidad por paquete',
+                        controller: _packageSizeController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        prefixIcon: Icons.inventory_2_outlined,
+                        hint: 'ej. 8 (unidades por paquete)',
+                        validator: (value) {
+                          if (_pricingType == PricingType.perPackage) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Requerido para precio por paquete';
+                            }
+                            return Validators.validatePositiveNumber(value, 'Cantidad');
+                          }
+                          return null;
+                        },
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ej: \$49 por paquete de 8 → costo por unidad = \$6.13',
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -3,6 +3,7 @@ import '../core/config/firebase_config.dart';
 import '../core/constants/firebase_constants.dart';
 import '../models/ingredient_price_model.dart';
 import '../core/utils/logger.dart';
+export '../models/ingredient_price_model.dart' show PricingType;
 
 /// Service for managing ingredient prices
 class IngredientPriceService {
@@ -46,12 +47,18 @@ class IngredientPriceService {
         final data = userPriceDoc.data()!;
         final userPrice = (data['userOverridePrice'] as num?)?.toDouble();
         final userPriceUnit = data['priceUnit'] as String?;
+        final userPricingType = PricingType.fromJson(data['pricingType'] as String?);
+        final userPackageSize = data['packageSize'] != null ? (data['packageSize'] as num).toDouble() : null;
+        final userPackageUnit = data['packageUnit'] as String?;
         // Get base price to merge with
         final basePrice = await getIngredientPrice(canonicalIngredientId);
-        
+
         if (basePrice != null) {
           return basePrice.copyWith(
             userOverridePrice: userPrice,
+            pricingType: userPricingType,
+            packageSize: userPackageSize,
+            packageUnit: userPackageUnit,
           );
         }
         // User has price but no global base - build synthetic IngredientPrice from user doc
@@ -63,6 +70,9 @@ class IngredientPriceService {
             averagePrice: userPrice,
             priceUnit: userPriceUnit ?? 'pieces',
             userOverridePrice: userPrice,
+            pricingType: userPricingType,
+            packageSize: userPackageSize,
+            packageUnit: userPackageUnit,
             updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? now,
             createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? now,
           );
@@ -82,11 +92,14 @@ class IngredientPriceService {
     required String canonicalIngredientId,
     required double averagePrice,
     required String priceUnit,
+    PricingType pricingType = PricingType.perUnit,
+    double? packageSize,
+    String? packageUnit,
   }) async {
     try {
       // Check if price already exists
       final existing = await getIngredientPrice(canonicalIngredientId);
-      
+
       if (existing != null) {
         // Update existing
         await _firestore
@@ -95,6 +108,9 @@ class IngredientPriceService {
             .update({
               'averagePrice': averagePrice,
               'priceUnit': priceUnit,
+              'pricingType': pricingType.toJson(),
+              'packageSize': packageSize,
+              'packageUnit': packageUnit,
               'updatedAt': Timestamp.now(),
             });
       } else {
@@ -105,6 +121,9 @@ class IngredientPriceService {
           canonicalIngredientId: canonicalIngredientId,
           averagePrice: averagePrice,
           priceUnit: priceUnit,
+          pricingType: pricingType,
+          packageSize: packageSize,
+          packageUnit: packageUnit,
           updatedAt: now,
           createdAt: now,
         );
@@ -128,6 +147,9 @@ class IngredientPriceService {
     required String canonicalIngredientId,
     required double? overridePrice, // null to remove override
     String? priceUnit, // Required for Recipe/Shopping List sync when no base price
+    PricingType? pricingType,
+    double? packageSize,
+    String? packageUnit,
   }) async {
     try {
       if (overridePrice == null) {
@@ -147,6 +169,15 @@ class IngredientPriceService {
         };
         if (priceUnit != null && priceUnit.isNotEmpty) {
           data['priceUnit'] = priceUnit;
+        }
+        if (pricingType != null) {
+          data['pricingType'] = pricingType.toJson();
+        }
+        if (packageSize != null) {
+          data['packageSize'] = packageSize;
+        }
+        if (packageUnit != null) {
+          data['packageUnit'] = packageUnit;
         }
         await _firestore
             .collection(FirebaseCollections.users)
@@ -170,6 +201,9 @@ class IngredientPriceService {
     required String canonicalIngredientId,
     required double unitPrice,
     required String priceUnit, // g, kg, ml, L, pcs
+    PricingType pricingType = PricingType.perUnit,
+    double? packageSize,
+    String? packageUnit,
   }) async {
     try {
       // Create/update global base so Recipe/Shopping List can use it
@@ -177,6 +211,9 @@ class IngredientPriceService {
         canonicalIngredientId: canonicalIngredientId,
         averagePrice: unitPrice,
         priceUnit: priceUnit,
+        pricingType: pricingType,
+        packageSize: packageSize,
+        packageUnit: packageUnit,
       );
       // Also set user override so user's prices take precedence
       await setUserOverridePrice(
@@ -184,6 +221,9 @@ class IngredientPriceService {
         canonicalIngredientId: canonicalIngredientId,
         overridePrice: unitPrice,
         priceUnit: priceUnit,
+        pricingType: pricingType,
+        packageSize: packageSize,
+        packageUnit: packageUnit,
       );
     } catch (e) {
       Logger.error('Failed to set user ingredient price', e, null, 'IngredientPriceService');

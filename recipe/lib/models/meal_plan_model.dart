@@ -38,10 +38,10 @@ class MealPlan {
     return copyWith(dailyMeals: updatedMeals);
   }
 
-  /// Get all recipe IDs from meal slots (includes backward compatibility with dailyRecipes)
+  /// Get all unique recipe IDs from meal slots (includes backward compatibility with dailyRecipes)
   List<String> get allRecipeIds {
     final recipeIds = <String>{};
-    
+
     // Get from meal slots
     for (final dayMeals in dailyMeals.values) {
       for (final recipeId in dayMeals.values) {
@@ -50,13 +50,39 @@ class MealPlan {
         }
       }
     }
-    
+
     // Get from legacy dailyRecipes (backward compatibility)
     for (final recipeList in dailyRecipes.values) {
       recipeIds.addAll(recipeList);
     }
-    
+
     return recipeIds.toList();
+  }
+
+  /// Get recipe IDs with their occurrence count (how many times each recipe appears)
+  /// Used for shopping list scaling: if a recipe appears 3 times, multiply quantities by 3
+  Map<String, int> get recipeIdCounts {
+    final counts = <String, int>{};
+
+    // Count from meal slots
+    for (final dayMeals in dailyMeals.values) {
+      for (final recipeId in dayMeals.values) {
+        if (recipeId != null && recipeId.isNotEmpty) {
+          counts[recipeId] = (counts[recipeId] ?? 0) + 1;
+        }
+      }
+    }
+
+    // Count from legacy dailyRecipes (backward compatibility)
+    for (final recipeList in dailyRecipes.values) {
+      for (final recipeId in recipeList) {
+        if (recipeId.isNotEmpty) {
+          counts[recipeId] = (counts[recipeId] ?? 0) + 1;
+        }
+      }
+    }
+
+    return counts;
   }
 
   /// Create MealPlan from Firestore document

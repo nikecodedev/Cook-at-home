@@ -218,33 +218,41 @@ class RecipeSharingService {
     return webDeepLink;
   }
 
-  /// Build short, predefined share text for recipe
+  /// Build share text with full recipe content (name, ingredients, cost info)
   String _buildShareText(Recipe recipe) {
     final buffer = StringBuffer();
-    
+
     // Recipe title
     buffer.writeln('🍳 ${recipe.title}');
     buffer.writeln();
-    
-    // Short description with key info
+
+    // Key info
     if (recipe.cookTime > 0) {
-      buffer.writeln('⏱️ ${recipe.formattedCookTime}');
-    }
-    
-    if (recipe.numberOfServings != null) {
+      buffer.write('⏱️ ${recipe.formattedCookTime}');
+      if (recipe.numberOfServings != null) {
+        buffer.write(' | 🍽️ ${recipe.numberOfServings} porciones');
+      }
+      buffer.writeln();
+    } else if (recipe.numberOfServings != null) {
       buffer.writeln('🍽️ ${recipe.numberOfServings} porciones');
     }
-    
+
+    // Ingredients list
     if (recipe.ingredients.isNotEmpty) {
-      buffer.writeln('📋 ${recipe.ingredients.length} ingredientes');
+      buffer.writeln();
+      buffer.writeln('📋 Ingredientes:');
+      for (final ingredient in recipe.ingredients) {
+        final qty = ingredient.quantity % 1 == 0
+            ? ingredient.quantity.toInt().toString()
+            : ingredient.quantity.toStringAsFixed(1);
+        buffer.writeln('  • ${ingredient.name} - $qty ${ingredient.unit}');
+      }
     }
-    
+
     buffer.writeln();
-    
-    // Deep link
-    buffer.writeln('📱 Ver receta completa:');
+    buffer.writeln('✨ Descubre más recetas en Cocina en tu Casa');
     buffer.writeln(_generateDeepLink(recipe));
-    
+
     return buffer.toString();
   }
 }

@@ -93,23 +93,26 @@ class RecipeCostService {
           continue;
         }
 
-        // Convert ingredient quantity to price unit
+        // Convert ingredient quantity to price unit and calculate cost
         double cost = 0.0;
         try {
-          if (ingredient.unit == price.priceUnit) {
-            // Same unit, direct calculation
-            cost = ingredient.quantity * price.effectivePrice;
-          } else {
-            // Need to convert
+          double convertedQuantity = ingredient.quantity;
+
+          if (ingredient.unit != price.priceUnit) {
+            // Need to convert units
             final conversion = MeasurementConverterService.convert(
               value: ingredient.quantity,
               fromUnit: ingredient.unit,
               toUnit: price.priceUnit,
             );
             if (conversion != null) {
-              cost = conversion.value * price.effectivePrice;
+              convertedQuantity = conversion.value;
             }
           }
+
+          // Use the price model's calculateCost which handles all pricing types
+          // (perUnit, perPackage, perWeight)
+          cost = price.calculateCost(convertedQuantity);
 
           totalCost += cost;
           ingredientCosts[ingredient.name] = cost;

@@ -756,49 +756,62 @@ class FirestoreService {
           .doc()
           .id;
 
-      // Get all recipes from meal plan
-      final recipeIds = mealPlan.allRecipeIds;
-      final List<Recipe> recipes = [];
-      for (final recipeId in recipeIds) {
+      // Get all recipes from meal plan with occurrence counts
+      // If a recipe appears multiple times in the week, multiply ingredient quantities
+      final recipeIdCounts = mealPlan.recipeIdCounts;
+      final Map<String, Recipe> recipeMap = {};
+      for (final recipeId in recipeIdCounts.keys) {
         try {
           final recipe = await getRecipe(recipeId);
           if (recipe != null) {
-            recipes.add(recipe);
+            recipeMap[recipeId] = recipe;
           }
         } catch (e) {
           Logger.warning('Failed to fetch recipe: $recipeId', 'FirestoreService');
         }
       }
 
-      if (recipes.isEmpty) {
+      if (recipeMap.isEmpty) {
         throw Exception('No recipes found in meal plan');
       }
 
-      // Aggregate all ingredients from all recipes
+      // Aggregate all ingredients from all recipes, multiplying by occurrence count
       final Map<String, RecipeIngredient> aggregatedIngredients = {}; // normalizedName -> ingredient (with aggregated quantity)
       final pantryMap = <String, PantryItem>{};
-      
+
       for (final item in pantryItems) {
         final normalized = RecipeRecommendationService.normalizeIngredientName(item.name);
         pantryMap[normalized] = item;
       }
 
-      // Aggregate ingredients from all recipes
-      for (final recipe in recipes) {
+      // Aggregate ingredients from all recipes, scaled by how many times each appears
+      for (final entry in recipeIdCounts.entries) {
+        final recipe = recipeMap[entry.key];
+        if (recipe == null) continue;
+        final multiplier = entry.value; // how many times this recipe appears in the meal plan
+
         for (final ingredient in recipe.ingredients) {
           final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
-          
+          final scaledQuantity = ingredient.quantity * multiplier;
+
           if (aggregatedIngredients.containsKey(normalizedName)) {
-            // Aggregate quantities (simplified: add quantities)
+            // Aggregate quantities
             final existing = aggregatedIngredients[normalizedName]!;
             aggregatedIngredients[normalizedName] = RecipeIngredient(
               name: existing.name,
-              quantity: existing.quantity + ingredient.quantity,
+              quantity: existing.quantity + scaledQuantity,
               unit: existing.unit, // Keep first unit
               canonicalIngredientId: existing.canonicalIngredientId ?? ingredient.canonicalIngredientId,
             );
           } else {
-            aggregatedIngredients[normalizedName] = ingredient;
+            aggregatedIngredients[normalizedName] = RecipeIngredient(
+              name: ingredient.name,
+              quantity: scaledQuantity,
+              unit: ingredient.unit,
+              canonicalIngredientId: ingredient.canonicalIngredientId,
+              amazonLink: ingredient.amazonLink,
+              walmartLink: ingredient.walmartLink,
+            );
           }
         }
       }
