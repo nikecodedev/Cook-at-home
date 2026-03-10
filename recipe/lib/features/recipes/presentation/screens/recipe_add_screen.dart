@@ -1578,6 +1578,8 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
           packageSize: packageSize,
           packageUnit: _pricingType == PricingType.perPackage ? _priceUnit : null,
         );
+        // Bump price version so recipe cost widget re-fetches
+        widget.ref.read(priceVersionProvider.notifier).state++;
       } catch (_) {
         // Non-critical - ingredient still saves
       }

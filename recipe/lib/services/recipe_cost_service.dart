@@ -107,6 +107,14 @@ class RecipeCostService {
             );
             if (conversion != null) {
               convertedQuantity = conversion.value;
+            } else {
+              // Units are incompatible (e.g., volume ↔ weight, pieces ↔ weight)
+              // Skip this ingredient rather than calculate with wrong units
+              Logger.warning(
+                'Cannot convert "${ingredient.unit}" to "${price.priceUnit}" for ${ingredient.name} — skipping cost',
+                'RecipeCostService',
+              );
+              continue;
             }
           }
 

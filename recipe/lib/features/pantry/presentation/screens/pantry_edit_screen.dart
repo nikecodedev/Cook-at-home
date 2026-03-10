@@ -226,6 +226,8 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               packageSize: packageSize,
               packageUnit: _pricingType == PricingType.perPackage ? _priceUnit : null,
             );
+            // Bump price version so recipe cost widget re-fetches
+            ref.read(priceVersionProvider.notifier).state++;
           } else {
             await ref.read(ingredientPriceServiceProvider).setUserOverridePrice(
               userId: userId,

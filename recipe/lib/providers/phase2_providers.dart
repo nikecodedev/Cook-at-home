@@ -90,9 +90,16 @@ final mealPlanServiceProvider = Provider<MealPlanService>((ref) {
   return MealPlanService();
 });
 
+/// Counter that increments when ingredient prices are saved,
+/// causing recipeCostProvider to re-fetch fresh data.
+/// Call ref.read(priceVersionProvider.notifier).state++ after saving a price.
+final priceVersionProvider = StateProvider<int>((ref) => 0);
+
 /// Provider for recipe cost calculation (reactive)
-/// Recalculates when recipe or prices change
+/// Recalculates when recipe, prices change, or priceVersion bumps
 final recipeCostProvider = FutureProvider.family<RecipeCostCalculation, RecipeCostParams>((ref, params) async {
+  // Watch the price version so we recalculate when prices are saved
+  ref.watch(priceVersionProvider);
   final costService = ref.watch(recipeCostServiceProvider);
   return await costService.calculateRecipeCost(
     params.recipe,
