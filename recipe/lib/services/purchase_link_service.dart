@@ -41,7 +41,7 @@ class PurchaseLinkService {
 
   // ==================== BASE URLs ====================
   static const String amazonBaseUrl = 'https://www.amazon.com';
-  static const String walmartBaseUrl = 'https://www.walmart.com';
+  static const String walmartBaseUrl = 'https://www.walmart.com.mx';
 
   /// Generate Amazon search link for an item
   /// 

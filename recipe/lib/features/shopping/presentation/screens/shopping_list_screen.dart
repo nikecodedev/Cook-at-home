@@ -214,21 +214,23 @@ class ShoppingListScreen extends ConsumerWidget {
             userId,
           );
           if (price != null && price.effectivePrice > 0) {
-            // Unit price costing: convert quantity to price unit, then multiply
-            double cost = 0;
-            if (item.unit == price.priceUnit) {
-              cost = item.quantity * price.effectivePrice;
-            } else {
+            // Convert quantity to price unit, then use calculateCost
+            // which handles all pricing types (perUnit, perPackage, perWeight)
+            double convertedQuantity = item.quantity;
+            if (item.unit != price.priceUnit) {
               final converted = MeasurementConverterService.convert(
                 value: item.quantity,
                 fromUnit: item.unit,
                 toUnit: price.priceUnit,
               );
               if (converted != null) {
-                cost = converted.value * price.effectivePrice;
+                convertedQuantity = converted.value;
+              } else {
+                // Incompatible units — skip this item
+                continue;
               }
             }
-            totalCost += cost;
+            totalCost += price.calculateCost(convertedQuantity);
           }
         } catch (e) {
           // Ignore errors for individual items

@@ -214,17 +214,15 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
         final unitPrice = priceText.isEmpty ? null : double.tryParse(priceText);
         try {
           if (unitPrice != null && unitPrice > 0) {
-            final packageSize = _pricingType == PricingType.perPackage
-                ? double.tryParse(_packageSizeController.text.trim())
-                : null;
+            final packageSize = double.tryParse(_packageSizeController.text.trim()) ?? 1.0;
             await ref.read(ingredientPriceServiceProvider).setUserIngredientPrice(
               userId: userId,
               canonicalIngredientId: canonicalId!,
               unitPrice: unitPrice,
               priceUnit: _priceUnit,
-              pricingType: _pricingType,
+              pricingType: PricingType.perPackage,
               packageSize: packageSize,
-              packageUnit: _pricingType == PricingType.perPackage ? _priceUnit : null,
+              packageUnit: _priceUnit,
             );
             // Bump price version so recipe cost widget re-fetches
             ref.read(priceVersionProvider.notifier).state++;
@@ -560,28 +558,54 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               const SizedBox(height: 24),
 
               // Price section - Always visible for cost tracking
-              _buildSectionTitle('Precio (Opcional)'),
+              _buildSectionTitle('Precio del Producto (Opcional)'),
+              const SizedBox(height: 8),
+              Text(
+                'Ingresa el precio y tamaño del producto que compraste. El costo se calcula automáticamente.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
               const SizedBox(height: 12),
               if (_priceLoading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else
+              else ...[
+                // Product price
+                CustomTextField(
+                  label: 'Precio del producto (MXN)',
+                  controller: _priceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixIcon: Icons.attach_money,
+                  hint: 'ej. 78 (lo que pagaste)',
+                  validator: (value) {
+                    if (value != null && value.trim().isNotEmpty) {
+                      return Validators.validatePositiveNumber(value, 'Precio');
+                    }
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 12),
+                // Product size + unit
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       flex: 2,
                       child: CustomTextField(
-                        label: 'Precio (MXN)',
-                        controller: _priceController,
+                        label: 'Tamaño del producto',
+                        controller: _packageSizeController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        prefixIcon: Icons.attach_money,
-                        hint: 'ej. 25.50',
+                        prefixIcon: Icons.inventory_2_outlined,
+                        hint: 'ej. 500',
                         validator: (value) {
                           if (value != null && value.trim().isNotEmpty) {
-                            return Validators.validatePositiveNumber(value, 'Precio');
+                            return Validators.validatePositiveNumber(value, 'Tamaño');
                           }
                           return null;
                         },
@@ -601,7 +625,7 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                           value: _priceUnitOptions.contains(_priceUnit) ? _priceUnit : Units.pieces,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'MXN por',
+                            labelText: 'Unidad',
                             prefixIcon: Icon(Icons.straighten, size: 20),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -620,60 +644,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
                     ),
                   ],
                 ),
-              const SizedBox(height: 12),
-              // Pricing type selector
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.gray300),
-                ),
-                child: DropdownButtonFormField<PricingType>(
-                  value: _pricingType,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo de precio',
-                    prefixIcon: Icon(Icons.sell_outlined, size: 20),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  ),
-                  items: PricingType.values.map((type) {
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(type.displayName, overflow: TextOverflow.ellipsis),
-                    );
-                  }).toList(),
-                  onChanged: (v) {
-                    if (v != null) setState(() => _pricingType = v);
-                  },
-                ),
-              ),
-              // Package size input (only for perPackage pricing type)
-              if (_pricingType == PricingType.perPackage) ...[
-                const SizedBox(height: 12),
-                CustomTextField(
-                  label: 'Cantidad por paquete',
-                  controller: _packageSizeController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  prefixIcon: Icons.inventory_2_outlined,
-                  hint: 'ej. 8 (bolillos por paquete)',
-                  validator: (value) {
-                    if (_pricingType == PricingType.perPackage) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Requerido para precio por paquete';
-                      }
-                      return Validators.validatePositiveNumber(value, 'Cantidad');
-                    }
-                    return null;
-                  },
-                  textInputAction: TextInputAction.next,
-                ),
               ],
               const SizedBox(height: 8),
               Text(
-                _pricingType == PricingType.perPackage
-                    ? 'Ej: Paquete de 8 bolillos a \$49 → costo por bolillo = \$6.13'
-                    : 'Este precio se usará para calcular el costo de tus recetas y el valor de tu despensa',
+                'Ej: Mayonesa de 500g a \$78 → si usas 100g, costo = \$15.60',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
