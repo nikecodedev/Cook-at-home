@@ -667,10 +667,10 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               const SizedBox(height: 24),
 
               // Price section
-              _buildSectionTitle('Precio (Opcional)'),
+              _buildSectionTitle('Precio del producto'),
               const SizedBox(height: 12),
               CustomTextField(
-                label: 'Precio por unidad (\$)',
+                label: 'Precio del producto (\$)',
                 controller: _priceController,
                 prefixIcon: Icons.attach_money,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -687,7 +687,7 @@ class _ContributeProductScreenState extends ConsumerState<ContributeProductScree
               ),
               const SizedBox(height: 8),
               Text(
-                'Este precio se usará para calcular el costo de tus recetas y el valor de tu despensa',
+                'Ingresa el precio total del producto y el tamaño del envase. El sistema calculará automáticamente el costo de cada ingrediente.',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

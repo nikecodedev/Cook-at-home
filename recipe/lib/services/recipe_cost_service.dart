@@ -98,8 +98,13 @@ class RecipeCostService {
         try {
           double convertedQuantity = ingredient.quantity;
 
-          if (ingredient.unit != price.priceUnit) {
-            // Need to convert units
+          // Normalize both units before comparing to handle abbreviations,
+          // Spanish variants, and case differences (e.g., 'ml' vs 'milliliters')
+          final normalizedIngredientUnit = MeasurementConverterService.normalizeUnit(ingredient.unit);
+          final normalizedPriceUnit = MeasurementConverterService.normalizeUnit(price.priceUnit);
+
+          if (normalizedIngredientUnit != normalizedPriceUnit) {
+            // Need to convert units (converter also normalizes internally)
             final conversion = MeasurementConverterService.convert(
               value: ingredient.quantity,
               fromUnit: ingredient.unit,

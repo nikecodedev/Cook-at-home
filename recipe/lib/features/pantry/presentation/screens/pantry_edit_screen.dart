@@ -558,10 +558,10 @@ class _PantryEditScreenState extends ConsumerState<PantryEditScreen> {
               const SizedBox(height: 24),
 
               // Price section - Always visible for cost tracking
-              _buildSectionTitle('Precio del Producto (Opcional)'),
+              _buildSectionTitle('Precio del producto'),
               const SizedBox(height: 8),
               Text(
-                'Ingresa el precio y tamaño del producto que compraste. El costo se calcula automáticamente.',
+                'Ingresa el precio total del producto y el tamaño del envase. El sistema calculará automáticamente el costo de cada ingrediente.',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

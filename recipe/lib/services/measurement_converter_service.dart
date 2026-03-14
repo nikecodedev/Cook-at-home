@@ -31,6 +31,123 @@ class ConversionResult {
 /// Service for converting between different measurement units
 /// Handles conversions for common cooking measurements
 class MeasurementConverterService {
+
+  /// Normalize any unit string (abbreviations, Spanish, singular, etc.)
+  /// to its canonical English plural form used throughout the app.
+  /// This ensures consistent unit handling regardless of input format.
+  static String normalizeUnit(String unit) {
+    final lower = unit.toLowerCase().trim();
+    switch (lower) {
+      // Weight — grams
+      case 'g':
+      case 'gr':
+      case 'gram':
+      case 'gramo':
+      case 'gramos':
+      case 'grams':
+        return 'grams';
+      // Weight — kilograms
+      case 'kg':
+      case 'kilo':
+      case 'kilos':
+      case 'kilogram':
+      case 'kilogramo':
+      case 'kilogramos':
+      case 'kilograms':
+        return 'kilograms';
+      // Weight — ounces
+      case 'oz':
+      case 'ounce':
+      case 'onza':
+      case 'onzas':
+      case 'ounces':
+        return 'ounces';
+      // Weight — pounds
+      case 'lb':
+      case 'lbs':
+      case 'pound':
+      case 'libra':
+      case 'libras':
+      case 'pounds':
+        return 'pounds';
+      // Volume — liters
+      case 'l':
+      case 'lt':
+      case 'ltr':
+      case 'liter':
+      case 'litro':
+      case 'litros':
+      case 'liters':
+        return 'liters';
+      // Volume — milliliters
+      case 'ml':
+      case 'milliliter':
+      case 'mililitro':
+      case 'mililitros':
+      case 'milliliters':
+        return 'milliliters';
+      // Volume — cups
+      case 'cup':
+      case 'taza':
+      case 'tazas':
+      case 'cups':
+        return 'cups';
+      // Volume — tablespoons
+      case 'tbsp':
+      case 'tablespoon':
+      case 'cucharada':
+      case 'cucharadas':
+      case 'tablespoons':
+        return 'tablespoons';
+      // Volume — teaspoons
+      case 'tsp':
+      case 'teaspoon':
+      case 'cucharadita':
+      case 'cucharaditas':
+      case 'teaspoons':
+        return 'teaspoons';
+      // Volume — fluid ounces
+      case 'fl_oz':
+      case 'fluid_ounce':
+      case 'onza_liquida':
+      case 'onzas_liquidas':
+      case 'fluid_ounces':
+        return 'fluid_ounces';
+      // Volume — pints
+      case 'pint':
+      case 'pinta':
+      case 'pintas':
+      case 'pints':
+        return 'pints';
+      // Volume — quarts
+      case 'quart':
+      case 'cuarto':
+      case 'cuartos':
+      case 'quarts':
+        return 'quarts';
+      // Volume — gallons
+      case 'gallon':
+      case 'galon':
+      case 'galón':
+      case 'galones':
+      case 'gallons':
+        return 'gallons';
+      // Count — pieces
+      case 'pc':
+      case 'pcs':
+      case 'piece':
+      case 'pieza':
+      case 'piezas':
+      case 'unidad':
+      case 'unidades':
+      case 'pieces':
+        return 'pieces';
+      // Already canonical or unknown — return as-is
+      default:
+        return lower;
+    }
+  }
+
   /// Convert between units
   /// Returns null if conversion is not possible
   static ConversionResult? convert({
@@ -38,13 +155,13 @@ class MeasurementConverterService {
     required String fromUnit,
     required String toUnit,
   }) {
-    // Normalize unit names
-    final from = fromUnit.toLowerCase().trim();
-    final to = toUnit.toLowerCase().trim();
+    // Normalize unit names to canonical English forms
+    final from = normalizeUnit(fromUnit);
+    final to = normalizeUnit(toUnit);
 
     // Same unit - no conversion needed
     if (from == to) {
-      return ConversionResult(value: value, unit: toUnit);
+      return ConversionResult(value: value, unit: to);
     }
 
     // Weight conversions
@@ -61,54 +178,49 @@ class MeasurementConverterService {
     return null;
   }
 
-  /// Check if unit is a weight unit
+  /// Check if unit is a weight unit (expects normalized input)
   static bool _isWeightUnit(String unit) {
-    final normalized = unit.toLowerCase().trim();
-    return normalized == 'grams' ||
-           normalized == 'kilograms' ||
-           normalized == 'ounces' ||
-           normalized == 'pounds' ||
-           normalized == 'gramos' ||
-           normalized == 'kilogramos' ||
-           normalized == 'onzas' ||
-           normalized == 'libras';
+    return unit == 'grams' ||
+           unit == 'kilograms' ||
+           unit == 'ounces' ||
+           unit == 'pounds';
   }
 
-  /// Check if unit is a volume unit
+  /// Check if unit is a volume unit (expects normalized input)
   static bool _isVolumeUnit(String unit) {
-    final normalized = unit.toLowerCase().trim();
-    return normalized == 'liters' ||
-           normalized == 'milliliters' ||
-           normalized == 'cups' ||
-           normalized == 'tablespoons' ||
-           normalized == 'teaspoons' ||
-           normalized == 'fluid_ounces' ||
-           normalized == 'pints' ||
-           normalized == 'quarts' ||
-           normalized == 'gallons' ||
-           normalized == 'litros' ||
-           normalized == 'mililitros' ||
-           normalized == 'tazas' ||
-           normalized == 'cucharadas' ||
-           normalized == 'cucharaditas' ||
-           normalized == 'onzas_liquidas' ||
-           normalized == 'pintas' ||
-           normalized == 'cuartos' ||
-           normalized == 'galones';
+    return unit == 'liters' ||
+           unit == 'milliliters' ||
+           unit == 'cups' ||
+           unit == 'tablespoons' ||
+           unit == 'teaspoons' ||
+           unit == 'fluid_ounces' ||
+           unit == 'pints' ||
+           unit == 'quarts' ||
+           unit == 'gallons';
   }
 
-  /// Convert weight units
+  /// Check if a raw unit string is a weight unit (normalizes first)
+  static bool isWeightUnit(String unit) {
+    return _isWeightUnit(normalizeUnit(unit));
+  }
+
+  /// Check if a raw unit string is a volume unit (normalizes first)
+  static bool isVolumeUnit(String unit) {
+    return _isVolumeUnit(normalizeUnit(unit));
+  }
+
+  /// Convert weight units (expects normalized input)
   /// Supports: grams, kilograms, ounces, pounds
   static ConversionResult _convertWeight(double value, String from, String to) {
     // Convert to grams first (base unit)
     double grams;
     String? note;
 
-    if (from == 'kilograms' || from == 'kilogramos') {
+    if (from == 'kilograms') {
       grams = value * 1000;
-    } else if (from == 'ounces' || from == 'onzas') {
+    } else if (from == 'ounces') {
       grams = value * 28.3495; // 1 oz = 28.3495 g
-    } else if (from == 'pounds' || from == 'libras') {
+    } else if (from == 'pounds') {
       grams = value * 453.592; // 1 lb = 453.592 g
     } else {
       grams = value; // Already in grams
@@ -117,12 +229,12 @@ class MeasurementConverterService {
     // Convert from grams to target unit
     double result;
 
-    if (to == 'kilograms' || to == 'kilogramos') {
+    if (to == 'kilograms') {
       result = grams / 1000;
-    } else if (to == 'ounces' || to == 'onzas') {
+    } else if (to == 'ounces') {
       result = grams / 28.3495;
       note = '1 onza = 28.35 gramos';
-    } else if (to == 'pounds' || to == 'libras') {
+    } else if (to == 'pounds') {
       result = grams / 453.592;
       note = '1 libra = 453.6 gramos (16 onzas)';
     } else {
@@ -136,27 +248,27 @@ class MeasurementConverterService {
     );
   }
 
-  /// Convert volume units
+  /// Convert volume units (expects normalized input)
   /// Supports: liters, milliliters, cups, tablespoons, teaspoons, fluid ounces, pints, quarts, gallons
   static ConversionResult _convertVolume(double value, String from, String to) {
     // Convert to milliliters first (base unit)
     double milliliters;
 
-    if (from == 'liters' || from == 'litros') {
+    if (from == 'liters') {
       milliliters = value * 1000;
-    } else if (from == 'cups' || from == 'tazas') {
+    } else if (from == 'cups') {
       milliliters = value * 236.588; // 1 cup = 236.588 ml (US)
-    } else if (from == 'tablespoons' || from == 'cucharadas') {
+    } else if (from == 'tablespoons') {
       milliliters = value * 14.7868; // 1 tbsp = 14.7868 ml
-    } else if (from == 'teaspoons' || from == 'cucharaditas') {
+    } else if (from == 'teaspoons') {
       milliliters = value * 4.92892; // 1 tsp = 4.92892 ml
-    } else if (from == 'fluid_ounces' || from == 'onzas_liquidas') {
+    } else if (from == 'fluid_ounces') {
       milliliters = value * 29.5735; // 1 fl oz = 29.5735 ml
-    } else if (from == 'pints' || from == 'pintas') {
+    } else if (from == 'pints') {
       milliliters = value * 473.176; // 1 pint = 473.176 ml (US)
-    } else if (from == 'quarts' || from == 'cuartos') {
+    } else if (from == 'quarts') {
       milliliters = value * 946.353; // 1 quart = 946.353 ml (US)
-    } else if (from == 'gallons' || from == 'galones') {
+    } else if (from == 'gallons') {
       milliliters = value * 3785.41; // 1 gallon = 3785.41 ml (US)
     } else {
       milliliters = value; // Already in milliliters
@@ -166,27 +278,27 @@ class MeasurementConverterService {
     double result;
     String? note;
 
-    if (to == 'liters' || to == 'litros') {
+    if (to == 'liters') {
       result = milliliters / 1000;
-    } else if (to == 'cups' || to == 'tazas') {
+    } else if (to == 'cups') {
       result = milliliters / 236.588;
       note = '1 taza = 236.6 ml (medida estándar US)';
-    } else if (to == 'tablespoons' || to == 'cucharadas') {
+    } else if (to == 'tablespoons') {
       result = milliliters / 14.7868;
       note = '1 cucharada = 14.8 ml (3 cucharaditas)';
-    } else if (to == 'teaspoons' || to == 'cucharaditas') {
+    } else if (to == 'teaspoons') {
       result = milliliters / 4.92892;
       note = '1 cucharadita = 4.9 ml';
-    } else if (to == 'fluid_ounces' || to == 'onzas_liquidas') {
+    } else if (to == 'fluid_ounces') {
       result = milliliters / 29.5735;
       note = '1 onza líquida = 29.6 ml';
-    } else if (to == 'pints' || to == 'pintas') {
+    } else if (to == 'pints') {
       result = milliliters / 473.176;
       note = '1 pinta = 473.2 ml (2 tazas)';
-    } else if (to == 'quarts' || to == 'cuartos') {
+    } else if (to == 'quarts') {
       result = milliliters / 946.353;
       note = '1 cuarto = 946.4 ml (4 tazas)';
-    } else if (to == 'gallons' || to == 'galones') {
+    } else if (to == 'gallons') {
       result = milliliters / 3785.41;
       note = '1 galón = 3.785 litros (16 tazas)';
     } else {
@@ -202,7 +314,7 @@ class MeasurementConverterService {
 
   /// Get all compatible units for a given unit
   static List<String> getCompatibleUnits(String unit) {
-    final normalized = unit.toLowerCase().trim();
+    final normalized = normalizeUnit(unit);
 
     if (_isWeightUnit(normalized)) {
       return ['grams', 'kilograms', 'ounces', 'pounds'];
@@ -215,8 +327,8 @@ class MeasurementConverterService {
 
   /// Check if conversion is possible between two units
   static bool canConvert(String fromUnit, String toUnit) {
-    final from = fromUnit.toLowerCase().trim();
-    final to = toUnit.toLowerCase().trim();
+    final from = normalizeUnit(fromUnit);
+    final to = normalizeUnit(toUnit);
 
     if (from == to) return true;
 

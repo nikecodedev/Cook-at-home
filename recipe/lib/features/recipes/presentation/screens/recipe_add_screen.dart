@@ -1696,7 +1696,7 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
                         Icon(Icons.attach_money_rounded, size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Text(
-                          'Precio del producto (opcional)',
+                          'Precio del producto',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -1707,7 +1707,7 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Ingresa el precio y tamaño del producto que compraste. El costo se calcula automáticamente.',
+                      'Ingresa el precio total del producto y el tamaño del envase. El sistema calculará automáticamente el costo de cada ingrediente.',
                       style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 12),

@@ -23,6 +23,8 @@ class ShoppingListScreen extends ConsumerWidget {
     final itemsAsync = ref.watch(shoppingListItemsStreamProvider(shoppingList.id));
     final isLoading = ref.watch(shoppingListControllerProvider).isLoading;
     final userId = ref.watch(currentUserIdProvider);
+    // Watch price version so cost recalculates when ingredient prices change
+    ref.watch(priceVersionProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -204,7 +206,7 @@ class ShoppingListScreen extends ConsumerWidget {
     String? userId,
   ) async {
     if (userId == null) return 0;
-    
+
     double totalCost = 0;
     for (final item in items) {
       if (item.canonicalIngredientId != null && item.canonicalIngredientId!.isNotEmpty) {
@@ -217,7 +219,10 @@ class ShoppingListScreen extends ConsumerWidget {
             // Convert quantity to price unit, then use calculateCost
             // which handles all pricing types (perUnit, perPackage, perWeight)
             double convertedQuantity = item.quantity;
-            if (item.unit != price.priceUnit) {
+            // Normalize both units to handle abbreviations and variants
+            final normalizedItemUnit = MeasurementConverterService.normalizeUnit(item.unit);
+            final normalizedPriceUnit = MeasurementConverterService.normalizeUnit(price.priceUnit);
+            if (normalizedItemUnit != normalizedPriceUnit) {
               final converted = MeasurementConverterService.convert(
                 value: item.quantity,
                 fromUnit: item.unit,
