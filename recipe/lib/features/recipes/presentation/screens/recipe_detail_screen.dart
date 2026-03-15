@@ -18,6 +18,7 @@ import '../widgets/recipe_cost_widget.dart';
 import '../../../../providers/pantry_provider.dart';
 import '../../../../services/recipe_recommendation_service.dart';
 import '../../../../services/recipe_sharing_service.dart';
+import '../../../../services/firestore/firestore_service.dart';
 
 /// Modern, minimal recipe detail page with Notion-style design
 class RecipeDetailScreen extends ConsumerStatefulWidget {
@@ -116,13 +117,28 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     : () async {
                         final result = await context.push<bool>(
                           Routes.recipeEdit,
-                          extra: widget.recipe,
+                          extra: _currentRecipe,
                         );
                         if (result == true && context.mounted) {
-                          ModernSnackbar.showSuccess(
-                            context,
-                            message: 'Receta actualizada exitosamente',
-                          );
+                          // Re-fetch updated recipe from Firestore so cost recalculates
+                          // with the new ingredient quantities/units
+                          try {
+                            final firestoreService = ref.read(firestoreServiceProvider);
+                            final updatedRecipe = await firestoreService.getRecipe(widget.recipe.id);
+                            if (updatedRecipe != null && mounted) {
+                              setState(() {
+                                _currentRecipe = updatedRecipe;
+                              });
+                            }
+                          } catch (e) {
+                            // Non-critical — cost will refresh on next screen visit
+                          }
+                          if (context.mounted) {
+                            ModernSnackbar.showSuccess(
+                              context,
+                              message: 'Receta actualizada exitosamente',
+                            );
+                          }
                         }
                       },
               ),

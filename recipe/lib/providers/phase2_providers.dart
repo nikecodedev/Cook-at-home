@@ -117,6 +117,16 @@ class RecipeCostParams {
     this.userId,
   });
 
+  /// Compute a hash of all ingredient data (name, quantity, unit) so the
+  /// provider recalculates whenever any ingredient is changed.
+  int get _ingredientsHash {
+    int hash = 0;
+    for (final ing in recipe.ingredients) {
+      hash = hash ^ ing.name.hashCode ^ ing.quantity.hashCode ^ ing.unit.hashCode;
+    }
+    return hash;
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -124,9 +134,10 @@ class RecipeCostParams {
           runtimeType == other.runtimeType &&
           recipe.id == other.recipe.id &&
           recipe.updatedAt == other.recipe.updatedAt &&
+          _ingredientsHash == other._ingredientsHash &&
           userId == other.userId;
 
   @override
-  int get hashCode => recipe.id.hashCode ^ recipe.updatedAt.hashCode ^ (userId?.hashCode ?? 0);
+  int get hashCode => recipe.id.hashCode ^ recipe.updatedAt.hashCode ^ _ingredientsHash ^ (userId?.hashCode ?? 0);
 }
 

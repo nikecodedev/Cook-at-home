@@ -385,6 +385,9 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               oldImageUrl: imageData != null ? _existingImageUrl : null,
             );
 
+        // Bump price version to ensure cost widgets recalculate with new ingredients
+        ref.read(priceVersionProvider.notifier).state++;
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -392,7 +395,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               backgroundColor: AppColors.success,
             ),
           );
-          context.pop();
+          context.pop(true);
         }
       } else {
         // Create new recipe
