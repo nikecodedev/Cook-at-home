@@ -17,6 +17,7 @@ import '../../models/user_model.dart';
 import '../../core/utils/logger.dart';
 import '../purchase_link_service.dart';
 import '../recipe_recommendation_service.dart';
+import '../measurement_converter_service.dart' show MeasurementConverterService;
 
 /// Service for managing user profiles in Firestore
 class FirestoreService {
@@ -542,6 +543,7 @@ class FirestoreService {
 
       // Find missing ingredients and track matched pantry items for purchase links
       final missingIngredients = <RecipeIngredient>[];
+      final ingredientNotes = <String, String>{}; // ingredient name -> note
       final matchedPantryItems = <RecipeIngredient, PantryItem?>{};
       
       Logger.info(
@@ -555,25 +557,22 @@ class FirestoreService {
 
       for (final ingredient in recipe.ingredients) {
         final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
-        bool found = false;
         PantryItem? matchedPantryItem;
 
         // First try exact match
         if (pantryMap.containsKey(normalizedName)) {
-          found = true;
           matchedPantryItem = pantryMap[normalizedName]!;
           Logger.info(
-            'Exact match: "${ingredient.name}" ↔ "${matchedPantryItem!.name}"',
+            'Exact match: "${ingredient.name}" ↔ "${matchedPantryItem.name}"',
             'FirestoreService',
           );
         } else {
           // Try fuzzy matching using RecipeRecommendationService (includes synonyms)
           for (final pantryItem in pantryItems) {
             if (RecipeRecommendationService.ingredientNamesMatch(ingredient.name, pantryItem.name)) {
-              found = true;
               matchedPantryItem = pantryItem;
               Logger.info(
-                'Fuzzy match (with synonyms): "${ingredient.name}" ↔ "${matchedPantryItem!.name}"',
+                'Fuzzy match (with synonyms): "${ingredient.name}" ↔ "${matchedPantryItem.name}"',
                 'FirestoreService',
               );
               break;
@@ -581,7 +580,8 @@ class FirestoreService {
           }
         }
 
-        if (!found) {
+        if (matchedPantryItem == null) {
+          // No match in pantry — need the full amount
           missingIngredients.add(ingredient);
           matchedPantryItems[ingredient] = null;
           Logger.info(
@@ -589,28 +589,81 @@ class FirestoreService {
             'FirestoreService',
           );
         } else {
-          // Store matched pantry item for potential purchase link transfer
+          // Found in pantry — compare quantities to determine deficit
           matchedPantryItems[ingredient] = matchedPantryItem;
+
+          double pantryQtyInRecipeUnit = matchedPantryItem.quantity;
+          bool conversionOk = true;
+
+          // Convert pantry quantity to the recipe ingredient's unit for comparison
+          final normalizedPantryUnit = MeasurementConverterService.normalizeUnit(matchedPantryItem.unit);
+          final normalizedRecipeUnit = MeasurementConverterService.normalizeUnit(ingredient.unit);
+
+          if (normalizedPantryUnit != normalizedRecipeUnit) {
+            final conversion = MeasurementConverterService.convert(
+              value: matchedPantryItem.quantity,
+              fromUnit: matchedPantryItem.unit,
+              toUnit: ingredient.unit,
+            );
+            if (conversion != null) {
+              pantryQtyInRecipeUnit = conversion.value;
+            } else {
+              // Units are incompatible (e.g. weight vs volume, or pieces vs grams).
+              // We cannot compare, so treat as if not in pantry to be safe.
+              conversionOk = false;
+              Logger.warning(
+                'Cannot convert pantry "${matchedPantryItem.unit}" to recipe "${ingredient.unit}" for ${ingredient.name} — treating as missing',
+                'FirestoreService',
+              );
+            }
+          }
+
+          if (!conversionOk) {
+            // Incompatible units — add the full recipe quantity with a note
+            missingIngredients.add(ingredient);
+            ingredientNotes[ingredient.name] =
+                'Tienes ${matchedPantryItem.quantity.toStringAsFixed(0)} ${matchedPantryItem.unit} en despensa, pero la receta pide ${ingredient.unit}. Verifica si ya tienes suficiente.';
+          } else if (pantryQtyInRecipeUnit >= ingredient.quantity) {
+            // Pantry covers the full amount — nothing to buy
+            Logger.info(
+              'Pantry covers "${ingredient.name}": have ${pantryQtyInRecipeUnit.toStringAsFixed(2)} ${ingredient.unit}, need ${ingredient.quantity} ${ingredient.unit}',
+              'FirestoreService',
+            );
+          } else {
+            // Pantry has some but not enough — add only the deficit
+            final deficit = ingredient.quantity - pantryQtyInRecipeUnit;
+            final deficitIngredient = RecipeIngredient(
+              name: ingredient.name,
+              canonicalIngredientId: ingredient.canonicalIngredientId,
+              quantity: deficit,
+              unit: ingredient.unit,
+              amazonLink: ingredient.amazonLink,
+              walmartLink: ingredient.walmartLink,
+            );
+            missingIngredients.add(deficitIngredient);
+            ingredientNotes[ingredient.name] =
+                'Ya tienes ${pantryQtyInRecipeUnit.toStringAsFixed(1)} ${ingredient.unit} en despensa. Solo necesitas comprar lo que falta.';
+            Logger.info(
+              'Partial coverage for "${ingredient.name}": have ${pantryQtyInRecipeUnit.toStringAsFixed(2)}, need ${ingredient.quantity} → buying ${deficit.toStringAsFixed(2)} ${ingredient.unit}',
+              'FirestoreService',
+            );
+          }
         }
       }
 
       Logger.info(
-        'Found ${missingIngredients.length} missing ingredients out of ${recipe.ingredients.length} total',
+        'Found ${missingIngredients.length} missing/partial ingredients out of ${recipe.ingredients.length} total',
         'FirestoreService',
       );
 
-      // Always create a shopping list. If all ingredients are in pantry, include all
-      // recipe ingredients so the user still gets a checklist (never block the flow).
-      final ingredientsToAdd = missingIngredients.isEmpty
-          ? recipe.ingredients
-          : missingIngredients;
-      final matchedForLinks = missingIngredients.isEmpty
-          ? <RecipeIngredient, PantryItem?>{}
-          : matchedPantryItems;
+      // Only include ingredients that are actually missing (fully or partially) from the pantry.
+      // If all ingredients are fully available, the shopping list will be empty.
+      final ingredientsToAdd = missingIngredients;
+      final matchedForLinks = matchedPantryItems;
 
       if (missingIngredients.isEmpty) {
         Logger.info(
-          'All ingredients in pantry - creating list with full recipe as checklist',
+          'All ingredients fully covered by pantry - shopping list will have no items to buy',
           'FirestoreService',
         );
       }
@@ -698,6 +751,7 @@ class FirestoreService {
             walmartLink = _generateWalmartLink(ingredient.name);
           }
 
+          final note = ingredientNotes[ingredient.name];
           await itemsRef.doc(itemId).set({
             'name': ingredient.name,
             'canonicalIngredientId': ingredient.canonicalIngredientId,
@@ -706,6 +760,7 @@ class FirestoreService {
             'isChecked': false,
             'amazonLink': amazonLink,
             'walmartLink': walmartLink,
+            if (note != null) 'note': note,
             'addedAt': Timestamp.fromDate(now),
           });
           addedCount++;
@@ -816,26 +871,63 @@ class FirestoreService {
         }
       }
 
-      // Find missing ingredients
+      // Find missing/partially-missing ingredients (quantity-aware)
       final missingIngredients = <RecipeIngredient>[];
       for (final ingredient in aggregatedIngredients.values) {
         final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
-        bool found = false;
+        PantryItem? matchedPantryItem;
 
         if (pantryMap.containsKey(normalizedName)) {
-          found = true;
+          matchedPantryItem = pantryMap[normalizedName];
         } else {
           // Try fuzzy matching
           for (final pantryItem in pantryItems) {
             if (RecipeRecommendationService.ingredientNamesMatch(ingredient.name, pantryItem.name)) {
-              found = true;
+              matchedPantryItem = pantryItem;
               break;
             }
           }
         }
 
-        if (!found) {
+        if (matchedPantryItem == null) {
+          // Not in pantry at all — need the full amount
           missingIngredients.add(ingredient);
+        } else {
+          // In pantry — compare quantities with unit conversion
+          double pantryQtyInRecipeUnit = matchedPantryItem.quantity;
+          bool conversionOk = true;
+
+          final normalizedPantryUnit = MeasurementConverterService.normalizeUnit(matchedPantryItem.unit);
+          final normalizedRecipeUnit = MeasurementConverterService.normalizeUnit(ingredient.unit);
+
+          if (normalizedPantryUnit != normalizedRecipeUnit) {
+            final conversion = MeasurementConverterService.convert(
+              value: matchedPantryItem.quantity,
+              fromUnit: matchedPantryItem.unit,
+              toUnit: ingredient.unit,
+            );
+            if (conversion != null) {
+              pantryQtyInRecipeUnit = conversion.value;
+            } else {
+              conversionOk = false;
+            }
+          }
+
+          if (!conversionOk) {
+            missingIngredients.add(ingredient);
+          } else if (pantryQtyInRecipeUnit < ingredient.quantity) {
+            // Partial coverage — add only the deficit
+            final deficit = ingredient.quantity - pantryQtyInRecipeUnit;
+            missingIngredients.add(RecipeIngredient(
+              name: ingredient.name,
+              canonicalIngredientId: ingredient.canonicalIngredientId,
+              quantity: deficit,
+              unit: ingredient.unit,
+              amazonLink: ingredient.amazonLink,
+              walmartLink: ingredient.walmartLink,
+            ));
+          }
+          // else: fully covered — nothing to buy
         }
       }
 
@@ -846,7 +938,7 @@ class FirestoreService {
 
       if (missingIngredients.isEmpty) {
         Logger.info(
-          'All meal plan ingredients in pantry - creating list with full checklist',
+          'All meal plan ingredients fully covered by pantry - creating list with full checklist',
           'FirestoreService',
         );
       }

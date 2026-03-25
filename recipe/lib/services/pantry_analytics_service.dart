@@ -79,11 +79,14 @@ class PantryAnalyticsService {
           continue;
         }
 
-        // Convert item quantity to price unit
+        // Convert item quantity to price unit (normalize before comparing)
         double value = 0.0;
         try {
-          if (item.unit == price.priceUnit) {
-            value = item.quantity * price.effectivePrice;
+          final normalizedItemUnit = MeasurementConverterService.normalizeUnit(item.unit);
+          final normalizedPriceUnit = MeasurementConverterService.normalizeUnit(price.priceUnit);
+
+          if (normalizedItemUnit == normalizedPriceUnit) {
+            value = price.calculateCost(item.quantity);
           } else {
             final conversion = MeasurementConverterService.convert(
               value: item.quantity,
@@ -91,7 +94,7 @@ class PantryAnalyticsService {
               toUnit: price.priceUnit,
             );
             if (conversion != null) {
-              value = conversion.value * price.effectivePrice;
+              value = price.calculateCost(conversion.value);
             }
           }
 
@@ -134,13 +137,17 @@ class PantryAnalyticsService {
       }
 
       // Collect all required ingredients from recipes
-      final Map<String, double> requiredIngredients = {}; // canonicalId -> total quantity needed
+      // We normalize everything to a common unit per ingredient so
+      // comparisons are accurate even when recipe uses "cucharadas" and
+      // pantry stores "ml".
+      final Map<String, double> requiredIngredients = {}; // canonicalId -> total quantity (in normalized unit)
       final Map<String, String> ingredientNames = {}; // canonicalId -> display name
+      final Map<String, String> ingredientUnits = {}; // canonicalId -> unit used for aggregation
 
       for (final recipe in plannedRecipes) {
         for (final ingredient in recipe.ingredients) {
           String? canonicalId = ingredient.canonicalIngredientId;
-          
+
           if (canonicalId == null || canonicalId.isEmpty) {
             final canonical = await _canonicalService.findCanonicalIngredientByName(ingredient.name);
             canonicalId = canonical?.id;
@@ -148,26 +155,70 @@ class PantryAnalyticsService {
 
           if (canonicalId != null && canonicalId.isNotEmpty) {
             final key = canonicalId;
-            requiredIngredients[key] = (requiredIngredients[key] ?? 0) + ingredient.quantity;
             ingredientNames[key] = ingredient.name;
+
+            if (ingredientUnits.containsKey(key)) {
+              // Already have a base unit — convert this ingredient to that unit
+              final baseUnit = ingredientUnits[key]!;
+              final normalizedIng = MeasurementConverterService.normalizeUnit(ingredient.unit);
+              final normalizedBase = MeasurementConverterService.normalizeUnit(baseUnit);
+
+              if (normalizedIng == normalizedBase) {
+                requiredIngredients[key] = (requiredIngredients[key] ?? 0) + ingredient.quantity;
+              } else {
+                final conversion = MeasurementConverterService.convert(
+                  value: ingredient.quantity,
+                  fromUnit: ingredient.unit,
+                  toUnit: baseUnit,
+                );
+                if (conversion != null) {
+                  requiredIngredients[key] = (requiredIngredients[key] ?? 0) + conversion.value;
+                } else {
+                  // Incompatible — add raw (best effort)
+                  requiredIngredients[key] = (requiredIngredients[key] ?? 0) + ingredient.quantity;
+                }
+              }
+            } else {
+              // First occurrence — set the base unit
+              ingredientUnits[key] = ingredient.unit;
+              requiredIngredients[key] = (requiredIngredients[key] ?? 0) + ingredient.quantity;
+            }
           }
         }
       }
 
-      // Check pantry availability
-      final Map<String, double> availableIngredients = {}; // canonicalId -> available quantity
+      // Check pantry availability (convert pantry quantities to the same unit)
+      final Map<String, double> availableIngredients = {}; // canonicalId -> available quantity (in same unit as required)
       final List<String> missingIngredients = [];
 
       for (final item in pantryItems) {
         String? canonicalId = item.canonicalIngredientId;
-        
+
         if (canonicalId == null || canonicalId.isEmpty) {
           final canonical = await _canonicalService.findCanonicalIngredientByName(item.name);
           canonicalId = canonical?.id;
         }
 
         if (canonicalId != null && canonicalId.isNotEmpty && requiredIngredients.containsKey(canonicalId)) {
-          availableIngredients[canonicalId] = (availableIngredients[canonicalId] ?? 0) + item.quantity;
+          final baseUnit = ingredientUnits[canonicalId]!;
+          final normalizedPantry = MeasurementConverterService.normalizeUnit(item.unit);
+          final normalizedBase = MeasurementConverterService.normalizeUnit(baseUnit);
+
+          double qtyInBaseUnit = item.quantity;
+          if (normalizedPantry != normalizedBase) {
+            final conversion = MeasurementConverterService.convert(
+              value: item.quantity,
+              fromUnit: item.unit,
+              toUnit: baseUnit,
+            );
+            if (conversion != null) {
+              qtyInBaseUnit = conversion.value;
+            } else {
+              // Incompatible units — cannot count as available
+              continue;
+            }
+          }
+          availableIngredients[canonicalId] = (availableIngredients[canonicalId] ?? 0) + qtyInBaseUnit;
         }
       }
 

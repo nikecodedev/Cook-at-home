@@ -385,9 +385,6 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
               oldImageUrl: imageData != null ? _existingImageUrl : null,
             );
 
-        // Bump price version to ensure cost widgets recalculate with new ingredients
-        ref.read(priceVersionProvider.notifier).state++;
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -532,7 +529,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
@@ -594,7 +591,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.gray200.withOpacity(0.5),
+                      color: AppColors.gray200.withValues(alpha: 0.5),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -678,7 +675,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                               border: Border.all(color: AppColors.gray300),
                             ),
                             child: DropdownButtonFormField<String>(
-                              value: YieldUnits.all.contains(_yieldUnit) ? _yieldUnit : YieldUnits.grams,
+                              initialValue: YieldUnits.all.contains(_yieldUnit) ? _yieldUnit : YieldUnits.grams,
                               isExpanded: true,
                               decoration: const InputDecoration(
                                 labelText: 'Unidad',
@@ -743,10 +740,10 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                         ),
@@ -806,7 +803,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
+                                      color: AppColors.primary.withValues(alpha: 0.3),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),
@@ -845,7 +842,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppColors.secondary.withOpacity(0.1),
+                                            color: AppColors.secondary.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(
@@ -871,7 +868,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
+                                      color: AppColors.primary.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
@@ -891,7 +888,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppColors.error.withOpacity(0.1),
+                                      color: AppColors.error.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
@@ -925,10 +922,10 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: AppColors.secondary.withOpacity(0.1),
+                          color: AppColors.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.secondary.withOpacity(0.3),
+                            color: AppColors.secondary.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                         ),
@@ -990,7 +987,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.secondary.withOpacity(0.3),
+                                      color: AppColors.secondary.withValues(alpha: 0.3),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),
@@ -1028,7 +1025,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
+                                      color: AppColors.primary.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
@@ -1048,7 +1045,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppColors.error.withOpacity(0.1),
+                                      color: AppColors.error.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
@@ -1076,7 +1073,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
                   color: AppColors.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -1225,7 +1222,7 @@ class _RecipeAddScreenState extends ConsumerState<RecipeAddScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.gray200.withOpacity(0.3),
+            color: AppColors.gray200.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -1404,14 +1401,16 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
   late TextEditingController _quantityController;
   late TextEditingController _unitController;
   late TextEditingController _unitPriceController;
-  String _priceUnit = Units.pieces; // MXN per g/kg/ml/L/pc
-  PricingType _pricingType = PricingType.perUnit;
+  String _priceUnit = Units.pieces;
   late TextEditingController _packageSizeController;
   late TextEditingController _amazonLinkController;
   late TextEditingController _walmartLinkController;
   bool _linksInherited = false;
   String? _inheritedFromPantry;
   bool _priceLoading = false;
+
+  /// 0 = ingredient step, 1 = pricing step (optional)
+  int _currentStep = 0;
 
   static const _priceUnitOptions = [Units.grams, Units.kilograms, Units.milliliters, Units.liters, Units.pieces];
 
@@ -1461,8 +1460,6 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
         if (price?.priceUnit != null && _priceUnitOptions.contains(price!.priceUnit)) {
           _priceUnit = price.priceUnit;
         }
-        // Restore pricing type and package size
-        _pricingType = price?.pricingType ?? PricingType.perUnit;
         if (price?.packageSize != null && price!.packageSize! > 0) {
           _packageSizeController.text = price.packageSize!.toStringAsFixed(0);
         }
@@ -1502,7 +1499,6 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
         return;
       }
 
-      // Find matching pantry item
       final matchingItem = pantryItems.firstWhere(
         (item) => item.name.toLowerCase().contains(ingredientName) ||
             ingredientName.contains(item.name.toLowerCase()),
@@ -1518,7 +1514,6 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
 
       if (matchingItem.id.isNotEmpty) {
         setState(() {
-          // Inherit retailer links from pantry item
           if (matchingItem.amazonUrl != null && matchingItem.amazonUrl!.isNotEmpty) {
             _amazonLinkController.text = matchingItem.amazonUrl!;
           }
@@ -1545,6 +1540,25 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     });
   }
 
+  /// Validate step 1 fields only (ingredient info)
+  bool _validateStep1() {
+    // Manually validate name and quantity only
+    final nameError = Validators.validateItemName(_nameController.text);
+    final qtyError = Validators.validatePositiveNumber(_quantityController.text, 'Cantidad');
+    if (nameError != null || qtyError != null) {
+      // Trigger form validation to show errors
+      _formKey.currentState!.validate();
+      return false;
+    }
+    return true;
+  }
+
+  /// Move to pricing step or save directly
+  void _goToStep2OrSave() {
+    if (!_validateStep1()) return;
+    setState(() => _currentStep = 1);
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -1569,8 +1583,6 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     final unitPrice = priceText.isEmpty ? null : double.tryParse(priceText);
     if (userId != null && canonicalId.isNotEmpty && unitPrice != null && unitPrice > 0) {
       try {
-        // Always use perPackage pricing: product price / product size
-        // If user doesn't enter a size, default to 1 (same as per-unit)
         final packageSize = double.tryParse(_packageSizeController.text.trim()) ?? 1.0;
         await widget.ref.read(ingredientPriceServiceProvider).setUserIngredientPrice(
           userId: userId,
@@ -1607,6 +1619,403 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
     }
   }
 
+  // ── Step indicator ──
+  Widget _buildStepIndicator() {
+    return Row(
+      children: [
+        _buildStepDot(0, 'Ingrediente'),
+        Expanded(
+          child: Container(
+            height: 2,
+            color: _currentStep >= 1
+                ? AppColors.primary
+                : AppColors.gray200,
+          ),
+        ),
+        _buildStepDot(1, 'Precio'),
+      ],
+    );
+  }
+
+  Widget _buildStepDot(int step, String label) {
+    final isActive = _currentStep >= step;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? AppColors.primary : AppColors.gray200,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '${step + 1}',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isActive ? Colors.white : AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: isActive ? AppColors.primary : AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Step 1: Ingredient info (required) ──
+  Widget _buildStep1() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.restaurant_outlined, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Ingrediente de la receta',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: 'Nombre del Ingrediente',
+          controller: _nameController,
+          prefixIcon: Icons.shopping_basket_outlined,
+          validator: Validators.validateItemName,
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: CustomTextField(
+                label: 'Cantidad',
+                controller: _quantityController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                prefixIcon: Icons.numbers,
+                validator: (value) =>
+                    Validators.validatePositiveNumber(value, 'Cantidad'),
+                textInputAction: TextInputAction.next,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.gray300),
+                ),
+                child: DropdownButtonFormField<String>(
+                  initialValue: _unitController.text,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Unidad',
+                    prefixIcon: Icon(Icons.straighten, size: 20),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  ),
+                  items: Units.all.map((unit) {
+                    final translatedUnit = Translations.translateUnit(unit);
+                    return DropdownMenuItem(
+                      value: unit,
+                      child: Text(translatedUnit, overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _unitController.text = value;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Indica cuanto de este ingrediente necesita la receta.',
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+
+  // ── Step 2: Product pricing (optional) ──
+  Widget _buildStep2() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Ingredient summary chip
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, size: 16, color: AppColors.success),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_nameController.text.trim()} — ${_quantityController.text} ${Translations.translateUnit(_unitController.text)}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              InkWell(
+                onTap: () => setState(() => _currentStep = 0),
+                child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Product price section ──
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.attach_money_rounded, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Precio del producto (opcional)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Conecta este ingrediente con un producto para calcular costos. Ingresa el precio que pagas y el tamaño del envase.',
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 12),
+        if (_priceLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          )
+        else ...[
+          CustomTextField(
+            label: 'Precio del producto (MXN)',
+            controller: _unitPriceController,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            prefixIcon: Icons.payments_outlined,
+            hint: 'ej. 78 (lo que pagaste)',
+            validator: (value) {
+              if (value != null && value.trim().isNotEmpty) {
+                return Validators.validatePositiveNumber(value, 'Precio');
+              }
+              return null;
+            },
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: CustomTextField(
+                  label: 'Tamaño del envase',
+                  controller: _packageSizeController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixIcon: Icons.inventory_2_outlined,
+                  hint: 'ej. 500',
+                  validator: (value) {
+                    if (value != null && value.trim().isNotEmpty) {
+                      return Validators.validatePositiveNumber(value, 'Tamaño');
+                    }
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.gray300),
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _priceUnitOptions.contains(_priceUnit) ? _priceUnit : Units.pieces,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Unidad del envase',
+                      prefixIcon: Icon(Icons.straighten, size: 20),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    ),
+                    items: _priceUnitOptions.map((u) {
+                      return DropdownMenuItem(
+                        value: u,
+                        child: Text(Translations.translateUnit(u), overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) setState(() => _priceUnit = v);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ej: Mayonesa de 500g a \$78 → si usas 100g, costo = \$15.60',
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+        ],
+
+        // ── Purchase links section ──
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.link_outlined, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Enlaces de compra (opcional)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _lookupAndInheritFromPantry,
+                icon: Icon(Icons.download_outlined, size: 14, color: AppColors.secondary),
+                label: Text(
+                  'Despensa',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.secondary),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_linksInherited && _inheritedFromPantry != null) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle_outline, size: 14, color: AppColors.success),
+                const SizedBox(width: 4),
+                Text(
+                  'Heredado de "$_inheritedFromPantry"',
+                  style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _amazonLinkController,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            labelText: 'Enlace de Amazon',
+            hintText: 'https://amazon.com/...',
+            helperText: 'Opcional',
+            filled: true,
+            fillColor: AppColors.gray50,
+            prefixIcon: Icon(Icons.shopping_bag_outlined, color: const Color(0xFFFF9900)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gray200)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gray200)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFFF9900), width: 2)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error, width: 2)),
+            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error, width: 2)),
+          ),
+          validator: Validators.validateOptionalUrl,
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _walmartLinkController,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            labelText: 'Enlace de Walmart',
+            hintText: 'https://walmart.com/...',
+            helperText: 'Opcional',
+            filled: true,
+            fillColor: AppColors.gray50,
+            prefixIcon: Icon(Icons.store_outlined, color: const Color(0xFF0071CE)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gray200)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.gray200)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFF0071CE), width: 2)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error, width: 2)),
+            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error, width: 2)),
+          ),
+          validator: Validators.validateOptionalUrl,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -1618,371 +2027,51 @@ class _AddIngredientDialogState extends ConsumerState<_AddIngredientDialog> {
           : 'Editar Ingrediente'),
       content: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                label: 'Nombre del Ingrediente',
-                controller: _nameController,
-                prefixIcon: Icons.shopping_basket_outlined,
-                validator: Validators.validateItemName,
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: CustomTextField(
-                      label: 'Cantidad',
-                      controller: _quantityController,
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      prefixIcon: Icons.numbers,
-                      validator: (value) =>
-                          Validators.validatePositiveNumber(value, 'Cantidad'),
-                      textInputAction: TextInputAction.next,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.gray300),
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        value: _unitController.text,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Unidad',
-                          prefixIcon: Icon(Icons.straighten, size: 20),
-                          border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                        ),
-                        items: Units.all.map((unit) {
-                          final translatedUnit = Translations.translateUnit(unit);
-                          return DropdownMenuItem(
-                            value: unit,
-                            child: Text(translatedUnit, overflow: TextOverflow.ellipsis),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _unitController.text = value;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Product Price (for recipe cost calculation)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.attach_money_rounded, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Precio del producto',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Ingresa el precio total del producto y el tamaño del envase. El sistema calculará automáticamente el costo de cada ingrediente.',
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_priceLoading)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                      )
-                    else ...[
-                      // Row 1: Product price
-                      CustomTextField(
-                        label: 'Precio del producto (MXN)',
-                        controller: _unitPriceController,
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
-                        prefixIcon: Icons.payments_outlined,
-                        hint: 'ej. 78 (lo que pagaste)',
-                        validator: (value) {
-                          if (value != null && value.trim().isNotEmpty) {
-                            return Validators.validatePositiveNumber(value, 'Precio');
-                          }
-                          return null;
-                        },
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 12),
-                      // Row 2: Product size + unit
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: CustomTextField(
-                              label: 'Tamaño del producto',
-                              controller: _packageSizeController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              prefixIcon: Icons.inventory_2_outlined,
-                              hint: 'ej. 500',
-                              validator: (value) {
-                                if (value != null && value.trim().isNotEmpty) {
-                                  return Validators.validatePositiveNumber(value, 'Tamaño');
-                                }
-                                return null;
-                              },
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.gray300),
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                value: _priceUnitOptions.contains(_priceUnit) ? _priceUnit : Units.pieces,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Unidad',
-                                  prefixIcon: Icon(Icons.straighten, size: 20),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                                ),
-                                items: _priceUnitOptions.map((u) {
-                                  return DropdownMenuItem(
-                                    value: u,
-                                    child: Text(Translations.translateUnit(u), overflow: TextOverflow.ellipsis),
-                                  );
-                                }).toList(),
-                                onChanged: (v) {
-                                  if (v != null) setState(() => _priceUnit = v);
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Ej: Mayonesa de 500g a \$78 → si usas 100g, costo = \$15.60',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Purchase Links Section
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primary.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.link_outlined,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Enlaces de Compra (Opcional)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        // Button to inherit links from pantry
-                        TextButton.icon(
-                          onPressed: _lookupAndInheritFromPantry,
-                          icon: Icon(
-                            Icons.download_outlined,
-                            size: 16,
-                            color: AppColors.secondary,
-                          ),
-                          label: Text(
-                            'Usar de Despensa',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.secondary,
-                            ),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Agrega enlaces directos para comprar este ingrediente',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    if (_linksInherited && _inheritedFromPantry != null) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 14,
-                              color: AppColors.success,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Heredado de "$_inheritedFromPantry"',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Amazon Link
-              TextFormField(
-                controller: _amazonLinkController,
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                  labelText: 'Enlace de Amazon',
-                  hintText: 'https://amazon.com/...',
-                  helperText: 'Opcional - Deja vacío para generar automáticamente',
-                  filled: true,
-                  fillColor: AppColors.gray50,
-                  prefixIcon: Icon(
-                    Icons.shopping_bag_outlined,
-                    color: const Color(0xFFFF9900),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.gray200),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.gray200),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: const Color(0xFFFF9900), width: 2),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.error, width: 2),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.error, width: 2),
-                  ),
-                ),
-                validator: Validators.validateOptionalUrl,
-              ),
-              const SizedBox(height: 16),
-              // Walmart Link
-              TextFormField(
-                controller: _walmartLinkController,
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                  labelText: 'Enlace de Walmart',
-                  hintText: 'https://walmart.com/...',
-                  helperText: 'Opcional - Deja vacío para generar automáticamente',
-                  filled: true,
-                  fillColor: AppColors.gray50,
-                  prefixIcon: Icon(
-                    Icons.store_outlined,
-                    color: const Color(0xFF0071CE),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.gray200),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.gray200),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: const Color(0xFF0071CE), width: 2),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.error, width: 2),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.error, width: 2),
-                  ),
-                ),
-                validator: Validators.validateOptionalUrl,
-              ),
-            ],
+        child: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Step indicator
+                _buildStepIndicator(),
+                const SizedBox(height: 20),
+                // Step content
+                if (_currentStep == 0) _buildStep1(),
+                if (_currentStep == 1) _buildStep2(),
+              ],
+            ),
           ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _save,
-          child: const Text('Guardar'),
-        ),
+        if (_currentStep == 0) ...[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          // "Next" goes to step 2, or user can save directly
+          OutlinedButton(
+            onPressed: () {
+              if (_validateStep1()) _save();
+            },
+            child: const Text('Guardar sin precio'),
+          ),
+          ElevatedButton(
+            onPressed: _goToStep2OrSave,
+            child: const Text('Siguiente'),
+          ),
+        ],
+        if (_currentStep == 1) ...[
+          TextButton(
+            onPressed: () => setState(() => _currentStep = 0),
+            child: const Text('Atr\u00e1s'),
+          ),
+          ElevatedButton(
+            onPressed: _save,
+            child: const Text('Guardar'),
+          ),
+        ],
       ],
     );
   }
@@ -2049,7 +2138,7 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -2064,8 +2153,8 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.secondary.withOpacity(0.1),
-                    AppColors.secondary.withOpacity(0.05),
+                    AppColors.secondary.withValues(alpha: 0.1),
+                    AppColors.secondary.withValues(alpha: 0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -2080,11 +2169,11 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.15),
+                      color: AppColors.secondary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.secondary.withOpacity(0.2),
+                          color: AppColors.secondary.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -2201,7 +2290,7 @@ class _AddInstructionDialogState extends State<_AddInstructionDialog> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.secondary.withOpacity(0.4),
+                          color: AppColors.secondary.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

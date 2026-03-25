@@ -12,6 +12,7 @@ class ShoppingListItem {
   final String? amazonLink;
   final String? walmartLink;
   final List<CustomStoreLink> customStores; // User's custom store links
+  final String? note; // Optional note (e.g., why this item is on the list)
   final DateTime addedAt;
 
   ShoppingListItem({
@@ -24,6 +25,7 @@ class ShoppingListItem {
     this.amazonLink,
     this.walmartLink,
     this.customStores = const [],
+    this.note,
     required this.addedAt,
   });
 
@@ -42,6 +44,7 @@ class ShoppingListItem {
               ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
               .toList() ??
           [],
+      note: data['note'] as String?,
       addedAt: (data['addedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -60,6 +63,7 @@ class ShoppingListItem {
               ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
               .toList() ??
           [],
+      note: data['note'] as String?,
       addedAt: data['addedAt'] is Timestamp
           ? (data['addedAt'] as Timestamp).toDate()
           : DateTime.parse(data['addedAt'].toString()),
@@ -77,6 +81,7 @@ class ShoppingListItem {
       if (amazonLink != null && amazonLink!.isNotEmpty) 'amazonLink': amazonLink,
       if (walmartLink != null && walmartLink!.isNotEmpty) 'walmartLink': walmartLink,
       'customStores': customStores.map((e) => e.toMap()).toList(),
+      if (note != null && note!.isNotEmpty) 'note': note,
       'addedAt': Timestamp.fromDate(addedAt),
     };
   }
@@ -91,6 +96,7 @@ class ShoppingListItem {
     String? amazonLink,
     String? walmartLink,
     List<CustomStoreLink>? customStores,
+    String? note,
     DateTime? addedAt,
   }) {
     return ShoppingListItem(
@@ -103,6 +109,7 @@ class ShoppingListItem {
       amazonLink: amazonLink ?? this.amazonLink,
       walmartLink: walmartLink ?? this.walmartLink,
       customStores: customStores ?? this.customStores,
+      note: note ?? this.note,
       addedAt: addedAt ?? this.addedAt,
     );
   }

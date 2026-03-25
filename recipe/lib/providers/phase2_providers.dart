@@ -119,11 +119,23 @@ class RecipeCostParams {
 
   /// Compute a hash of all ingredient data (name, quantity, unit) so the
   /// provider recalculates whenever any ingredient is changed.
+  /// Uses multiplicative hashing (not XOR) to avoid hash collisions.
   int get _ingredientsHash {
-    int hash = 0;
+    int hash = recipe.ingredients.length;
     for (final ing in recipe.ingredients) {
-      hash = hash ^ ing.name.hashCode ^ ing.quantity.hashCode ^ ing.unit.hashCode;
+      hash = hash * 31 + ing.name.hashCode;
+      hash = hash * 31 + ing.quantity.hashCode;
+      hash = hash * 31 + ing.unit.hashCode;
     }
+    return hash;
+  }
+
+  /// Hash of yield/portion fields so cost recalculates on portion changes
+  int get _yieldHash {
+    int hash = 7; // Non-zero seed so multiplication propagates
+    hash = hash * 31 + (recipe.yieldValue?.hashCode ?? 0);
+    hash = hash * 31 + (recipe.yieldUnit?.hashCode ?? 0);
+    hash = hash * 31 + (recipe.standardPortionSize?.hashCode ?? 0);
     return hash;
   }
 
@@ -133,11 +145,15 @@ class RecipeCostParams {
       other is RecipeCostParams &&
           runtimeType == other.runtimeType &&
           recipe.id == other.recipe.id &&
-          recipe.updatedAt == other.recipe.updatedAt &&
           _ingredientsHash == other._ingredientsHash &&
+          _yieldHash == other._yieldHash &&
           userId == other.userId;
 
   @override
-  int get hashCode => recipe.id.hashCode ^ recipe.updatedAt.hashCode ^ _ingredientsHash ^ (userId?.hashCode ?? 0);
+  int get hashCode =>
+      recipe.id.hashCode ^
+      _ingredientsHash ^
+      _yieldHash ^
+      (userId?.hashCode ?? 0);
 }
 

@@ -115,7 +115,7 @@ class ShoppingListScreen extends ConsumerWidget {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: AppColors.gray200.withOpacity(0.5),
+                color: AppColors.gray200.withValues(alpha:0.5),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -166,10 +166,10 @@ class ShoppingListScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: AppColors.primary.withValues(alpha:0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.primary.withValues(alpha:0.2),
                     ),
                   ),
                   child: Row(
@@ -255,7 +255,7 @@ class ShoppingListScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha:0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -300,15 +300,15 @@ class ShoppingListScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: item.isChecked
-              ? AppColors.success.withOpacity(0.5)
+              ? AppColors.success.withValues(alpha:0.5)
               : AppColors.gray200,
           width: item.isChecked ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: item.isChecked
-                ? AppColors.success.withOpacity(0.15)
-                : AppColors.gray200.withOpacity(0.3),
+                ? AppColors.success.withValues(alpha:0.15)
+                : AppColors.gray200.withValues(alpha:0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -419,7 +419,7 @@ class ShoppingListScreen extends ConsumerWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.1),
+                            color: AppColors.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -431,6 +431,26 @@ class ShoppingListScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
+                        // Show note if available (e.g. partial pantry coverage, unit mismatch)
+                        if (item.note != null && item.note!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline_rounded, size: 13, color: AppColors.warning),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  item.note!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.warning,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -513,15 +533,15 @@ class ShoppingListScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.secondary.withOpacity(0.15),
-                AppColors.secondary.withOpacity(0.08),
+                AppColors.secondary.withValues(alpha:0.15),
+                AppColors.secondary.withValues(alpha:0.08),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: AppColors.secondary.withOpacity(0.4),
+              color: AppColors.secondary.withValues(alpha:0.4),
               width: 1.5,
             ),
           ),
@@ -546,7 +566,7 @@ class ShoppingListScreen extends ConsumerWidget {
               Icon(
                 Icons.open_in_new,
                 size: 12,
-                color: AppColors.secondary.withOpacity(0.7),
+                color: AppColors.secondary.withValues(alpha:0.7),
               ),
             ],
           ),
@@ -829,10 +849,10 @@ class ShoppingListScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
+                  color: AppColors.primary.withValues(alpha:0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha:0.2),
                     width: 1,
                   ),
                 ),
@@ -987,10 +1007,10 @@ class ShoppingListScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withOpacity(0.05),
+                  color: AppColors.secondary.withValues(alpha:0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.secondary.withOpacity(0.2),
+                    color: AppColors.secondary.withValues(alpha:0.2),
                     width: 1,
                   ),
                 ),
@@ -1046,7 +1066,7 @@ class ShoppingListScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.1),
+                            color: AppColors.secondary.withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -1128,7 +1148,7 @@ class ShoppingListScreen extends ConsumerWidget {
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.secondary,
-                  side: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
+                  side: BorderSide(color: AppColors.secondary.withValues(alpha:0.5)),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1165,7 +1185,7 @@ class ShoppingListScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: AppColors.primary.withValues(alpha:0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -1296,7 +1316,7 @@ class ShoppingListScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
+                color: AppColors.secondary.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -1433,7 +1453,7 @@ class ShoppingListScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
@@ -1478,7 +1498,7 @@ class ShoppingListScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.error.withOpacity(0.3),
+                  color: AppColors.error.withValues(alpha:0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -1550,7 +1570,7 @@ class ShoppingListScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
@@ -1595,7 +1615,7 @@ class ShoppingListScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.error.withOpacity(0.3),
+                  color: AppColors.error.withValues(alpha:0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),

@@ -1,0 +1,1640 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import '../../core/config/firebase_config.dart';
+import '../../core/constants/firebase_constants.dart';
+import '../../models/profile_model.dart';
+import '../../models/pantry_item_model.dart';
+import '../../models/recipe_model.dart';
+import '../../models/meal_plan_model.dart';
+import '../storage/firebase_storage_service.dart';
+import '../../models/shopping_list_model.dart';
+import '../../models/user_store_model.dart';
+import '../../models/feedback_model.dart';
+import '../../models/user_model.dart';
+import '../../core/utils/logger.dart';
+import '../purchase_link_service.dart';
+import '../recipe_recommendation_service.dart';
+import '../measurement_converter_service.dart' show MeasurementConverterService;
+
+/// Service for managing user profiles in Firestore
+class FirestoreService {
+  final FirebaseFirestore _firestore = FirebaseConfig.firestore;
+
+
+
+  /// Get user profile from Firestore
+  /// Returns null if profile doesn't exist
+  Future<ProfileModel?> getUserProfile(String userId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        try {
+          return ProfileModel.fromFirestore(doc);
+        } catch (e) {
+          Logger.error('Failed to parse profile from Firestore', e, null, 'FirestoreService');
+          // Return null on parsing error instead of crashing
+          return null;
+        }
+      }
+      return null;
+    } catch (e) {
+      Logger.error('Failed to get user profile', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Create a new user profile in Firestore
+  Future<void> createUserProfile({
+    required String userId,
+    required String name,
+    required String email,
+    String? location,
+    String unitPreference = 'metric',
+    int servingSize = 4,
+    List<HouseholdMember> householdMembers = const [],
+  }) async {
+    try {
+      final now = DateTime.now();
+      final profileModel = ProfileModel(
+        userId: userId,
+        name: name,
+        email: email,
+        location: location,
+        unitPreference: unitPreference,
+        servingSize: servingSize,
+        householdMembers: householdMembers,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .set(profileModel.toMap(), SetOptions(merge: false));
+
+      Logger.success('User profile created: $userId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to create user profile', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Update user profile in Firestore
+  Future<void> updateUserProfile({
+    required String userId,
+    String? name,
+    String? email,
+    String? location,
+    String? unitPreference,
+    int? servingSize,
+    String? languagePreference,
+    List<HouseholdMember>? householdMembers,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': Timestamp.now(),
+      };
+
+      if (name != null) {
+        updates['name'] = name;
+      }
+      if (email != null) {
+        updates['email'] = email;
+      }
+      if (location != null) {
+        updates['location'] = location;
+      }
+      if (unitPreference != null) {
+        updates['unitPreference'] = unitPreference;
+      }
+      if (servingSize != null) {
+        updates['servingSize'] = servingSize;
+      }
+      if (languagePreference != null) {
+        updates['languagePreference'] = languagePreference;
+      }
+      if (householdMembers != null) {
+        updates['householdMembers'] =
+            householdMembers.map((member) => member.toMap()).toList();
+      }
+
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .update(updates);
+
+      Logger.success('User profile updated: $userId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to update user profile', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Stream user profile changes
+  Stream<ProfileModel?> streamUserProfile(String userId) {
+    return _firestore
+        .collection(FirebaseCollections.users)
+        .doc(userId)
+        .snapshots()
+        .map((doc) {
+      if (doc.exists && doc.data() != null) {
+        try {
+          return ProfileModel.fromFirestore(doc);
+        } catch (e) {
+          Logger.error('Failed to parse profile from Firestore', e, null, 'FirestoreService');
+          // Return null on parsing error to prevent app crash
+          return null;
+        }
+      }
+      return null;
+    }).handleError((error) {
+      Logger.error('Error in profile stream', error, null, 'FirestoreService');
+      return null;
+    });
+  }
+
+  /// Check if user profile exists
+  Future<bool> userProfileExists(String userId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .get();
+      return doc.exists && doc.data() != null;
+    } catch (e) {
+      Logger.error('Failed to check user profile', e, null, 'FirestoreService');
+      return false;
+    }
+  }
+
+  /// Update user's FCM token
+  Future<void> updateUserFCMToken(String userId, String fcmToken) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .update({
+        'fcmToken': fcmToken,
+        'fcmTokenUpdatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+      Logger.success('FCM token updated for user: $userId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to update FCM token', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  // ==================== PANTRY ITEMS METHODS ====================
+
+  /// Get all pantry items for a user, sorted by expiration date
+  Future<List<PantryItem>> getPantryItems(String userId) async {
+    try {
+      // Get all items (can't use orderBy with null values, so we'll sort in code)
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.pantryItems)
+          .get();
+
+      final items = snapshot.docs
+          .map((doc) => PantryItem.fromFirestore(doc))
+          .toList();
+
+      // Sort: items with expiration dates first (ascending), then items without dates
+      items.sort((a, b) {
+        if (a.expirationDate == null && b.expirationDate == null) {
+          return b.addedAt.compareTo(a.addedAt); // Newest first for items without dates
+        }
+        if (a.expirationDate == null) return 1; // Items without dates go to end
+        if (b.expirationDate == null) return -1;
+        return a.expirationDate!.compareTo(b.expirationDate!);
+      });
+
+      Logger.success('Retrieved ${items.length} pantry items for user: $userId', 'FirestoreService');
+      return items;
+    } catch (e) {
+      Logger.error('Failed to get pantry items', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Stream pantry items for real-time updates
+  Stream<List<PantryItem>> streamPantryItems(String userId) {
+    // Get all items (can't use orderBy with null values, so we'll sort in code)
+    return _firestore
+        .collection(FirebaseCollections.users)
+        .doc(userId)
+        .collection(FirebaseCollections.pantryItems)
+        .snapshots()
+        .map((snapshot) {
+      final items = snapshot.docs
+          .map((doc) {
+            try {
+              return PantryItem.fromFirestore(doc);
+            } catch (e) {
+              Logger.error('Failed to parse pantry item', e, null, 'FirestoreService');
+              return null;
+            }
+          })
+          .whereType<PantryItem>()
+          .toList();
+
+      // Sort: items with expiration dates first (ascending), then items without dates
+      items.sort((a, b) {
+        if (a.expirationDate == null && b.expirationDate == null) {
+          return b.addedAt.compareTo(a.addedAt); // Newest first for items without dates
+        }
+        if (a.expirationDate == null) return 1; // Items without dates go to end
+        if (b.expirationDate == null) return -1;
+        return a.expirationDate!.compareTo(b.expirationDate!);
+      });
+
+      return items;
+    }).handleError((error) {
+      Logger.error('Error in pantry items stream', error, null, 'FirestoreService');
+      return <PantryItem>[];
+    });
+  }
+
+  /// Add a new pantry item
+  Future<String> addPantryItem(String userId, PantryItem item) async {
+    try {
+      final docRef = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.pantryItems)
+          .add(item.toMap());
+
+      Logger.success('Pantry item added: ${docRef.id}', 'FirestoreService');
+      return docRef.id;
+    } catch (e) {
+      Logger.error('Failed to add pantry item', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Update an existing pantry item
+  Future<void> updatePantryItem(String userId, PantryItem item) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.pantryItems)
+          .doc(item.id)
+          .update(item.toMap());
+
+      Logger.success('Pantry item updated: ${item.id}', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to update pantry item', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Delete a pantry item
+  Future<void> deletePantryItem(String userId, String itemId) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.pantryItems)
+          .doc(itemId)
+          .delete();
+
+      Logger.success('Pantry item deleted: $itemId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to delete pantry item', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  // ==================== RECIPE METHODS ====================
+
+  /// Get all recipes from Firestore
+  Future<List<Recipe>> getAllRecipes() async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.recipes)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final recipes = snapshot.docs
+          .map((doc) {
+            try {
+              return Recipe.fromFirestore(doc);
+            } catch (e) {
+              Logger.error('Failed to parse recipe', e, null, 'FirestoreService');
+              return null;
+            }
+          })
+          .whereType<Recipe>()
+          .toList();
+
+      Logger.success('Retrieved ${recipes.length} recipes', 'FirestoreService');
+      return recipes;
+    } catch (e) {
+      Logger.error('Failed to get all recipes', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Stream all recipes for real-time updates
+  Stream<List<Recipe>> streamAllRecipes() {
+    return _firestore
+        .collection(FirebaseCollections.recipes)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final recipes = snapshot.docs
+          .map((doc) {
+            try {
+              return Recipe.fromFirestore(doc);
+            } catch (e) {
+              Logger.error('Failed to parse recipe', e, null, 'FirestoreService');
+              return null;
+            }
+          })
+          .whereType<Recipe>()
+          .toList();
+      return recipes;
+    }).handleError((error) {
+      Logger.error('Error in recipes stream', error, null, 'FirestoreService');
+      return <Recipe>[];
+    });
+  }
+
+  /// Get a single recipe by ID
+  Future<Recipe?> getRecipe(String recipeId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.recipes)
+          .doc(recipeId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        try {
+          return Recipe.fromFirestore(doc);
+        } catch (e) {
+          Logger.error('Failed to parse recipe from Firestore', e, null, 'FirestoreService');
+          return null;
+        }
+      }
+      return null;
+    } catch (e) {
+      Logger.error('Failed to get recipe', e, null, 'FirestoreService');
+      return null;
+    }
+  }
+
+  /// Get recipes by a specific user
+  Future<List<Recipe>> getUserRecipes(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.recipes)
+          .where('authorId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final recipes = snapshot.docs
+          .map((doc) {
+            try {
+              return Recipe.fromFirestore(doc);
+            } catch (e) {
+              Logger.error('Failed to parse recipe', e, null, 'FirestoreService');
+              return null;
+            }
+          })
+          .whereType<Recipe>()
+          .toList();
+
+      Logger.success('Retrieved ${recipes.length} recipes for user: $userId', 'FirestoreService');
+      return recipes;
+    } catch (e) {
+      Logger.error('Failed to get user recipes', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Stream user recipes for real-time updates
+  Stream<List<Recipe>> streamUserRecipes(String userId) {
+    return _firestore
+        .collection(FirebaseCollections.recipes)
+        .where('authorId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final recipes = snapshot.docs
+          .map((doc) {
+            try {
+              return Recipe.fromFirestore(doc);
+            } catch (e) {
+              Logger.error('Failed to parse recipe', e, null, 'FirestoreService');
+              return null;
+            }
+          })
+          .whereType<Recipe>()
+          .toList();
+      // Sort by createdAt in descending order (newest first) in memory
+      recipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return recipes;
+    }).handleError((error) {
+      Logger.error('Error in user recipes stream', error, null, 'FirestoreService');
+      return <Recipe>[];
+    });
+  }
+
+  /// Add a new recipe
+  Future<String> addRecipe(Recipe recipe) async {
+    try {
+      // Use the recipe's ID if provided, otherwise let Firestore generate one
+      final docRef = recipe.id.isNotEmpty
+          ? _firestore.collection(FirebaseCollections.recipes).doc(recipe.id)
+          : _firestore.collection(FirebaseCollections.recipes).doc();
+
+      await docRef.set(recipe.copyWith(id: docRef.id).toMap());
+
+      Logger.success('Recipe added: ${docRef.id}', 'FirestoreService');
+      return docRef.id;
+    } catch (e) {
+      Logger.error('Failed to add recipe', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Update an existing recipe
+  Future<void> updateRecipe(Recipe recipe) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.recipes)
+          .doc(recipe.id)
+          .update(recipe.toMap());
+
+      Logger.success('Recipe updated: ${recipe.id}', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to update recipe', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Delete a recipe
+  Future<void> deleteRecipe(String recipeId) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.recipes)
+          .doc(recipeId)
+          .delete();
+
+      Logger.success('Recipe deleted: $recipeId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to delete recipe', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Upload recipe image to Firebase Storage
+  /// Supports both File (mobile) and Uint8List (web)
+  /// Returns null if image upload fails (recipe can still be saved without image)
+  Future<String?> uploadRecipeImage(
+    String recipeId,
+    dynamic imageData, // File or Uint8List
+  ) async {
+    // Delegate to FirebaseStorageService
+    return await FirebaseStorageService().uploadRecipeImage(recipeId, imageData);
+  }
+
+  /// Delete recipe image from Firebase Storage
+  Future<void> deleteRecipeImage(String imageUrl) async {
+    // Delegate to FirebaseStorageService
+    await FirebaseStorageService().deleteRecipeImage(imageUrl);
+    // Note: deleteRecipeImage returns bool, but we don't throw here
+    // to ensure recipe deletion doesn't fail if image deletion fails
+  }
+
+  // ==================== SHOPPING LIST METHODS ====================
+
+  /// Generate a shopping list from a recipe's missing ingredients
+  /// Compares recipe ingredients with user's pantry items
+  Future<String> generateShoppingList({
+    required String userId,
+    required Recipe recipe,
+    required List<PantryItem> pantryItems,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final listId = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc()
+          .id;
+
+      // Normalize pantry item names for comparison
+      // Store both normalized name and original item for better matching
+      final pantryMap = <String, PantryItem>{};
+      for (final item in pantryItems) {
+        final normalized = RecipeRecommendationService.normalizeIngredientName(item.name);
+        pantryMap[normalized] = item;
+      }
+
+      // Find missing ingredients and track matched pantry items for purchase links
+      final missingIngredients = <RecipeIngredient>[];
+      final ingredientNotes = <String, String>{}; // ingredient name -> note
+      final matchedPantryItems = <RecipeIngredient, PantryItem?>{};
+      
+      Logger.info(
+        'Generating shopping list for recipe "${recipe.title}" with ${recipe.ingredients.length} ingredients',
+        'FirestoreService',
+      );
+      Logger.info(
+        'Pantry has ${pantryItems.length} items: ${pantryItems.map((p) => p.name).join(", ")}',
+        'FirestoreService',
+      );
+
+      for (final ingredient in recipe.ingredients) {
+        final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
+        PantryItem? matchedPantryItem;
+
+        // First try exact match
+        if (pantryMap.containsKey(normalizedName)) {
+          matchedPantryItem = pantryMap[normalizedName]!;
+          Logger.info(
+            'Exact match: "${ingredient.name}" ↔ "${matchedPantryItem.name}"',
+            'FirestoreService',
+          );
+        } else {
+          // Try fuzzy matching using RecipeRecommendationService (includes synonyms)
+          for (final pantryItem in pantryItems) {
+            if (RecipeRecommendationService.ingredientNamesMatch(ingredient.name, pantryItem.name)) {
+              matchedPantryItem = pantryItem;
+              Logger.info(
+                'Fuzzy match (with synonyms): "${ingredient.name}" ↔ "${matchedPantryItem.name}"',
+                'FirestoreService',
+              );
+              break;
+            }
+          }
+        }
+
+        if (matchedPantryItem == null) {
+          // No match in pantry — need the full amount
+          missingIngredients.add(ingredient);
+          matchedPantryItems[ingredient] = null;
+          Logger.info(
+            'Missing ingredient: "${ingredient.name}" (${ingredient.quantity} ${ingredient.unit})',
+            'FirestoreService',
+          );
+        } else {
+          // Found in pantry — compare quantities to determine deficit
+          matchedPantryItems[ingredient] = matchedPantryItem;
+
+          double pantryQtyInRecipeUnit = matchedPantryItem.quantity;
+          bool conversionOk = true;
+
+          // Convert pantry quantity to the recipe ingredient's unit for comparison
+          final normalizedPantryUnit = MeasurementConverterService.normalizeUnit(matchedPantryItem.unit);
+          final normalizedRecipeUnit = MeasurementConverterService.normalizeUnit(ingredient.unit);
+
+          if (normalizedPantryUnit != normalizedRecipeUnit) {
+            final conversion = MeasurementConverterService.convert(
+              value: matchedPantryItem.quantity,
+              fromUnit: matchedPantryItem.unit,
+              toUnit: ingredient.unit,
+            );
+            if (conversion != null) {
+              pantryQtyInRecipeUnit = conversion.value;
+            } else {
+              // Units are incompatible (e.g. weight vs volume, or pieces vs grams).
+              // We cannot compare, so treat as if not in pantry to be safe.
+              conversionOk = false;
+              Logger.warning(
+                'Cannot convert pantry "${matchedPantryItem.unit}" to recipe "${ingredient.unit}" for ${ingredient.name} — treating as missing',
+                'FirestoreService',
+              );
+            }
+          }
+
+          if (!conversionOk) {
+            // Incompatible units — add the full recipe quantity with a note
+            missingIngredients.add(ingredient);
+            ingredientNotes[ingredient.name] =
+                'Tienes ${matchedPantryItem.quantity.toStringAsFixed(0)} ${matchedPantryItem.unit} en despensa, pero la receta pide ${ingredient.unit}. Verifica si ya tienes suficiente.';
+          } else if (pantryQtyInRecipeUnit >= ingredient.quantity) {
+            // Pantry covers the full amount — nothing to buy
+            Logger.info(
+              'Pantry covers "${ingredient.name}": have ${pantryQtyInRecipeUnit.toStringAsFixed(2)} ${ingredient.unit}, need ${ingredient.quantity} ${ingredient.unit}',
+              'FirestoreService',
+            );
+          } else {
+            // Pantry has some but not enough — add only the deficit
+            final deficit = ingredient.quantity - pantryQtyInRecipeUnit;
+            final deficitIngredient = RecipeIngredient(
+              name: ingredient.name,
+              canonicalIngredientId: ingredient.canonicalIngredientId,
+              quantity: deficit,
+              unit: ingredient.unit,
+              amazonLink: ingredient.amazonLink,
+              walmartLink: ingredient.walmartLink,
+            );
+            missingIngredients.add(deficitIngredient);
+            ingredientNotes[ingredient.name] =
+                'Ya tienes ${pantryQtyInRecipeUnit.toStringAsFixed(1)} ${ingredient.unit} en despensa. Solo necesitas comprar lo que falta.';
+            Logger.info(
+              'Partial coverage for "${ingredient.name}": have ${pantryQtyInRecipeUnit.toStringAsFixed(2)}, need ${ingredient.quantity} → buying ${deficit.toStringAsFixed(2)} ${ingredient.unit}',
+              'FirestoreService',
+            );
+          }
+        }
+      }
+
+      Logger.info(
+        'Found ${missingIngredients.length} missing/partial ingredients out of ${recipe.ingredients.length} total',
+        'FirestoreService',
+      );
+
+      // Only include ingredients that are actually missing (fully or partially) from the pantry.
+      // If all ingredients are fully available, the shopping list will be empty.
+      final ingredientsToAdd = missingIngredients;
+      final matchedForLinks = matchedPantryItems;
+
+      if (missingIngredients.isEmpty) {
+        Logger.info(
+          'All ingredients fully covered by pantry - shopping list will have no items to buy',
+          'FirestoreService',
+        );
+      }
+
+      // Create shopping list document
+      final shoppingList = {
+        'name': recipe.title,
+        'recipeId': recipe.id,
+        'recipeTitle': recipe.title,
+        'createdAt': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+      };
+
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .set(shoppingList);
+
+      // Add items to subcollection
+      // Log detailed info about what's being added
+      Logger.info(
+        'Adding ${ingredientsToAdd.length} items to shopping list',
+        'FirestoreService',
+      );
+
+      // Log each ingredient being added
+      for (int i = 0; i < ingredientsToAdd.length; i++) {
+        Logger.info(
+          'Item ${i + 1}/${ingredientsToAdd.length}: "${ingredientsToAdd[i].name}" (${ingredientsToAdd[i].quantity} ${ingredientsToAdd[i].unit})',
+          'FirestoreService',
+        );
+      }
+
+      // Use individual writes instead of batch to avoid any potential batch issues
+      // This is more reliable for ensuring all items are added
+      final itemsRef = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems);
+
+      int addedCount = 0;
+      for (final ingredient in ingredientsToAdd) {
+        try {
+          final itemId = itemsRef.doc().id;
+
+          // Determine purchase links with priority:
+          // 1. Recipe ingredient links (if available)
+          // 2. Matched pantry item links (if ingredient matches a pantry item)
+          // 3. Generated search links
+          final matchedPantryItem = matchedForLinks[ingredient];
+          
+          String? amazonLink;
+          String? walmartLink;
+          
+          // Priority 1: Use recipe ingredient links if available
+          if (ingredient.amazonLink?.isNotEmpty == true) {
+            amazonLink = ingredient.amazonLink;
+          } else if (matchedPantryItem?.amazonUrl?.isNotEmpty == true) {
+            // Priority 2: Use matched pantry item links
+            amazonLink = matchedPantryItem!.amazonUrl;
+            Logger.info(
+              'Using Amazon link from matched pantry item "${matchedPantryItem.name}" for ingredient "${ingredient.name}"',
+              'FirestoreService',
+            );
+          } else {
+            // Priority 3: Generate search link
+            amazonLink = _generateAmazonLink(ingredient.name);
+          }
+          
+          if (ingredient.walmartLink?.isNotEmpty == true) {
+            walmartLink = ingredient.walmartLink;
+          } else if (matchedPantryItem?.walmartUrl?.isNotEmpty == true) {
+            // Priority 2: Use matched pantry item links
+            walmartLink = matchedPantryItem!.walmartUrl;
+            Logger.info(
+              'Using Walmart link from matched pantry item "${matchedPantryItem.name}" for ingredient "${ingredient.name}"',
+              'FirestoreService',
+            );
+          } else {
+            // Priority 3: Generate search link
+            walmartLink = _generateWalmartLink(ingredient.name);
+          }
+
+          final note = ingredientNotes[ingredient.name];
+          await itemsRef.doc(itemId).set({
+            'name': ingredient.name,
+            'canonicalIngredientId': ingredient.canonicalIngredientId,
+            'quantity': ingredient.quantity,
+            'unit': ingredient.unit,
+            'isChecked': false,
+            'amazonLink': amazonLink,
+            'walmartLink': walmartLink,
+            if (note != null) 'note': note,
+            'addedAt': Timestamp.fromDate(now),
+          });
+          addedCount++;
+          Logger.info(
+            'Successfully added item: "${ingredient.name}" (Amazon: ${amazonLink != null ? "yes" : "no"}, Walmart: ${walmartLink != null ? "yes" : "no"})',
+            'FirestoreService',
+          );
+        } catch (itemError) {
+          Logger.error(
+            'Failed to add item "${ingredient.name}"',
+            itemError,
+            null,
+            'FirestoreService',
+          );
+          // Continue with other items even if one fails
+        }
+      }
+
+      Logger.info(
+        'Finished adding items: $addedCount/${ingredientsToAdd.length} successful',
+        'FirestoreService',
+      );
+
+      Logger.success(
+        'Shopping list generated: $listId with ${ingredientsToAdd.length} items',
+        'FirestoreService',
+      );
+      return listId;
+    } catch (e) {
+      Logger.error('Failed to generate shopping list', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Generate consolidated shopping list from meal plan
+  /// Aggregates missing ingredients from all recipes in the meal plan
+  Future<String> generateShoppingListFromMealPlan({
+    required String userId,
+    required MealPlan mealPlan,
+    required List<PantryItem> pantryItems,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final listId = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc()
+          .id;
+
+      // Get all recipes from meal plan with occurrence counts
+      // If a recipe appears multiple times in the week, multiply ingredient quantities
+      final recipeIdCounts = mealPlan.recipeIdCounts;
+      final Map<String, Recipe> recipeMap = {};
+      for (final recipeId in recipeIdCounts.keys) {
+        try {
+          final recipe = await getRecipe(recipeId);
+          if (recipe != null) {
+            recipeMap[recipeId] = recipe;
+          }
+        } catch (e) {
+          Logger.warning('Failed to fetch recipe: $recipeId', 'FirestoreService');
+        }
+      }
+
+      if (recipeMap.isEmpty) {
+        throw Exception('No recipes found in meal plan');
+      }
+
+      // Aggregate all ingredients from all recipes, multiplying by occurrence count
+      final Map<String, RecipeIngredient> aggregatedIngredients = {}; // normalizedName -> ingredient (with aggregated quantity)
+      final pantryMap = <String, PantryItem>{};
+
+      for (final item in pantryItems) {
+        final normalized = RecipeRecommendationService.normalizeIngredientName(item.name);
+        pantryMap[normalized] = item;
+      }
+
+      // Aggregate ingredients from all recipes, scaled by how many times each appears
+      for (final entry in recipeIdCounts.entries) {
+        final recipe = recipeMap[entry.key];
+        if (recipe == null) continue;
+        final multiplier = entry.value; // how many times this recipe appears in the meal plan
+
+        for (final ingredient in recipe.ingredients) {
+          final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
+          final scaledQuantity = ingredient.quantity * multiplier;
+
+          if (aggregatedIngredients.containsKey(normalizedName)) {
+            // Aggregate quantities
+            final existing = aggregatedIngredients[normalizedName]!;
+            aggregatedIngredients[normalizedName] = RecipeIngredient(
+              name: existing.name,
+              quantity: existing.quantity + scaledQuantity,
+              unit: existing.unit, // Keep first unit
+              canonicalIngredientId: existing.canonicalIngredientId ?? ingredient.canonicalIngredientId,
+            );
+          } else {
+            aggregatedIngredients[normalizedName] = RecipeIngredient(
+              name: ingredient.name,
+              quantity: scaledQuantity,
+              unit: ingredient.unit,
+              canonicalIngredientId: ingredient.canonicalIngredientId,
+              amazonLink: ingredient.amazonLink,
+              walmartLink: ingredient.walmartLink,
+            );
+          }
+        }
+      }
+
+      // Find missing/partially-missing ingredients (quantity-aware)
+      final missingIngredients = <RecipeIngredient>[];
+      for (final ingredient in aggregatedIngredients.values) {
+        final normalizedName = RecipeRecommendationService.normalizeIngredientName(ingredient.name);
+        PantryItem? matchedPantryItem;
+
+        if (pantryMap.containsKey(normalizedName)) {
+          matchedPantryItem = pantryMap[normalizedName];
+        } else {
+          // Try fuzzy matching
+          for (final pantryItem in pantryItems) {
+            if (RecipeRecommendationService.ingredientNamesMatch(ingredient.name, pantryItem.name)) {
+              matchedPantryItem = pantryItem;
+              break;
+            }
+          }
+        }
+
+        if (matchedPantryItem == null) {
+          // Not in pantry at all — need the full amount
+          missingIngredients.add(ingredient);
+        } else {
+          // In pantry — compare quantities with unit conversion
+          double pantryQtyInRecipeUnit = matchedPantryItem.quantity;
+          bool conversionOk = true;
+
+          final normalizedPantryUnit = MeasurementConverterService.normalizeUnit(matchedPantryItem.unit);
+          final normalizedRecipeUnit = MeasurementConverterService.normalizeUnit(ingredient.unit);
+
+          if (normalizedPantryUnit != normalizedRecipeUnit) {
+            final conversion = MeasurementConverterService.convert(
+              value: matchedPantryItem.quantity,
+              fromUnit: matchedPantryItem.unit,
+              toUnit: ingredient.unit,
+            );
+            if (conversion != null) {
+              pantryQtyInRecipeUnit = conversion.value;
+            } else {
+              conversionOk = false;
+            }
+          }
+
+          if (!conversionOk) {
+            missingIngredients.add(ingredient);
+          } else if (pantryQtyInRecipeUnit < ingredient.quantity) {
+            // Partial coverage — add only the deficit
+            final deficit = ingredient.quantity - pantryQtyInRecipeUnit;
+            missingIngredients.add(RecipeIngredient(
+              name: ingredient.name,
+              canonicalIngredientId: ingredient.canonicalIngredientId,
+              quantity: deficit,
+              unit: ingredient.unit,
+              amazonLink: ingredient.amazonLink,
+              walmartLink: ingredient.walmartLink,
+            ));
+          }
+          // else: fully covered — nothing to buy
+        }
+      }
+
+      // Always create a shopping list. If all in pantry, include all ingredients as checklist.
+      final ingredientsToAddFromPlan = missingIngredients.isEmpty
+          ? aggregatedIngredients.values.toList()
+          : missingIngredients;
+
+      if (missingIngredients.isEmpty) {
+        Logger.info(
+          'All meal plan ingredients fully covered by pantry - creating list with full checklist',
+          'FirestoreService',
+        );
+      }
+
+      // Create shopping list document
+      final weekEnd = mealPlan.weekStartDate.add(const Duration(days: 6));
+      final dateFormat = DateFormat('MMM dd', 'es');
+      final shoppingList = {
+        'name': 'Lista de Compras - ${dateFormat.format(mealPlan.weekStartDate)} - ${dateFormat.format(weekEnd)}',
+        'mealPlanId': mealPlan.id,
+        'source': 'meal_plan', // Phase 2: Track auto-generated lists
+        'createdAt': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+      };
+
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .set(shoppingList);
+
+      // Add items to subcollection
+      final itemsRef = _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems);
+
+      int addedCount = 0;
+      for (final ingredient in ingredientsToAddFromPlan) {
+        try {
+          final itemId = itemsRef.doc().id;
+          final amazonLink = ingredient.amazonLink?.isNotEmpty == true
+              ? ingredient.amazonLink
+              : _generateAmazonLink(ingredient.name);
+          final walmartLink = ingredient.walmartLink?.isNotEmpty == true
+              ? ingredient.walmartLink
+              : _generateWalmartLink(ingredient.name);
+
+          await itemsRef.doc(itemId).set({
+            'name': ingredient.name,
+            'canonicalIngredientId': ingredient.canonicalIngredientId,
+            'quantity': ingredient.quantity,
+            'unit': ingredient.unit,
+            'isChecked': false,
+            'amazonLink': amazonLink,
+            'walmartLink': walmartLink,
+            'addedAt': Timestamp.fromDate(now),
+          });
+          addedCount++;
+        } catch (itemError) {
+          Logger.error(
+            'Failed to add item "${ingredient.name}"',
+            itemError,
+            null,
+            'FirestoreService',
+          );
+        }
+      }
+
+      Logger.success(
+        'Shopping list generated from meal plan: $listId with $addedCount items',
+        'FirestoreService',
+      );
+      return listId;
+    } catch (e) {
+      Logger.error('Failed to generate shopping list from meal plan', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Get all shopping lists for a user
+  Future<List<ShoppingList>> getShoppingLists(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final lists = snapshot.docs
+          .map((doc) => ShoppingList.fromFirestore(doc))
+          .toList();
+
+      Logger.success('Retrieved ${lists.length} shopping lists', 'FirestoreService');
+      return lists;
+    } catch (e) {
+      Logger.error('Failed to get shopping lists', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Stream shopping lists for real-time updates
+  Stream<List<ShoppingList>> streamShoppingLists(String userId) {
+    return _firestore
+        .collection(FirebaseCollections.users)
+        .doc(userId)
+        .collection(FirebaseCollections.shoppingLists)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ShoppingList.fromFirestore(doc))
+          .toList();
+    }).handleError((error) {
+      Logger.error('Error in shopping lists stream', error, null, 'FirestoreService');
+      return <ShoppingList>[];
+    });
+  }
+
+  /// Get shopping list items
+  Future<List<ShoppingListItem>> getShoppingListItems(
+    String userId,
+    String listId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems)
+          .orderBy('addedAt')
+          .get();
+
+      final items = snapshot.docs
+          .map((doc) => ShoppingListItem.fromFirestore(doc))
+          .toList();
+
+      Logger.success(
+        'Retrieved ${items.length} shopping list items',
+        'FirestoreService',
+      );
+      return items;
+    } catch (e) {
+      Logger.error(
+        'Failed to get shopping list items',
+        e,
+        null,
+        'FirestoreService',
+      );
+      rethrow;
+    }
+  }
+
+  /// Stream shopping list items for real-time updates
+  Stream<List<ShoppingListItem>> streamShoppingListItems(
+    String userId,
+    String listId,
+  ) {
+    return _firestore
+        .collection(FirebaseCollections.users)
+        .doc(userId)
+        .collection(FirebaseCollections.shoppingLists)
+        .doc(listId)
+        .collection(FirebaseCollections.shoppingListItems)
+        .orderBy('addedAt')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ShoppingListItem.fromFirestore(doc))
+          .toList();
+    }).handleError((error) {
+      Logger.error(
+        'Error in shopping list items stream',
+        error,
+        null,
+        'FirestoreService',
+      );
+      return <ShoppingListItem>[];
+    });
+  }
+
+  /// Get a single shopping list by ID with its items
+  Future<ShoppingList?> getShoppingList(String userId, String listId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .get();
+
+      if (!doc.exists || doc.data() == null) {
+        return null;
+      }
+
+      final shoppingList = ShoppingList.fromFirestore(doc);
+      
+      // Load items
+      final items = await getShoppingListItems(userId, listId);
+      
+      return shoppingList.copyWith(items: items);
+    } catch (e) {
+      Logger.error('Failed to get shopping list', e, null, 'FirestoreService');
+      return null;
+    }
+  }
+
+  /// Update shopping item checked status
+  Future<void> updateShoppingItemStatus({
+    required String userId,
+    required String listId,
+    required String itemId,
+    required bool isChecked,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems)
+          .doc(itemId)
+          .update({
+        'isChecked': isChecked,
+      });
+
+      // Update shopping list updatedAt
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .update({
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      Logger.success(
+        'Shopping item status updated: $itemId -> $isChecked',
+        'FirestoreService',
+      );
+    } catch (e) {
+      Logger.error(
+        'Failed to update shopping item status',
+        e,
+        null,
+        'FirestoreService',
+      );
+      rethrow;
+    }
+  }
+
+  /// Update shopping list item (name, quantity, unit, links, canonicalIngredientId)
+  Future<void> updateShoppingItem({
+    required String userId,
+    required String listId,
+    required String itemId,
+    required String name,
+    required double quantity,
+    required String unit,
+    String? canonicalIngredientId,
+    String? amazonLink,
+    String? walmartLink,
+    List<CustomStoreLink>? customStores,
+  }) async {
+    try {
+      final updateData = <String, dynamic>{
+        'name': name,
+        'quantity': quantity,
+        'unit': unit,
+      };
+
+      if (canonicalIngredientId != null) {
+        updateData['canonicalIngredientId'] = canonicalIngredientId;
+      }
+      if (amazonLink != null) {
+        updateData['amazonLink'] = amazonLink;
+      }
+      if (walmartLink != null) {
+        updateData['walmartLink'] = walmartLink;
+      }
+      if (customStores != null) {
+        updateData['customStores'] = customStores.map((e) => e.toMap()).toList();
+      }
+
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems)
+          .doc(itemId)
+          .update(updateData);
+
+      // Update shopping list updatedAt
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .update({
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      Logger.success(
+        'Shopping item updated: $itemId',
+        'FirestoreService',
+      );
+    } catch (e) {
+      Logger.error(
+        'Failed to update shopping item',
+        e,
+        null,
+        'FirestoreService',
+      );
+      rethrow;
+    }
+  }
+
+  /// Delete a shopping list item
+  Future<void> deleteShoppingItem({
+    required String userId,
+    required String listId,
+    required String itemId,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems)
+          .doc(itemId)
+          .delete();
+
+      // Update shopping list updatedAt
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .update({
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      Logger.success(
+        'Shopping item deleted: $itemId',
+        'FirestoreService',
+      );
+    } catch (e) {
+      Logger.error(
+        'Failed to delete shopping item',
+        e,
+        null,
+        'FirestoreService',
+      );
+      rethrow;
+    }
+  }
+
+  /// Update shopping list name
+  Future<void> updateShoppingList({
+    required String userId,
+    required String listId,
+    required String name,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .update({
+        'name': name,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      Logger.success('Shopping list updated: $listId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to update shopping list', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Archive or unarchive a shopping list
+  Future<void> archiveShoppingList({
+    required String userId,
+    required String listId,
+    required bool isArchived,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .update({
+        'isArchived': isArchived,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      Logger.success('Shopping list ${isArchived ? 'archived' : 'unarchived'}: $listId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to archive shopping list', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Delete a shopping list
+  Future<void> deleteShoppingList(String userId, String listId) async {
+    try {
+      // Delete all items first
+      final itemsSnapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .collection(FirebaseCollections.shoppingListItems)
+          .get();
+
+      final batch = _firestore.batch();
+      for (final doc in itemsSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      // Delete the list
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .doc(listId)
+          .delete();
+
+      Logger.success('Shopping list deleted: $listId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to delete shopping list', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Generate Amazon search link for item
+  /// Uses PurchaseLinkService for centralized link generation with affiliate support
+  String _generateAmazonLink(String itemName) {
+    return PurchaseLinkService.generateAmazonLink(itemName: itemName);
+  }
+
+  /// Generate Walmart search link for item
+  /// Uses PurchaseLinkService for centralized link generation with affiliate support
+  String _generateWalmartLink(String itemName) {
+    return PurchaseLinkService.generateWalmartLink(itemName: itemName);
+  }
+
+  // ==================== FEEDBACK METHODS ====================
+
+  /// Submit feedback
+  Future<String> submitFeedback({
+    required String userId,
+    required String message,
+    required FeedbackCategory category,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final feedbackId = _firestore.collection(FirebaseCollections.feedback).doc().id;
+
+      final feedback = {
+        'userId': userId,
+        'message': message.trim(),
+        'category': category.name,
+        'createdAt': Timestamp.fromDate(now),
+      };
+
+      await _firestore
+          .collection(FirebaseCollections.feedback)
+          .doc(feedbackId)
+          .set(feedback);
+
+      Logger.success('Feedback submitted: $feedbackId', 'FirestoreService');
+      return feedbackId;
+    } catch (e) {
+      Logger.error('Failed to submit feedback', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Get user's feedback history
+  Future<List<Feedback>> getUserFeedback(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.feedback)
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final feedbackList = snapshot.docs
+          .map((doc) => Feedback.fromFirestore(doc))
+          .toList();
+
+      Logger.success('Retrieved ${feedbackList.length} feedback items', 'FirestoreService');
+      return feedbackList;
+    } catch (e) {
+      Logger.error('Failed to get user feedback', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Stream user's feedback history
+  Stream<List<Feedback>> streamUserFeedback(String userId) {
+    return _firestore
+        .collection(FirebaseCollections.feedback)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Feedback.fromFirestore(doc))
+          .toList();
+    }).handleError((error) {
+      Logger.error('Error in feedback stream', error, null, 'FirestoreService');
+      return <Feedback>[];
+    });
+  }
+
+  // ==================== ADMIN METHODS ====================
+
+  /// Get all users (Admin only)
+  Future<List<UserModel>> getAllUsers() async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final users = snapshot.docs
+          .map((doc) {
+            try {
+              final data = doc.data();
+              return UserModel(
+                userId: doc.id,
+                email: data['email'] ?? '',
+                displayName: data['displayName'] ?? data['name'] ?? '',
+                photoURL: data['photoURL'],
+                role: data['role'] ?? 'user',
+                preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
+                createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+                updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              );
+            } catch (e) {
+              Logger.error('Failed to parse user: ${doc.id}', e, null, 'FirestoreService');
+              return null;
+            }
+          })
+          .whereType<UserModel>()
+          .toList();
+
+      Logger.success('Retrieved ${users.length} users', 'FirestoreService');
+      return users;
+    } catch (e) {
+      Logger.error('Failed to get all users', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Update user role (Admin only)
+  Future<void> updateUserRole(String userId, String role) async {
+    try {
+      await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .update({
+        'role': role,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+      Logger.success('User role updated: $userId -> $role', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to update user role', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Delete user (Admin only)
+  Future<void> deleteUser(String userId) async {
+    try {
+      // Delete user's pantry items
+      final pantrySnapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.pantryItems)
+          .get();
+      
+      final batch = _firestore.batch();
+      for (final doc in pantrySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Delete user's shopping lists
+      final shoppingListsSnapshot = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .collection(FirebaseCollections.shoppingLists)
+          .get();
+      
+      for (final listDoc in shoppingListsSnapshot.docs) {
+        // Delete shopping list items
+        final itemsSnapshot = await listDoc.reference
+            .collection(FirebaseCollections.shoppingListItems)
+            .get();
+        for (final itemDoc in itemsSnapshot.docs) {
+          batch.delete(itemDoc.reference);
+        }
+        batch.delete(listDoc.reference);
+      }
+
+      // Delete user profile
+      batch.delete(_firestore.collection(FirebaseCollections.users).doc(userId));
+
+      await batch.commit();
+      Logger.success('User deleted: $userId', 'FirestoreService');
+    } catch (e) {
+      Logger.error('Failed to delete user', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Delete any recipe (Admin only)
+  Future<void> deleteRecipeAsAdmin(String recipeId) async {
+    try {
+      // Get recipe to check for image
+      final recipeDoc = await _firestore
+          .collection(FirebaseCollections.recipes)
+          .doc(recipeId)
+          .get();
+
+      if (recipeDoc.exists) {
+        final data = recipeDoc.data();
+        final imageUrl = data?['imageUrl'] as String?;
+
+        // Delete recipe image if exists
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            await deleteRecipeImage(imageUrl);
+          } catch (e) {
+            Logger.warning('Failed to delete recipe image: $e', 'FirestoreService');
+          }
+        }
+
+        // Delete recipe document
+        await _firestore
+            .collection(FirebaseCollections.recipes)
+            .doc(recipeId)
+            .delete();
+
+        Logger.success('Recipe deleted by admin: $recipeId', 'FirestoreService');
+      }
+    } catch (e) {
+      Logger.error('Failed to delete recipe as admin', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+
+  /// Get admin statistics
+  Future<Map<String, dynamic>> getAdminStatistics() async {
+    try {
+      final usersSnapshot = await _firestore.collection(FirebaseCollections.users).get();
+      final recipesSnapshot = await _firestore.collection(FirebaseCollections.recipes).get();
+      final feedbackSnapshot = await _firestore.collection(FirebaseCollections.feedback).get();
+
+      // Count pantry items across all users
+      int totalPantryItems = 0;
+      for (final userDoc in usersSnapshot.docs) {
+        final pantrySnapshot = await userDoc.reference
+            .collection(FirebaseCollections.pantryItems)
+            .get();
+        totalPantryItems += pantrySnapshot.docs.length.toInt();
+      }
+
+      // Count shopping lists
+      int totalShoppingLists = 0;
+      for (final userDoc in usersSnapshot.docs) {
+        final shoppingListsSnapshot = await userDoc.reference
+            .collection(FirebaseCollections.shoppingLists)
+            .get();
+        totalShoppingLists += shoppingListsSnapshot.docs.length.toInt();
+      }
+
+      final stats = {
+        'totalUsers': usersSnapshot.docs.length,
+        'totalRecipes': recipesSnapshot.docs.length,
+        'totalPantryItems': totalPantryItems,
+        'totalShoppingLists': totalShoppingLists,
+        'totalFeedback': feedbackSnapshot.docs.length,
+        'adminUsers': usersSnapshot.docs
+            .where((doc) => (doc.data()['role'] ?? 'user') == 'admin')
+            .length,
+      };
+
+      Logger.success('Admin statistics retrieved', 'FirestoreService');
+      return stats;
+    } catch (e) {
+      Logger.error('Failed to get admin statistics', e, null, 'FirestoreService');
+      rethrow;
+    }
+  }
+}
+

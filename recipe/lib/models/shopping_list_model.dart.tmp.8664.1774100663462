@@ -1,0 +1,245 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'user_store_model.dart';
+
+/// Shopping list item model
+class ShoppingListItem {
+  final String id;
+  final String name;
+  final String? canonicalIngredientId; // Phase 2: Reference to canonical ingredient
+  final double quantity;
+  final String unit;
+  final bool isChecked;
+  final String? amazonLink;
+  final String? walmartLink;
+  final List<CustomStoreLink> customStores; // User's custom store links
+  final String? note; // Optional note (e.g., why this item is on the list)
+  final DateTime addedAt;
+
+  ShoppingListItem({
+    required this.id,
+    required this.name,
+    this.canonicalIngredientId,
+    required this.quantity,
+    required this.unit,
+    this.isChecked = false,
+    this.amazonLink,
+    this.walmartLink,
+    this.customStores = const [],
+    this.note,
+    required this.addedAt,
+  });
+
+  factory ShoppingListItem.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return ShoppingListItem(
+      id: doc.id,
+      name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
+      quantity: (data['quantity'] ?? 0).toDouble(),
+      unit: data['unit'] ?? '',
+      isChecked: data['isChecked'] ?? false,
+      amazonLink: data['amazonLink'],
+      walmartLink: data['walmartLink'],
+      customStores: (data['customStores'] as List<dynamic>?)
+              ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      note: data['note'] as String?,
+      addedAt: (data['addedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  factory ShoppingListItem.fromMap(Map<String, dynamic> data, String id) {
+    return ShoppingListItem(
+      id: id,
+      name: data['name'] ?? '',
+      canonicalIngredientId: data['canonicalIngredientId'] as String?,
+      quantity: (data['quantity'] ?? 0).toDouble(),
+      unit: data['unit'] ?? '',
+      isChecked: data['isChecked'] ?? false,
+      amazonLink: data['amazonLink'],
+      walmartLink: data['walmartLink'],
+      customStores: (data['customStores'] as List<dynamic>?)
+              ?.map((e) => CustomStoreLink.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      note: data['note'] as String?,
+      addedAt: data['addedAt'] is Timestamp
+          ? (data['addedAt'] as Timestamp).toDate()
+          : DateTime.parse(data['addedAt'].toString()),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'canonicalIngredientId': canonicalIngredientId,
+      'quantity': quantity,
+      'unit': unit,
+      'isChecked': isChecked,
+      // Only save links if they are non-null and non-empty
+      if (amazonLink != null && amazonLink!.isNotEmpty) 'amazonLink': amazonLink,
+      if (walmartLink != null && walmartLink!.isNotEmpty) 'walmartLink': walmartLink,
+      'customStores': customStores.map((e) => e.toMap()).toList(),
+      if (note != null && note!.isNotEmpty) 'note': note,
+      'addedAt': Timestamp.fromDate(addedAt),
+    };
+  }
+
+  ShoppingListItem copyWith({
+    String? id,
+    String? name,
+    String? canonicalIngredientId,
+    double? quantity,
+    String? unit,
+    bool? isChecked,
+    String? amazonLink,
+    String? walmartLink,
+    List<CustomStoreLink>? customStores,
+    String? note,
+    DateTime? addedAt,
+  }) {
+    return ShoppingListItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      isChecked: isChecked ?? this.isChecked,
+      amazonLink: amazonLink ?? this.amazonLink,
+      walmartLink: walmartLink ?? this.walmartLink,
+      customStores: customStores ?? this.customStores,
+      note: note ?? this.note,
+      addedAt: addedAt ?? this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'ShoppingListItem(id: $id, name: $name, quantity: $quantity $unit, isChecked: $isChecked)';
+  }
+}
+
+/// Shopping list model
+class ShoppingList {
+  final String id;
+  final String name;
+  final String? recipeId;
+  final String? recipeTitle;
+  final String? source; // Phase 2: 'recipe', 'meal_plan', or null
+  final List<ShoppingListItem> items;
+  final bool isArchived; // Whether this list is archived
+  final String? weekLabel; // Optional week grouping label (e.g., "Semana 1 - Enero")
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  ShoppingList({
+    required this.id,
+    required this.name,
+    this.recipeId,
+    this.recipeTitle,
+    this.source,
+    required this.items,
+    this.isArchived = false,
+    this.weekLabel,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  /// Check if this list was auto-generated from meal plan
+  bool get isFromMealPlan => source == 'meal_plan';
+
+  factory ShoppingList.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    
+    // Get items from subcollection
+    final items = <ShoppingListItem>[];
+    // Note: Items will be loaded separately via streamShoppingListItems
+    
+    return ShoppingList(
+      id: doc.id,
+      name: data['name'] ?? 'Shopping List',
+      recipeId: data['recipeId'],
+      recipeTitle: data['recipeTitle'],
+      source: data['source'] as String?,
+      items: items,
+      isArchived: data['isArchived'] ?? false,
+      weekLabel: data['weekLabel'] as String?,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  factory ShoppingList.fromMap(Map<String, dynamic> data, String id) {
+    return ShoppingList(
+      id: id,
+      name: data['name'] ?? 'Shopping List',
+      recipeId: data['recipeId'],
+      recipeTitle: data['recipeTitle'],
+      source: data['source'] as String?,
+      items: [], // Items loaded separately
+      isArchived: data['isArchived'] ?? false,
+      weekLabel: data['weekLabel'] as String?,
+      createdAt: data['createdAt'] is Timestamp
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] is Timestamp
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'recipeId': recipeId,
+      'recipeTitle': recipeTitle,
+      'source': source,
+      'isArchived': isArchived,
+      'weekLabel': weekLabel,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
+    };
+  }
+
+  ShoppingList copyWith({
+    String? id,
+    String? name,
+    String? recipeId,
+    String? recipeTitle,
+    String? source,
+    List<ShoppingListItem>? items,
+    bool? isArchived,
+    String? weekLabel,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return ShoppingList(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      recipeId: recipeId ?? this.recipeId,
+      recipeTitle: recipeTitle ?? this.recipeTitle,
+      source: source ?? this.source,
+      items: items ?? this.items,
+      isArchived: isArchived ?? this.isArchived,
+      weekLabel: weekLabel ?? this.weekLabel,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  /// Get checked items count
+  int get checkedCount => items.where((item) => item.isChecked).length;
+
+  /// Get total items count
+  int get totalCount => items.length;
+
+  /// Check if all items are checked
+  bool get isComplete => items.isNotEmpty && checkedCount == totalCount;
+
+  @override
+  String toString() {
+    return 'ShoppingList(id: $id, name: $name, items: ${items.length}, recipeId: $recipeId)';
+  }
+}
+

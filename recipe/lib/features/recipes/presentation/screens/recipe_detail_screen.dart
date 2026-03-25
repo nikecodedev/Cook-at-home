@@ -46,7 +46,22 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final isOwner = currentUserId == widget.recipe.authorId;
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 768;
-    
+
+    // Reactively listen to recipe stream so _currentRecipe stays in sync
+    // with Firestore (e.g. after ingredient edits, price changes, etc.)
+    ref.listen<AsyncValue<List<Recipe>>>(userRecipesStreamProvider, (previous, next) {
+      next.whenData((recipes) {
+        final updated = recipes.where((r) => r.id == widget.recipe.id).firstOrNull;
+        if (updated != null && updated.updatedAt != _currentRecipe.updatedAt) {
+          setState(() {
+            _currentRecipe = updated;
+          });
+          // Force cost recalculation with the fresh recipe data
+          ref.read(priceVersionProvider.notifier).state++;
+        }
+      });
+    });
+
     // Fetch pantry items to check ingredient availability
     final pantryItemsAsync = ref.watch(pantryItemsStreamProvider);
     final pantryItemNames = pantryItemsAsync.maybeWhen(
@@ -77,11 +92,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha:0.15),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha:0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -100,11 +115,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             Container(
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha:0.15),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha:0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -115,13 +130,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 onPressed: isLoading
                     ? null
                     : () async {
-                        final result = await context.push<bool>(
+                        await context.push(
                           Routes.recipeEdit,
                           extra: _currentRecipe,
                         );
-                        if (result == true && context.mounted) {
-                          // Re-fetch updated recipe from Firestore so cost recalculates
-                          // with the new ingredient quantities/units
+                        // Always re-fetch the recipe from Firestore after
+                        // returning from edit screen so cost recalculates
+                        // with the new ingredient quantities.
+                        if (mounted) {
                           try {
                             final firestoreService = ref.read(firestoreServiceProvider);
                             final updatedRecipe = await firestoreService.getRecipe(widget.recipe.id);
@@ -129,15 +145,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                               setState(() {
                                 _currentRecipe = updatedRecipe;
                               });
+                              // Bump AFTER _currentRecipe is set so the cost
+                              // provider recalculates with the NEW recipe data.
+                              ref.read(priceVersionProvider.notifier).state++;
                             }
                           } catch (e) {
                             // Non-critical — cost will refresh on next screen visit
-                          }
-                          if (context.mounted) {
-                            ModernSnackbar.showSuccess(
-                              context,
-                              message: 'Receta actualizada exitosamente',
-                            );
                           }
                         }
                       },
@@ -146,11 +159,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             Container(
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha:0.15),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha:0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -261,13 +274,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           margin: const EdgeInsets.only(bottom: 20),
                           decoration: BoxDecoration(
                             color: missingCount == 0
-                                ? AppColors.success.withOpacity(0.1)
-                                : AppColors.warning.withOpacity(0.1),
+                                ? AppColors.success.withValues(alpha:0.1)
+                                : AppColors.warning.withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: missingCount == 0
-                                  ? AppColors.success.withOpacity(0.3)
-                                  : AppColors.warning.withOpacity(0.3),
+                                  ? AppColors.success.withValues(alpha:0.3)
+                                  : AppColors.warning.withValues(alpha:0.3),
                             ),
                           ),
                           child: Row(
@@ -276,8 +289,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: missingCount == 0
-                                      ? AppColors.success.withOpacity(0.2)
-                                      : AppColors.warning.withOpacity(0.2),
+                                      ? AppColors.success.withValues(alpha:0.2)
+                                      : AppColors.warning.withValues(alpha:0.2),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
@@ -438,7 +451,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha:0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
             spreadRadius: 0,
@@ -472,7 +485,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -602,7 +615,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         border: Border.all(color: AppColors.gray200),
         boxShadow: [
           BoxShadow(
-            color: AppColors.gray200.withOpacity(0.3),
+            color: AppColors.gray200.withValues(alpha:0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -616,7 +629,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -735,7 +748,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(

@@ -60,6 +60,16 @@ class RecipeCostWidget extends ConsumerWidget {
 
     // Show helpful message if no cost data available
     if (calculation.totalCost == 0) {
+      final totalIngredients = recipe.ingredients.length;
+      final pricedCount = calculation.ingredientCosts.length;
+      final missingCount = totalIngredients - pricedCount;
+
+      // Find ingredient names that are NOT in ingredientCosts
+      final missingNames = recipe.ingredients
+          .where((ing) => !calculation.ingredientCosts.containsKey(ing.name))
+          .map((ing) => ing.name)
+          .toList();
+
       return Container(
         padding: EdgeInsets.all(isTablet ? 24 : 20),
         decoration: BoxDecoration(
@@ -75,7 +85,7 @@ class RecipeCostWidget extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.1),
+                    color: AppColors.warning.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -99,7 +109,9 @@ class RecipeCostWidget extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Agrega precios a los ingredientes para ver el costo',
+                        totalIngredients == 0
+                            ? 'Agrega ingredientes a la receta primero'
+                            : '$missingCount de $totalIngredients ingredientes sin precio',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -110,6 +122,53 @@ class RecipeCostWidget extends ConsumerWidget {
                 ),
               ],
             ),
+            if (missingNames.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.15)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Para calcular el costo, edita cada ingrediente y agrega el precio del producto:',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: missingNames.take(5).map((name) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      )).toList(),
+                    ),
+                    if (missingNames.length > 5) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '+ ${missingNames.length - 5} ingredientes m\u00e1s',
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -123,7 +182,7 @@ class RecipeCostWidget extends ConsumerWidget {
         border: Border.all(color: AppColors.gray200),
         boxShadow: [
           BoxShadow(
-            color: AppColors.gray200.withOpacity(0.3),
+            color: AppColors.gray200.withValues(alpha:0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -137,7 +196,7 @@ class RecipeCostWidget extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -186,10 +245,10 @@ class RecipeCostWidget extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _getCostTierColor(calculation.costTier).withOpacity(0.1),
+              color: _getCostTierColor(calculation.costTier).withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _getCostTierColor(calculation.costTier).withOpacity(0.3),
+                color: _getCostTierColor(calculation.costTier).withValues(alpha:0.3),
               ),
             ),
             child: Row(
@@ -219,6 +278,32 @@ class RecipeCostWidget extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          // Show notice if some ingredients are missing prices
+          if (recipe.ingredients.length > calculation.ingredientCosts.length) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 14, color: AppColors.warning),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Costo parcial: ${calculation.ingredientCosts.length} de ${recipe.ingredients.length} ingredientes tienen precio',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
